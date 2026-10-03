@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Globe2, KeyRound, ShieldAlert, Truck, Fingerprint, Radio } from 'lucide-react';
+import { ArrowRight, Globe2, KeyRound, ShieldAlert, Truck, Fingerprint, Radio, Siren } from 'lucide-react';
 import { useApp } from '../../state/AppContext';
 import { MODULE_BY_ID } from '../../modules/registry';
 import { headlines } from '../../data/core';
@@ -13,6 +13,7 @@ import { Card, KpiStrip, Freshness, SevBadge } from '../../components/ui';
 import { Chart, PALETTE } from '../../components/Chart';
 import { WorldMap } from '../../components/WorldMap';
 import { fmtNum } from '../../lib/format';
+import { vrHeadline } from '../../data/modules/vulnresponse';
 import { HBarList, RingTile, RecordsDrawer, CRED_COLUMNS } from './parts';
 import './int.css';
 
@@ -54,7 +55,9 @@ export default function IntOverview() {
   const investigating = creds.filter((k) => k.response === 'Investigating');
   const exposedSup = sups.filter((s) => s.status === 'Exposed');
   const direct = mentions.filter((m) => m.scope === 'Direct mention' && (m.sev === 'critical' || m.sev === 'high'));
+  const vr = vrHeadline(c, tenantId);
   const actions = [
+    { icon: <Siren />, n: vr.open, text: `asset${vr.open === 1 ? '' : 's'} still exposed to ${vr.adv.cve} (CVSS ${vr.adv.cvss.toFixed(1)}, ${vr.patched} of ${vr.affected} patched)`, sev: 'critical' as const, to: '/int/vulnresponse?section=patch&status=Unpatched' },
     { icon: <Globe2 />, n: kevHosts.length, text: `internet-facing host${kevHosts.length === 1 ? '' : 's'} with a KEV-listed vulnerability`, sev: 'critical' as const, to: '/int/surface?kev=1' },
     { icon: <Fingerprint />, n: liveLogin.length, text: `lookalike domain${liveLogin.length === 1 ? '' : 's'} serving a cloned login page`, sev: 'critical' as const, to: '/int/darkweb?view=domains&status=Live%20%E2%80%94%20login%20page' },
     { icon: <KeyRound />, n: investigating.length, text: 'fresh credential exposures still being investigated', sev: 'high' as const, to: '/int/exposure?response=Investigating' },

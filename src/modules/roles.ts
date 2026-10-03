@@ -90,7 +90,7 @@ export const ROLES: RoleDef[] = [
     id: 'threat', label: 'Threat intelligence', group: 'Security operations',
     description: 'Dark web, exposure, actors and indicators',
     landing: '/int/overview',
-    workspace: [['HexaInt overview', '/int/overview'], ['Credential exposure', '/int/exposure'], ['Brand & dark web', '/int/darkweb'], ['OSINT & actors', '/int/osint'], ['Attack surface', '/strike/asm']],
+    workspace: [['HexaInt overview', '/int/overview'], ['Credential exposure', '/int/exposure'], ['Brand & dark web', '/int/darkweb'], ['OSINT & actors', '/int/osint'], ['Attack surface', '/strike/asm'], ['Critical vuln response', '/int/vulnresponse']],
     person: (c) => c.people.socLead,
     licence: 'Analyst',
     rights: ['Request IOC pushes and takedowns', 'Publish intel briefs'],

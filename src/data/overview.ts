@@ -1,4 +1,5 @@
 import type { CustomerId, CustomerProfile, Severity } from './types';
+import { vrHeadline } from './modules/vulnresponse';
 
 export interface AttentionItem {
   sev: Severity;
@@ -136,7 +137,17 @@ const FEED: Record<CustomerId, FeedEvent[]> = {
 
 export function attention(c: CustomerProfile, tenantId = 'all'): AttentionItem[] {
   const items = ATTENTION[c.id] ?? [];
-  return tenantId === 'all' ? items : items.filter((i) => i.tenant === tenantId);
+  const scoped = tenantId === 'all' ? items : items.filter((i) => i.tenant === tenantId);
+  // Live critical-vulnerability response item (HexaInt), counts agree with /int/vulnresponse.
+  const v = vrHeadline(c, tenantId);
+  if (!v.affected) return scoped;
+  const vuln: AttentionItem = {
+    sev: 'critical', module: 'int',
+    title: `Critical vulnerability ${v.adv.cve}: ${v.affected} assets affected, ${v.patched} patched`,
+    detail: `${v.adv.product} · CVSS ${v.adv.cvss.toFixed(1)}${v.adv.exploited ? ' · exploited in the wild' : ''} · ${v.open} still exposed${v.internetOpen ? `, ${v.internetOpen} internet-facing` : ''}`,
+    path: '/int/vulnresponse', ageMin: v.adv.publishedMinAgo, tenant: tenantId === 'all' ? v.tenant : tenantId,
+  };
+  return [vuln, ...scoped];
 }
 export function feed(c: CustomerProfile, tenantId = 'all'): FeedEvent[] {
   const items = FEED[c.id];

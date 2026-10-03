@@ -91,6 +91,7 @@ export const MODULES: ModuleDef[] = [
       { id: 'supply', label: 'Supply Chain', service: 'osint' },
       { id: 'ioc', label: 'IOC', service: 'osint' },
       { id: 'osint', label: 'OSINT & Threat Intel', service: 'osint' },
+      { id: 'vulnresponse', label: 'Critical Vulnerability Response', service: 'osint' },
     ],
   },
   {

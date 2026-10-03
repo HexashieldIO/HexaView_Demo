@@ -4,6 +4,7 @@
 // health, audit deadlines, reports and insurance renewal).
 import type { CustomerProfile, Persona, Severity } from './types';
 import { attention } from './overview';
+import { vrHeadline } from './modules/vulnresponse';
 import { pendingActions, signedIn } from './modules/ops';
 import { isStale } from './customers';
 import { MODULE_BY_ID } from '../modules/registry';
@@ -57,8 +58,26 @@ export function notifications(c: CustomerProfile, tenantId: string, persona: Per
     });
   }
 
+  // Priority: live critical vulnerability response (HexaInt). Listed once, here, ahead of the attention queue copy.
+  const vr = vrHeadline(c, tenantId);
+  if (vr.affected) {
+    out.push({
+      id: `vuln-${vr.adv.id}`,
+      cat: 'intel',
+      sev: 'critical',
+      title: `Critical vulnerability ${vr.adv.cve} (CVSS ${vr.adv.cvss.toFixed(1)}): ${vr.affected} assets affected, ${vr.patched} patched`,
+      body: `${vr.adv.product}${vr.adv.exploited ? ', exploited in the wild' : ''}. ${vr.open} still exposed${vr.internetOpen ? ` (${vr.internetOpen} internet-facing)` : ''}; customers may ask for an exposure statement.`,
+      path: '/int/vulnresponse',
+      action: 'Open response',
+      minAgo: vr.adv.publishedMinAgo,
+      tenant: tenantId === 'all' ? vr.tenant : tenantId,
+      module: 'int',
+    });
+  }
+
   for (const [i, a] of attention(c, tenantId).entries()) {
     if (a.module === 'ops') continue; // approvals are listed individually above
+    if (a.path === '/int/vulnresponse') continue; // listed as a priority notification above
     out.push({
       id: `att-${i}-${a.module}`,
       cat: MODULE_CAT[a.module] ?? 'incident',
