@@ -125,9 +125,7 @@ export const MODULES: ModuleDef[] = [
     tabs: [
       { id: 'overview', label: 'Overview', service: 'caas' },
       { id: 'caas', label: 'Compliance', service: 'caas' },
-      { id: 'risks', label: 'Risk Register', service: 'caas' },
       { id: 'tprm', label: 'Third-Party Risk', service: 'tprm' },
-      { id: 'continuity', label: 'Business Continuity', service: 'caas' },
       { id: 'aigov', label: 'AI Management System (ISO 42001)', service: 'caas' },
     ],
   },

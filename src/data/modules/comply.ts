@@ -219,7 +219,7 @@ const RISKS: Record<CustomerId, [string, string, string, number, number, number,
   ],
 };
 
-const RISK_TOTAL: Record<CustomerId, number> = { maritime: 164, finserv: 236, media: 128, healthcare: 212, automotive: 254 };
+const RISK_TOTAL: Record<CustomerId, number> = { maritime: 236, finserv: 284, media: 208, healthcare: 266, automotive: 298 };
 const RISK_THREATS: Record<CustomerId, string[]> = {
   maritime: ['Ransomware', 'Vendor remote-access abuse', 'GNSS / AIS spoofing', 'Business email compromise (BEC)', 'Insider misuse', 'Malware via removable media', 'Satellite link outage', 'Edge appliance intrusion', 'Cloud misconfiguration', 'Supply-chain compromise'],
   finserv: ['Ransomware', 'Payment fraud', 'Help-desk social engineering', 'Insider data theft', 'Third-party ICT outage', 'Edge appliance intrusion', 'Credential stuffing', 'DDoS on digital channels', 'Cloud misconfiguration', 'Market-abuse data leak'],
@@ -1338,7 +1338,7 @@ export function complianceTasks(c: CustomerProfile, tenantId: string, controls =
             : r.weighted<TaskStatus>([['Evidence submitted', 3], ['Evidence in review', 2], ['More information requested', 1.5], ['Awaiting evidence', 3], ['Completed — evidence approved', 2]]);
       const p = r.pick(people);
       out.push({
-        id: `TSK-${String(1000 + n++)}`, ref: `${ctl.ref}.${j + 1}`, title: `${verb} ${ctl.name.charAt(0).toLowerCase()}${ctl.name.slice(1)}`,
+        id: `TSK-${String(1000 + n++)}`, ref: `${ctl.ref}.${j + 1}`, title: `${verb} ${/^[A-Z][a-z]/.test(ctl.name) ? ctl.name.charAt(0).toLowerCase() + ctl.name.slice(1) : ctl.name}`,
         controlId: ctl.id, controlRef: ctl.ref, fwId: ctl.fwId, fwShort: ctl.fwShort, owner: p.name, ownerEmail: p.email, tenant: r.pick(tenants).id,
         sev: r.weighted<TaskSev>([['critical', 1.2], ['high', 3], ['medium', 4], ['low', 2.5]]), status, evidence: 0, updatedDays: r.int(1, 110),
         dueDays: r.int(3, 120), overdue: false, kind, loopControl: ctl.loopControl, decidedBy: ctl.decidedBy,
@@ -1607,58 +1607,108 @@ export function exercises(c: CustomerProfile): Exercise[] {
   return EXERCISES[c.id].map((e, i) => ({ ...e, id: `EXR-${String(i + 1).padStart(3, '0')}` }));
 }
 
-export type AssetCategory = 'Applications & Databases' | 'Hardware' | 'OT & devices' | 'Information' | 'SaaS' | 'Infrastructure' | 'People' | 'Outsourced Services';
+export type AssetCategory = 'Applications & Databases' | 'Documentation' | 'Hardware' | 'IT/Communication & Other Equipment' | 'Information' | 'Infrastructure' | 'Outsourced Services' | 'People' | 'SaaS' | 'Software';
+export const ASSET_CATEGORIES: AssetCategory[] = ['Applications & Databases', 'Documentation', 'Hardware', 'IT/Communication & Other Equipment', 'Information', 'Infrastructure', 'Outsourced Services', 'People', 'SaaS', 'Software'];
+export type AssetClass = 'Physical' | 'Digital' | 'HR' | 'Logical';
+export type AssetStatus = 'Active' | 'Planned' | 'Retired' | 'Legacy' | 'Draft';
+export type CiaLevel = 'L' | 'M' | 'H';
 export interface RegAsset {
   id: string;
   name: string;
+  /** The pool name the asset was raised from (used to link risks and BIA dependencies). */
+  base: string;
   category: AssetCategory;
-  cls: 'Physical' | 'Digital' | 'HR' | 'Logical';
+  sub: string;
+  cls: AssetClass;
   criticality: 'Critical' | 'Moderate' | 'Non-Critical';
-  cia: [string, string, string];
+  cia: [CiaLevel, CiaLevel, CiaLevel];
   supportEndDays: number | null;
-  status: 'Active' | 'Planned' | 'Retired' | 'Legacy';
+  status: AssetStatus;
   owner: string;
   tenant: string;
   department: string;
 }
-const ASSET_TOTAL: Record<CustomerId, number> = { maritime: 420, finserv: 680, media: 360, healthcare: 610, automotive: 820 };
+const ASSET_TOTAL: Record<CustomerId, number> = { maritime: 304, finserv: 348, media: 262, healthcare: 336, automotive: 350 };
+/** Sector OT / equipment sub-category label. */
+export const EQUIPMENT_SUB: Record<CustomerId, string> = {
+  maritime: 'Port & vessel OT', finserv: 'Branch, ATM & data-centre facilities', media: 'Broadcast & playout equipment', healthcare: 'Connected medical device', automotive: 'Plant OT / ICS',
+};
+const DOCS: Record<CustomerId, string[]> = {
+  maritime: ['Ship Security Plan (cyber annex)', 'Port Facility Security Plan', 'Safety Management System manual', 'Crane OT network diagrams', 'Vessel cyber incident response plan', 'Terminal BCP'],
+  finserv: ['Register of Information (DORA RoI)', 'Impact tolerance statements', 'SWIFT CSCF attestation pack', 'PCI DSS network diagrams', 'ICT third-party exit plans', 'Operational resilience self-assessment'],
+  media: ['TPN self-assessment questionnaire', 'Content security policy', 'Vendor delivery specifications', 'Watermarking procedures', 'Live playout DR runbook', 'Pre-release handling standard'],
+  healthcare: ['HIPAA risk analysis', 'Epic downtime procedures', 'Business Associate Agreements file', 'Medical device security standard', 'Emergency operations plan', 'Breach notification procedure'],
+  automotive: ['CSMS manual (UNECE R155)', 'SUMS process (UNECE R156)', 'TARA records (ISO/SAE 21434)', 'TISAX ISA self-assessment', 'Plant zone & conduit diagrams', 'Prototype protection handbook'],
+};
+const SOFTWARE: Record<CustomerId, string[]> = {
+  maritime: ['Windows 11 Enterprise image', 'ECDIS chart update client', 'Crane HMI runtime', 'Microsoft 365 Apps', 'Berth planning optimiser client'],
+  finserv: ['Windows 11 Enterprise image', 'Bloomberg Terminal client', 'z/OS system software', 'Microsoft 365 Apps', 'Murex client'],
+  media: ['macOS edit-bay image', 'Avid Media Composer', 'DaVinci Resolve', 'Adobe Creative Cloud', 'Forensic watermark SDK'],
+  healthcare: ['Windows 11 clinical workstation image', 'Epic Hyperspace client', 'Citrix Workspace', 'PACS viewer', 'Microsoft 365 Apps'],
+  automotive: ['Windows 11 Enterprise image', 'Siemens TIA Portal', 'CATIA V6 client', 'Vector CANoe', 'SAP GUI'],
+};
 const EOS_SEEDS: Record<CustomerId, [string, AssetCategory, number][]> = {
-  maritime: [['Windows 7 crane HMI (STS crane 14)', 'OT & devices', -380], ['ECDIS on Windows XP Embedded (Halcyon Pioneer)', 'OT & devices', -520], ['Cisco ASA 5512 at Santos gate', 'Hardware', -210], ['Navis N4 2.x reporting server', 'Applications & Databases', -96]],
+  maritime: [['Windows 7 crane HMI (STS crane 14)', 'IT/Communication & Other Equipment', -380], ['ECDIS on Windows XP Embedded (Halcyon Pioneer)', 'IT/Communication & Other Equipment', -520], ['Cisco ASA 5512 at Santos gate', 'Hardware', -210], ['Navis N4 2.x reporting server', 'Applications & Databases', -96]],
   finserv: [['Windows Server 2012 R2 reconciliation host', 'Infrastructure', -410], ['Oracle 12c (wealth CRM)', 'Applications & Databases', -260], ['Branch Cisco ISR 2900 routers (41)', 'Hardware', -330], ['Legacy SWIFT HSM firmware', 'Hardware', -64]],
-  media: [['Avid Media Composer 2018 edit bays (12)', 'Applications & Databases', -300], ['Windows 7 colour-grading workstation', 'Hardware', -720], ['Broadcast router firmware (SDI)', 'OT & devices', -140]],
-  healthcare: [['Windows 7 imaging workstations (GE CT console)', 'OT & devices', -980], ['BD Alaris PC units, legacy firmware (1,140)', 'OT & devices', -120], ['Windows Server 2012 R2 Clarity reporting', 'Infrastructure', -410], ['Philips IntelliVue gateway v.K', 'OT & devices', -64], ['Nurse call server (Children\'s)', 'OT & devices', -38]],
-  automotive: [['Windows XP press-line HMI (Ingolstadt P3)', 'OT & devices', -1400], ['Siemens S7-300 controllers, body shop (64)', 'OT & devices', -240], ['WinCC 7.3 SCADA (Győr)', 'OT & devices', -500], ['Windows Server 2012 R2 MES Puebla', 'Infrastructure', -410], ['Torque controllers firmware 4.x (Atlas Copco)', 'OT & devices', -90]],
+  media: [['Avid Media Composer 2018 edit bays (12)', 'Software', -300], ['Windows 7 colour-grading workstation', 'Hardware', -720], ['Broadcast router firmware (SDI)', 'IT/Communication & Other Equipment', -140]],
+  healthcare: [['Windows 7 imaging workstations (GE CT console)', 'IT/Communication & Other Equipment', -980], ['BD Alaris PC units, legacy firmware (1,140)', 'IT/Communication & Other Equipment', -120], ['Windows Server 2012 R2 Clarity reporting', 'Infrastructure', -410], ['Philips IntelliVue gateway v.K', 'IT/Communication & Other Equipment', -64], ["Nurse call server (Children's)", 'IT/Communication & Other Equipment', -38]],
+  automotive: [['Windows XP press-line HMI (Ingolstadt P3)', 'IT/Communication & Other Equipment', -1400], ['Siemens S7-300 controllers, body shop (64)', 'IT/Communication & Other Equipment', -240], ['WinCC 7.3 SCADA (Győr)', 'IT/Communication & Other Equipment', -500], ['Windows Server 2012 R2 MES Puebla', 'Infrastructure', -410], ['Torque controllers firmware 4.x (Atlas Copco)', 'IT/Communication & Other Equipment', -90]],
+};
+const SUBS: Record<Exclude<AssetCategory, 'IT/Communication & Other Equipment' | 'Outsourced Services'>, string[]> = {
+  'Applications & Databases': ['Line-of-business application', 'Database', 'Integration / middleware'],
+  Documentation: ['Plan', 'Policy & procedure', 'Design documentation'],
+  Hardware: ['End-user device', 'Network device', 'Server hardware', 'Storage'],
+  Information: ['Confidential information', 'Personal data', 'Intellectual property'],
+  Infrastructure: ['Server', 'Virtualisation host', 'Cloud account'],
+  People: ['Key person', 'Privileged user group', 'Workforce group'],
+  SaaS: ['Security tooling', 'Business SaaS'],
+  Software: ['Endpoint software', 'Operating system image', 'Engineering tooling'],
 };
 export function assetRegister(c: CustomerProfile, tenantId: string): RegAsset[] {
-  const r = rng(`assets-${c.id}`);
+  const r = rng(`assets-v2-${c.id}`);
   const owners = ownersOf(c);
   const depts = ['Company-wide IT', 'Finance & reporting', 'Operations', 'Engineering', 'Sales & marketing', 'HR & payroll', 'Security', 'Customer support'];
   const tIds = c.tenants.map((t) => t.id);
   const otTenants = c.tenants.filter((t) => t.env.includes('ot')).map((t) => t.id);
-  const pools: [AssetCategory, string[], RegAsset['cls'], number][] = [
+  const hw = ['Laptops', 'Mobile devices', 'Network switches', 'Wireless controllers', 'Firewalls', 'Storage arrays', 'Printers'];
+  const pools: [AssetCategory, string[], AssetClass, number][] = [
     ['Applications & Databases', c.vocab.crownJewels, 'Digital', 3],
-    ['Infrastructure', c.vocab.servers, 'Physical', 3],
-    ['OT & devices', c.vocab.otSystems, 'Physical', otTenants.length ? 3 : 0],
-    ['SaaS', c.connectors.filter((k) => k.env === 'saas').map((k) => k.product), 'Digital', 2],
-    ['Outsourced Services', c.thirdParties.map((t) => t.name), 'Logical', 1.5],
+    ['Infrastructure', [...c.vocab.servers, ...c.vocab.cloudAccounts.map((a) => `${a.provider} ${a.name}`)], 'Physical', 3],
+    ['IT/Communication & Other Equipment', c.vocab.otSystems, 'Physical', otTenants.length ? 3 : 1],
+    ['SaaS', c.connectors.filter((k) => k.env === 'saas').map((k) => k.product), 'Digital', 1.6],
+    ['Outsourced Services', c.thirdParties.map((t) => t.name), 'Logical', 1.4],
     ['Information', c.vocab.custodyItems, 'Logical', 1.5],
-    ['Hardware', ['Laptops', 'Mobile devices', 'Network switches', 'Wireless controllers', 'Firewalls', 'Storage arrays', 'Printers'], 'Physical', 2.5],
-    ['People', ['Administrators', 'Executives', 'Engineers', 'Contractors', 'Help-desk staff'], 'HR', 1],
+    ['Documentation', DOCS[c.id], 'Logical', 1],
+    ['Hardware', hw, 'Physical', 2.4],
+    ['Software', SOFTWARE[c.id], 'Digital', 1.4],
+    ['People', [c.people.ciso.role, c.people.socLead.role, c.people.grcLead.role, 'Domain administrators', 'Service desk agents', 'Contractors'], 'HR', 0.8],
   ];
-  const lvl = () => r.pick(['L', 'M', 'H']);
+  const subOf = (cat: AssetCategory, name: string): string =>
+    cat === 'IT/Communication & Other Equipment' ? EQUIPMENT_SUB[c.id]
+      : cat === 'Outsourced Services' ? c.thirdParties.find((t) => t.name === name)?.category ?? 'Managed service'
+        : cat === 'Hardware' ? (/Laptop|Mobile|Printer/.test(name) ? 'End-user device' : /Storage/.test(name) ? 'Storage' : 'Network device')
+          : cat === 'Infrastructure' ? (/^(AWS|Azure|GCP) /.test(name) ? 'Cloud account' : r.pick(['Server', 'Virtualisation host']))
+            : r.pick(SUBS[cat]);
+  const lvl = (): CiaLevel => r.weighted<CiaLevel>([['L', 2], ['M', 4], ['H', 3]]);
   const out: RegAsset[] = EOS_SEEDS[c.id].map(([name, category, d], i) => ({
-    id: `AST-${String(i + 1).padStart(4, '0')}`, name, category, cls: 'Physical', criticality: 'Critical', cia: ['M', 'H', 'H'], supportEndDays: d, status: 'Active',
-    owner: c.people.otLead?.name ?? c.people.admin.name, tenant: category === 'OT & devices' && otTenants.length ? r.pick(otTenants) : r.pick(tIds), department: 'Operations',
+    id: `AST-${String(i + 1).padStart(4, '0')}`, name, base: name, category,
+    sub: category === 'IT/Communication & Other Equipment' ? EQUIPMENT_SUB[c.id] : category === 'Hardware' ? 'Network device' : category === 'Software' ? 'Engineering tooling' : category === 'Infrastructure' ? 'Server' : 'Database',
+    cls: category === 'Software' || category === 'Applications & Databases' ? 'Digital' : 'Physical', criticality: 'Critical', cia: ['M', 'H', 'H'], supportEndDays: d, status: 'Legacy',
+    owner: c.people.otLead?.name ?? c.people.admin.name, tenant: category === 'IT/Communication & Other Equipment' && otTenants.length ? r.pick(otTenants) : r.pick(tIds), department: 'Operations',
   }));
   for (let i = out.length; i < ASSET_TOTAL[c.id]; i++) {
     const [category, names, cls] = r.weighted(pools.filter((p) => p[3] > 0 && p[1].length).map((p) => [p, p[3]] as const));
     const dept = r.pick(depts);
-    const eos = (category === 'Hardware' || category === 'Infrastructure' || category === 'OT & devices') && r.chance(0.6) ? r.int(-500, 1400) : null;
+    const base = r.pick(names);
+    const eos = (category === 'Hardware' || category === 'Infrastructure' || category === 'IT/Communication & Other Equipment' || category === 'Software') && r.chance(0.6) ? r.int(-500, 1400) : null;
+    const crit = category === 'Applications & Databases' || category === 'IT/Communication & Other Equipment'
+      ? r.weighted<RegAsset['criticality']>([['Critical', 4], ['Moderate', 4], ['Non-Critical', 1]])
+      : r.weighted<RegAsset['criticality']>([['Critical', 1.5], ['Moderate', 5], ['Non-Critical', 3.5]]);
     out.push({
-      id: `AST-${String(i + 1).padStart(4, '0')}`, name: `${r.pick(names)} — ${dept} (#${String(i + 1).padStart(3, '0')})`, category, cls,
-      criticality: r.weighted([['Critical', 2], ['Moderate', 5], ['Non-Critical', 3]]), cia: [lvl(), lvl(), lvl()], supportEndDays: eos,
-      status: r.weighted([['Active', 14], ['Legacy', 2.5], ['Planned', 1], ['Retired', 1]]), owner: r.pick(owners),
-      tenant: category === 'OT & devices' && otTenants.length ? r.pick(otTenants) : r.pick(tIds), department: dept,
+      id: `AST-${String(i + 1).padStart(4, '0')}`, name: `${base} — ${dept} (#${String(i + 1).padStart(3, '0')})`, base, category, sub: subOf(category, base), cls,
+      criticality: crit, cia: [lvl(), lvl(), lvl()], supportEndDays: eos,
+      status: r.weighted<AssetStatus>([['Active', 14], ['Legacy', 2.2], ['Planned', 1], ['Retired', 1]]), owner: r.pick(owners),
+      tenant: category === 'IT/Communication & Other Equipment' && otTenants.length ? r.pick(otTenants) : r.pick(tIds), department: dept,
     });
   }
   return tenantId === 'all' ? out : out.filter((a) => a.tenant === tenantId);
@@ -1679,9 +1729,9 @@ export function attentionQueue(c: CustomerProfile, tenantId: string): AttentionI
   const bias = biaRegister(c, tenantId).filter((b) => b.nextReviewDays < 0);
   const tasks = overdueItems(c, tenantId);
   return [
-    ...assets.map((a) => ({ id: a.id, kind: 'Asset' as const, title: `Past support end — ${a.id} ${a.name}`, meta: `Support ended ${-(a.supportEndDays ?? 0)} days ago · still ${a.status}`, daysOver: -(a.supportEndDays ?? 0), path: `/comply/continuity?view=assets&lifecycle=eos&id=${a.id}` })),
-    ...risks.map((x) => ({ id: x.id, kind: 'Risk' as const, title: `Treatment past due — ${x.id}: ${x.title}`, meta: `${x.treatment.toLowerCase()} · owner ${x.owner}`, daysOver: -(x.dueDays ?? 0), path: `/comply/risks?lifecycle=pastdue&id=${x.id}` })),
-    ...bias.map((b) => ({ id: b.id, kind: 'BIA' as const, title: `BIA review overdue — ${b.name}`, meta: `${b.id} · owner ${b.owner}`, daysOver: -b.nextReviewDays, path: `/comply/continuity?review=overdue&id=${b.id}` })),
-    ...tasks.map((t) => ({ id: t.id, kind: 'Task' as const, title: `Task overdue — ${t.title}`, meta: `${t.framework} · ${t.control} · ${t.owner}`, daysOver: t.daysOverdue, path: `/comply/caas?view=tasks&overdue=1&id=${t.id}` })),
+    ...assets.map((a) => ({ id: a.id, kind: 'Asset' as const, title: `Past support end — ${a.id} ${a.name}`, meta: `Support ended ${-(a.supportEndDays ?? 0)} days ago · still ${a.status}`, daysOver: -(a.supportEndDays ?? 0), path: `/comply/caas?section=assets&lifecycle=eos&id=${a.id}` })),
+    ...risks.map((x) => ({ id: x.id, kind: 'Risk' as const, title: `Treatment past due — ${x.id}: ${x.title}`, meta: `${x.treatment.toLowerCase()} · owner ${x.owner}`, daysOver: -(x.dueDays ?? 0), path: `/comply/caas?section=risks&lifecycle=pastdue&id=${x.id}` })),
+    ...bias.map((b) => ({ id: b.id, kind: 'BIA' as const, title: `BIA review overdue — ${b.name}`, meta: `${b.id} · owner ${b.owner}`, daysOver: -b.nextReviewDays, path: `/comply/caas?section=bia&lifecycle=overdue&id=${b.id}` })),
+    ...tasks.map((t) => ({ id: t.id, kind: 'Task' as const, title: `Task overdue — ${t.title}`, meta: `${t.framework} · ${t.control} · ${t.owner}`, daysOver: t.daysOverdue, path: `/comply/caas?section=tasks&overdue=1&id=${t.id}` })),
   ].sort((a, b) => b.daysOver - a.daysOver);
 }

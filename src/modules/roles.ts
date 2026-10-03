@@ -109,8 +109,8 @@ export const ROLES: RoleDef[] = [
   {
     id: 'risk', label: 'Risk & resilience', group: 'Governance & risk',
     description: 'Risk register, continuity, third parties and crisis',
-    landing: '/comply/risks',
-    workspace: [['Risk register', '/comply/risks'], ['Business continuity', '/comply/continuity'], ['Third-party risk', '/comply/tprm'], ['Crisis war room', '/ops/warroom'], ['Risk quantification', '/insurance/quantification']],
+    landing: '/comply/caas?section=risks',
+    workspace: [['Risk register', '/comply/caas?section=risks'], ['Business continuity', '/comply/caas?section=bia'], ['Third-party risk', '/comply/tprm'], ['Crisis war room', '/ops/warroom'], ['Risk quantification', '/insurance/quantification']],
     person: (c) => c.people.grcLead,
     licence: 'Full',
     rights: ['Accept and treat risks', 'Run crisis war rooms', 'Approve vendor assessments'],

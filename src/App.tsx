@@ -1,5 +1,5 @@
 import { Suspense, lazy } from 'react';
-import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import { AppProvider } from './state/AppContext';
 import { Shell } from './components/Shell';
 import { ModuleLayout } from './components/ModuleLayout';
@@ -14,9 +14,18 @@ function Loading() {
   return <div className="empty">Loading…</div>;
 }
 
+// Tabs that were folded into another tab's sections keep working as links.
+const REDIRECTS: Record<string, string> = {
+  'comply/risks': '/comply/caas?section=risks',
+  'comply/continuity': '/comply/caas?section=bia',
+};
+
 function ModuleRoute({ moduleId }: { moduleId: string }) {
   const { tab } = useParams();
+  const { search } = useLocation();
   const mod = MODULES.find((m) => m.id === moduleId)!;
+  const redirect = REDIRECTS[`${moduleId}/${tab}`];
+  if (redirect) return <Navigate to={redirect + (search ? `&${search.slice(1)}` : '')} replace />;
   const Page = tab ? PAGES[`${moduleId}/${tab}`] : undefined;
   if (!Page) return <Navigate to={`${mod.basePath}/${mod.tabs[0].id}`} replace />;
   return (

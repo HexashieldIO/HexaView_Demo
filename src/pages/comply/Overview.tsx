@@ -13,7 +13,7 @@ import { Card, Badge, Tabs, Sources, cap } from '../../components/ui';
 import { Chart } from '../../components/Chart';
 import { fmtMoney, fmtNum } from '../../lib/format';
 import { MetricBand, SegRing, SegBar, HeatGrid, ShiftRow, CapRow, StateKey } from './parts';
-import { useComplyData, useRiskData, useContinuityData, EV_HEX, EV_CLASSES } from './useComply';
+import { useComplyData, useRiskData, useContinuityData, useWorkspaceData, EV_HEX, EV_CLASSES } from './useComply';
 
 const tone = MODULE_BY_ID.comply.tone;
 const STATUSES: ControlStatus[] = ['Compliant', 'In progress', 'Not started', 'Not applicable'];
@@ -25,7 +25,8 @@ export default function ComplyOverview() {
   const h = headlines(c, tenantId);
   const { fws, controls, tasks, evidence, groups, pipeline } = useComplyData();
   const risks = useRiskData();
-  const { bia, attention } = useContinuityData();
+  const { bia, assets, attention } = useContinuityData();
+  const { workflows, vendorsReg, incidents, drive } = useWorkspaceData();
   const [heatMode, setHeatMode] = useState<'inherent' | 'residual'>('residual');
   const grc = scopedConnectors(c, tenantId).find((k) => k.category === 'GRC');
   const grcName = grc ? `${grc.vendor} ${grc.product}` : 'HexaComply';
@@ -53,8 +54,8 @@ export default function ComplyOverview() {
   const stillHigh = scored.filter((r) => r.residualLevel === 'High').length;
   const pastDue = risks.filter((r) => r.dueDays !== null && r.dueDays < 0).length;
   const exclusions = [
-    ...controls.filter((x) => x.status === 'Not applicable').map((x) => ({ id: x.id, title: `${x.ref} — ${x.name}`, meta: `${x.fwShort} · ${x.justification}`, kind: 'Control', by: x.decidedBy, overdue: x.reviewOverdue, to: `/comply/caas?view=controls&scope=na&framework=${x.fwId}&id=${encodeURIComponent(x.id)}` })),
-    ...tasks.filter((t) => t.status === 'Not applicable').slice(0, 12).map((t) => ({ id: t.id, title: `${t.ref} — ${t.title}`, meta: `${t.fwShort} · marked not applicable with its control`, kind: 'Task', by: t.decidedBy, overdue: false, to: `/comply/caas?view=tasks&state=Not%20applicable&id=${t.id}` })),
+    ...controls.filter((x) => x.status === 'Not applicable').map((x) => ({ id: x.id, title: `${x.ref} — ${x.name}`, meta: `${x.fwShort} · ${x.justification}`, kind: 'Control', by: x.decidedBy, overdue: x.reviewOverdue, to: `/comply/caas?section=frameworks&scope=na&framework=${x.fwId}&id=${encodeURIComponent(x.id)}` })),
+    ...tasks.filter((t) => t.status === 'Not applicable').slice(0, 12).map((t) => ({ id: t.id, title: `${t.ref} — ${t.title}`, meta: `${t.fwShort} · marked not applicable with its control`, kind: 'Task', by: t.decidedBy, overdue: false, to: `/comply/caas?section=tasks&status=Not%20applicable&id=${t.id}` })),
   ];
   const nextAudits = fws.filter((f) => f.auditInDays !== undefined).sort((a, b) => (a.auditInDays ?? 0) - (b.auditInDays ?? 0));
   const evMoving = pipeline.states.filter((s) => ['draft', 'submitted', 'processing'].includes(s.key)).reduce((n, s) => n + s.count, 0);
@@ -76,13 +77,25 @@ export default function ComplyOverview() {
       <MetricBand
         tone={tone}
         items={[
-          { ac: 'Frameworks', word: 'Applied', value: fws.length, unit: 'in scope', to: '/comply/caas?view=frameworks', source: grcName },
-          { ac: 'Requirements', word: 'Covered', value: covered, unit: `of ${groups.length}`, gauge: (covered / Math.max(1, groups.length)) * 100, to: '/comply/caas?view=requirements&covered=1', source: grcName },
-          { ac: 'Controls', word: 'Compliant', value: fmtNum(compliant), unit: `of ${fmtNum(inScope.length)} in scope`, gauge: (compliant / Math.max(1, inScope.length)) * 100, to: '/comply/caas?view=controls&status=Compliant', source: grcName },
-          { ac: 'Tasks', word: 'Complete', value: fmtNum(tasksDone), unit: `of ${fmtNum(tasks.length)}`, gauge: (tasksDone / Math.max(1, tasks.length)) * 100, to: '/comply/caas?view=tasks&state=Compliant', source: grcName },
-          { ac: 'Overdue', word: 'Tasks', value: h.comply.overdueTasks, unit: 'past due', color: 'var(--bad)', to: '/comply/caas?view=tasks&overdue=1', source: grcName },
-          { ac: 'Evidence', word: 'Approved', value: fmtNum(approved), unit: `of ${fmtNum(evidence.length)}`, gauge: (approved / Math.max(1, evidence.length)) * 100, to: '/comply/caas?view=evidence&state=approved', source: src },
-          { ac: 'Risks', word: 'High residual', value: stillHigh, unit: `of ${risks.length}`, color: stillHigh ? 'var(--sev-critical)' : undefined, to: '/comply/risks?residual=High', source: `${grcName} risk register` },
+          { ac: 'Frameworks', word: 'Applied', value: fws.length, unit: 'in scope', to: '/comply/caas?section=frameworks', source: grcName },
+          { ac: 'Requirements', word: 'Covered', value: covered, unit: `of ${groups.length}`, gauge: (covered / Math.max(1, groups.length)) * 100, to: '/comply/caas?section=frameworks&view=requirements&covered=1', source: grcName },
+          { ac: 'Controls', word: 'Compliant', value: fmtNum(compliant), unit: `of ${fmtNum(inScope.length)} in scope`, gauge: (compliant / Math.max(1, inScope.length)) * 100, to: '/comply/caas?section=frameworks&status=Compliant', source: grcName },
+          { ac: 'Tasks', word: 'Complete', value: fmtNum(tasksDone), unit: `of ${fmtNum(tasks.length)}`, gauge: (tasksDone / Math.max(1, tasks.length)) * 100, to: '/comply/caas?section=tasks&status=Compliant', source: grcName },
+          { ac: 'Overdue', word: 'Tasks', value: h.comply.overdueTasks, unit: 'past due', color: 'var(--bad)', to: '/comply/caas?section=tasks&overdue=1', source: grcName },
+          { ac: 'Evidence', word: 'Approved', value: fmtNum(approved), unit: `of ${fmtNum(evidence.length)}`, gauge: (approved / Math.max(1, evidence.length)) * 100, to: '/comply/caas?section=tasks&view=evidence&state=approved', source: src },
+          { ac: 'Risks', word: 'High residual', value: stillHigh, unit: `of ${risks.length}`, color: stillHigh ? 'var(--sev-critical)' : undefined, to: '/comply/caas?section=risks&residual=High', source: `${grcName} risk register` },
+        ]}
+      />
+
+      <MetricBand
+        tone={tone}
+        items={[
+          { ac: 'Stream', word: 'Workflows waiting', value: workflows.filter((w) => w.state !== 'done').length, unit: `of ${workflows.length}`, to: '/comply/caas?section=stream', source: grcName },
+          { ac: 'Drive', word: 'Documents', value: fmtNum(drive.filter((d) => d.kind === 'file').length), unit: `${drive.filter((d) => d.parent === 'f-ev').length} evidence files`, to: '/comply/caas?section=drive', source: `${grcName} Drive` },
+          { ac: 'Assets', word: 'Past support end', value: assets.filter((a) => a.supportEndDays !== null && a.supportEndDays < 0 && (a.status === 'Active' || a.status === 'Legacy')).length, unit: `of ${fmtNum(assets.length)}`, color: 'var(--bad)', to: '/comply/caas?section=assets&lifecycle=eos', source: `${grcName} asset register` },
+          { ac: 'Vendors', word: 'High recorded risk', value: vendorsReg.filter((v) => v.risk === 'High').length, unit: `of ${fmtNum(vendorsReg.length)}`, color: 'var(--sev-critical)', to: '/comply/caas?section=vendors&risk=High', source: `${grcName} vendor register` },
+          { ac: 'Incidents', word: 'Open', value: incidents.filter((x) => x.status === 'Open').length, unit: `${incidents.filter((x) => x.breach).length} breaches notified`, to: '/comply/caas?section=incidents&status=Open', source: `${grcName} incident register` },
+          { ac: 'BIA', word: 'Reviews overdue', value: biaOverdue, unit: `of ${bia.length} services`, color: biaOverdue ? 'var(--bad)' : undefined, to: '/comply/caas?section=bia&lifecycle=overdue', source: `${grcName} BIA register` },
         ]}
       />
 
@@ -91,7 +104,7 @@ export default function ComplyOverview() {
           const pct = Math.round((f.compliant / Math.max(1, f.fw.inScope)) * 100);
           const counts: Record<ControlStatus, number> = { Compliant: f.compliant, 'In progress': f.inProgress, 'Not started': f.notStarted, 'Not applicable': f.outOfScope };
           return (
-            <button key={f.fw.id} type="button" className="comply-ringcard" onClick={() => nav(`/comply/caas?framework=${f.fw.id}`)} title={`Source: ${grcName} · open ${f.fw.short} controls`}>
+            <button key={f.fw.id} type="button" className="comply-ringcard" onClick={() => nav(`/comply/caas?section=frameworks&framework=${f.fw.id}`)} title={`Source: ${grcName} · open ${f.fw.short} controls`}>
               <div className="comply-ringcard-head">
                 <b>{f.fw.name}</b>
                 <Badge color={f.auditInDays !== undefined && f.auditInDays < 60 ? 'var(--sev-medium)' : 'var(--text-muted)'}>
@@ -102,7 +115,7 @@ export default function ComplyOverview() {
                 <SegRing parts={STATUSES.map((s) => ({ label: s, value: counts[s], color: CONTROL_STATUS_COLOR[s] }))} center={`${pct}%`} sub={`${f.compliant}/${f.fw.inScope}`} />
                 <dl className="comply-facts">
                   {STATUSES.map((s) => (
-                    <div key={s} className="click" onClick={(e) => { e.stopPropagation(); nav(`/comply/caas?view=controls&framework=${f.fw.id}&status=${encodeURIComponent(s)}`); }}>
+                    <div key={s} className="click" onClick={(e) => { e.stopPropagation(); nav(`/comply/caas?section=frameworks&framework=${f.fw.id}&status=${encodeURIComponent(s)}`); }}>
                       <dt><i style={{ background: CONTROL_STATUS_COLOR[s] }} />{s === 'Not applicable' ? 'Out of scope' : s}</dt>
                       <dd>{counts[s]}</dd>
                     </div>
@@ -130,7 +143,7 @@ export default function ComplyOverview() {
             />
             <div className="comply-domains">
               {domains.slice().sort((a, b) => a.pct - a.target - (b.pct - b.target)).map((d) => (
-                <button key={d.id} type="button" className="comply-dom" onClick={() => nav(`/comply/caas?view=controls&domain=${d.id}`)} title={`${d.n} in-scope controls · source ${grcName}`}>
+                <button key={d.id} type="button" className="comply-dom" onClick={() => nav(`/comply/caas?section=frameworks&domain=${d.id}`)} title={`${d.n} in-scope controls · source ${grcName}`}>
                   <span>{d.label}</span>
                   <span className="comply-dom-track">
                     <span className="comply-dom-fill" style={{ width: `${d.pct}%`, background: d.pct >= d.target ? 'var(--good)' : d.pct >= d.target - 15 ? 'var(--sev-medium)' : 'var(--sev-high)' }} />
@@ -143,25 +156,25 @@ export default function ComplyOverview() {
           </div>
         </Card>
 
-        <Card title="Tasks by state" count={fmtNum(tasks.length)} actions={<button className="link" onClick={() => nav('/comply/caas?view=tasks')}>View all tasks →</button>}>
+        <Card title="Tasks by state" count={fmtNum(tasks.length)} actions={<button className="link" onClick={() => nav('/comply/caas?section=tasks')}>View all tasks →</button>}>
           <div className="comply-tsb">
             <div className="comply-tsb-head"><span>State</span><span>By severity</span><span>Tasks</span></div>
             {TASK_STATES.map((st) => {
               const row = matrix[st];
               const total = TASK_SEVS.reduce((s, v) => s + row[v], 0);
               return (
-                <button key={st} type="button" className="comply-tsb-row" onClick={() => nav(`/comply/caas?view=tasks&state=${encodeURIComponent(st)}`)}>
+                <button key={st} type="button" className="comply-tsb-row" onClick={() => nav(`/comply/caas?section=tasks&status=${encodeURIComponent(st)}`)}>
                   <span className="comply-tsb-state"><i style={{ background: TASK_STATE_COLOR[st] }} />{st}</span>
-                  <SegBar parts={TASK_SEVS.map((v) => ({ key: v, value: row[v], color: TASK_SEV_HEX[v], label: cap(v) }))} onPick={(v) => nav(`/comply/caas?view=tasks&state=${encodeURIComponent(st)}&sev=${v}`)} />
+                  <SegBar parts={TASK_SEVS.map((v) => ({ key: v, value: row[v], color: TASK_SEV_HEX[v], label: cap(v) }))} onPick={(v) => nav(`/comply/caas?section=tasks&status=${encodeURIComponent(st)}&sev=${v}`)} />
                   <span className="comply-tsb-total">{total}</span>
                 </button>
               );
             })}
           </div>
           <div className="comply-keys">
-            {TASK_SEVS.map((v) => <StateKey key={v} color={TASK_SEV_HEX[v]} label={cap(v)} n={tasks.filter((t) => t.sev === v).length} onClick={() => nav(`/comply/caas?view=tasks&sev=${v}`)} />)}
+            {TASK_SEVS.map((v) => <StateKey key={v} color={TASK_SEV_HEX[v]} label={cap(v)} n={tasks.filter((t) => t.sev === v).length} onClick={() => nav(`/comply/caas?section=tasks&sev=${v}`)} />)}
             <span className="comply-key-sep" />
-            <StateKey color="var(--bad)" label="Overdue" n={h.comply.overdueTasks} onClick={() => nav('/comply/caas?view=tasks&overdue=1')} />
+            <StateKey color="var(--bad)" label="Overdue" n={h.comply.overdueTasks} onClick={() => nav('/comply/caas?section=tasks&overdue=1')} />
           </div>
         </Card>
       </div>
@@ -173,7 +186,7 @@ export default function ComplyOverview() {
             const n = states.reduce((a, s) => a + s.count, 0);
             return (
               <div key={cls.join()} className="comply-pipeline-class" style={{ flexGrow: Math.max(n, evidence.length * 0.04) }}>
-                <SegBar height={30} labels={states.length === 1 || cls.includes('approved')} parts={states.map((s) => ({ key: s.key, value: s.count, color: EV_HEX[s.key], label: s.label }))} onPick={(k) => nav(`/comply/caas?view=evidence&state=${k}`)} />
+                <SegBar height={30} labels={states.length === 1 || cls.includes('approved')} parts={states.map((s) => ({ key: s.key, value: s.count, color: EV_HEX[s.key], label: s.label }))} onPick={(k) => nav(`/comply/caas?section=tasks&view=evidence&state=${k}`)} />
               </div>
             );
           })}
@@ -184,16 +197,16 @@ export default function ComplyOverview() {
               {i > 0 && <span className="comply-key-sep" />}
               {cls.map((k) => {
                 const s = EVIDENCE_STATES.find((x) => x.key === k)!;
-                return <StateKey key={k} color={EV_HEX[k]} label={s.label} n={fmtNum(pipeline.states.find((x) => x.key === k)?.count ?? 0)} onClick={() => nav(`/comply/caas?view=evidence&state=${k}`)} />;
+                return <StateKey key={k} color={EV_HEX[k]} label={s.label} n={fmtNum(pipeline.states.find((x) => x.key === k)?.count ?? 0)} onClick={() => nav(`/comply/caas?section=tasks&view=evidence&state=${k}`)} />;
               })}
             </span>
           ))}
         </div>
         <div className="comply-meta">
-          <button type="button" onClick={() => nav('/comply/caas?view=evidence&state=moving')}><strong>{fmtNum(evMoving)}</strong>still moving</button>
-          <button type="button" onClick={() => nav('/comply/caas?view=evidence&state=more_info')}><strong className="bad">{fmtNum(evWaiting)}</strong>waiting on you</button>
-          <button type="button" onClick={() => nav('/comply/caas?view=evidence&state=failing')}><strong className="bad">{fmtNum(evBad)}</strong>rejected, expired or failed</button>
-          <button type="button" className="link" onClick={() => nav('/comply/caas?view=evidence&expiring=30')}>{fmtNum(evExpiring)} approaching expiry (30 d) →</button>
+          <button type="button" onClick={() => nav('/comply/caas?section=tasks&view=evidence&state=moving')}><strong>{fmtNum(evMoving)}</strong>still moving</button>
+          <button type="button" onClick={() => nav('/comply/caas?section=tasks&view=evidence&state=more_info')}><strong className="bad">{fmtNum(evWaiting)}</strong>waiting on you</button>
+          <button type="button" onClick={() => nav('/comply/caas?section=tasks&view=evidence&state=failing')}><strong className="bad">{fmtNum(evBad)}</strong>rejected, expired or failed</button>
+          <button type="button" className="link" onClick={() => nav('/comply/caas?section=tasks&view=evidence&expiring=30')}>{fmtNum(evExpiring)} approaching expiry (30 d) →</button>
         </div>
       </Card>
 
@@ -204,7 +217,7 @@ export default function ComplyOverview() {
             <span className="comply-shift-note">total risk score after treatment. Both counts below are the same {scored.length} risks scored both ways; the {risks.length - scored.length} without a residual score are in neither.</span>
           </div>
           {LEVELS.map((lv) => (
-            <ShiftRow key={lv} name={lv} from={levelCount(lv, 'inherent')} to={levelCount(lv, 'residual')} max={Math.max(1, ...LEVELS.flatMap((x) => [levelCount(x, 'inherent'), levelCount(x, 'residual')]))} onClick={() => nav(`/comply/risks?residual=${lv}`)} />
+            <ShiftRow key={lv} name={lv} from={levelCount(lv, 'inherent')} to={levelCount(lv, 'residual')} max={Math.max(1, ...LEVELS.flatMap((x) => [levelCount(x, 'inherent'), levelCount(x, 'residual')]))} onClick={() => nav(`/comply/caas?section=risks&residual=${lv}`)} />
           ))}
           <div className="comply-keys" style={{ borderTop: 0, paddingTop: 0, marginTop: 8 }}>
             <StateKey color="#2e6fdb" label="Inherent — before treatment" />
@@ -214,17 +227,17 @@ export default function ComplyOverview() {
           {topResidual.map((r) => (
             <CapRow key={r.id} title={r.title} meta={`${r.id} · ${r.residualLevel} after treatment · ${r.treatment.toLowerCase()} · ${r.owner} · ${fmtMoney(r.lossK * 1000, c.currency)} potential loss`}
               badges={<span className="comply-shift-vals"><b>{r.inherentScore}</b><i>→</i><b style={{ color: RISK_LEVEL_COLOR[riskLevel(r.residualScore ?? 0)] }}>{r.residualScore}</b></span>}
-              onClick={() => nav(`/comply/risks?id=${r.id}`)} />
+              onClick={() => nav(`/comply/caas?section=risks&id=${r.id}`)} />
           ))}
           <div className="comply-meta">
-            <button type="button" className="link" onClick={() => nav('/comply/risks')}>{risks.length} on the register →</button>
-            <button type="button" onClick={() => nav('/comply/risks?residual=High')}><strong className="bad">{stillHigh}</strong>still high after treatment</button>
-            <button type="button" onClick={() => nav('/comply/risks?lifecycle=pastdue')}><strong className="bad">{pastDue}</strong>treatments past due</button>
+            <button type="button" className="link" onClick={() => nav('/comply/caas?section=risks')}>{risks.length} on the register →</button>
+            <button type="button" onClick={() => nav('/comply/caas?section=risks&residual=High')}><strong className="bad">{stillHigh}</strong>still high after treatment</button>
+            <button type="button" onClick={() => nav('/comply/caas?section=risks&lifecycle=pastdue')}><strong className="bad">{pastDue}</strong>treatments past due</button>
           </div>
         </Card>
 
         <Card title="Where the risk sits" sub={`Likelihood × impact · ${risks.filter((r) => r[heatMode]).length} risks placed · click a cell`} actions={<Tabs color={tone} value={heatMode} onChange={setHeatMode} tabs={[{ id: 'inherent', label: 'Inherent' }, { id: 'residual', label: 'Residual' }]} />}>
-          <HeatGrid items={risks} mode={heatMode} onPick={(cell) => cell && nav(`/comply/risks?mode=${heatMode}&l=${cell[0]}&i=${cell[1]}`)} />
+          <HeatGrid items={risks} mode={heatMode} onPick={(cell) => cell && nav(`/comply/caas?section=risks&mode=${heatMode}&l=${cell[0]}&i=${cell[1]}`)} />
           <p className="muted" style={{ fontSize: 11.5, marginTop: 12, lineHeight: 1.5 }}>
             Shading is the count in the cell, which is also written in it; the left edge marks the zone (green low, amber medium, red high). Scores are likelihood × impact × 4 on a 0–100 scale.
           </p>
@@ -232,7 +245,7 @@ export default function ComplyOverview() {
       </div>
 
       <div className="grid g2">
-        <Card title="Attention queue" sub={`${attention.length} overdue or lapsing · showing 12`} actions={<button className="link" onClick={() => nav('/comply/continuity?view=assets&lifecycle=eos')}>Asset register →</button>}>
+        <Card title="Attention queue" sub={`${attention.length} overdue or lapsing · showing 12`} actions={<button className="link" onClick={() => nav('/comply/caas?section=assets&lifecycle=eos')}>Asset register →</button>}>
           <div className="comply-scroll">
             {attention.slice(0, 12).map((a) => (
               <CapRow key={`${a.kind}-${a.id}`} title={a.title} meta={a.meta} onClick={() => nav(a.path)}
@@ -240,13 +253,13 @@ export default function ComplyOverview() {
             ))}
           </div>
           <div className="comply-meta">
-            <button type="button" onClick={() => nav('/comply/continuity?view=assets&lifecycle=eos')}><strong className="bad">{attention.filter((a) => a.kind === 'Asset').length}</strong>assets past support end</button>
-            <button type="button" onClick={() => nav('/comply/risks?lifecycle=pastdue')}><strong className="bad">{pastDue}</strong>treatments past due</button>
-            <button type="button" onClick={() => nav('/comply/continuity?review=overdue')}><strong className="bad">{biaOverdue}</strong>BIA reviews overdue</button>
+            <button type="button" onClick={() => nav('/comply/caas?section=assets&lifecycle=eos')}><strong className="bad">{attention.filter((a) => a.kind === 'Asset').length}</strong>assets past support end</button>
+            <button type="button" onClick={() => nav('/comply/caas?section=risks&lifecycle=pastdue')}><strong className="bad">{pastDue}</strong>treatments past due</button>
+            <button type="button" onClick={() => nav('/comply/caas?section=bia&lifecycle=overdue')}><strong className="bad">{biaOverdue}</strong>BIA reviews overdue</button>
           </div>
         </Card>
 
-        <Card title="Scope exclusions" sub={`${exclusions.filter((x) => x.kind === 'Control').length} controls marked not applicable · every exclusion carries a justification`} actions={<button className="link" onClick={() => nav('/comply/caas?view=controls&scope=na')}>All exclusions →</button>}>
+        <Card title="Scope exclusions" sub={`${exclusions.filter((x) => x.kind === 'Control').length} controls marked not applicable · every exclusion carries a justification`} actions={<button className="link" onClick={() => nav('/comply/caas?section=frameworks&scope=na')}>All exclusions →</button>}>
           <div className="comply-scroll">
             {exclusions.slice(0, 14).map((x) => (
               <CapRow key={x.id} title={x.title} meta={x.meta} onClick={() => nav(x.to)}
@@ -259,7 +272,7 @@ export default function ComplyOverview() {
       <Card title={<><ShieldCheck size={15} /> Audit and attestation calendar</>} sub="Next external audits, certifications and regulator submissions · click to open the framework">
         <div className="grid g4" style={{ gap: 10 }}>
           {(nextAudits.length ? nextAudits : fws.slice(0, 4)).map((f) => (
-            <button key={f.fw.id} type="button" className="comply-ringcard" style={{ padding: '12px 14px' }} onClick={() => nav(`/comply/caas?framework=${f.fw.id}`)}>
+            <button key={f.fw.id} type="button" className="comply-ringcard" style={{ padding: '12px 14px' }} onClick={() => nav(`/comply/caas?section=frameworks&framework=${f.fw.id}`)}>
               <div className="comply-ringcard-head"><b>{f.fw.short}</b>{f.auditInDays !== undefined && <Badge color={f.auditInDays < 60 ? 'var(--sev-medium)' : 'var(--text-muted)'}>{f.auditInDays} d</Badge>}</div>
               <span className="muted" style={{ fontSize: 12 }}>{f.fw.nextAudit ?? 'Continuous monitoring'}</span>
               <span style={{ fontSize: 12 }}><b className="num">{f.documented}%</b> documented · <b className="num">{f.assured}%</b> assured</span>
