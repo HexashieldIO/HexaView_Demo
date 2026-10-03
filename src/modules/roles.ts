@@ -44,7 +44,7 @@ export const ROLES: RoleDef[] = [
     person: (c) => c.people.board,
     licence: 'Viewer',
     rights: ['Read-only summaries', 'Approve board reports for release'],
-    access: ['command', 'board', 'loop', 'aisec', 'insurance', 'reports', 'ops', 'comms'],
+    access: ['trust', 'command', 'board', 'loop', 'aisec', 'insurance', 'reports', 'ops', 'comms'],
   },
   {
     id: 'ciso', label: 'CISO / Head of security', group: 'Leadership',
@@ -104,7 +104,7 @@ export const ROLES: RoleDef[] = [
     person: (c) => c.people.grcLead,
     licence: 'Approver',
     rights: ['Approve control status changes', 'Scope requirements (SoA)', 'Export evidence and the audit ledger'],
-    access: ['command', 'board', 'loop', 'comply', 'aisec', 'custody', 'reports', 'ops', 'comms'],
+    access: ['trust', 'command', 'board', 'loop', 'comply', 'aisec', 'custody', 'reports', 'ops', 'comms'],
   },
   {
     id: 'risk', label: 'Risk & resilience', group: 'Governance & risk',
@@ -114,7 +114,7 @@ export const ROLES: RoleDef[] = [
     person: (c) => c.people.grcLead,
     licence: 'Full',
     rights: ['Accept and treat risks', 'Run crisis war rooms', 'Approve vendor assessments'],
-    access: ['command', 'board', 'comply', 'insurance', 'ops', 'reports', 'comms'],
+    access: ['trust', 'command', 'board', 'comply', 'insurance', 'ops', 'reports', 'comms'],
   },
   {
     id: 'privacy', label: 'Privacy & legal', group: 'Governance & risk',
@@ -124,7 +124,7 @@ export const ROLES: RoleDef[] = [
     person: (c) => c.people.grcLead,
     licence: 'Full',
     rights: ['Submit regulatory notifications', 'Place legal holds on evidence', 'Approve AI systems'],
-    access: ['command', 'comply', 'aisec', 'custody', 'insurance', 'ops', 'reports', 'comms'],
+    access: ['trust', 'command', 'comply', 'aisec', 'custody', 'insurance', 'ops', 'reports', 'comms'],
   },
   {
     id: 'ot', label: 'OT engineer', group: 'Engineering & platform',

@@ -1,0 +1,114 @@
+/* HexaCore · Software Supply Chain (SBOM). All classes prefixed sb-. */
+
+.sb-stack { display: grid; gap: 16px; }
+.sb-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sb-muted { color: var(--text-muted); }
+
+/* Sub-tabs */
+.sb-subtabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; border: 1px solid var(--card-border); background: var(--surface-sunken); border-radius: 999px; width: fit-content; max-width: 100%; }
+.sb-subtab { display: inline-flex; align-items: center; gap: 7px; border: 0; background: transparent; color: var(--text-secondary); font: inherit; font-size: 12.5px; font-weight: 600; padding: 6px 14px; border-radius: 999px; cursor: pointer; }
+.sb-subtab:hover { color: var(--text-primary); background: color-mix(in srgb, var(--m-core) 8%, transparent); }
+.sb-subtab.on { background: var(--m-core); color: #06222b; }
+.sb-subtab em { font-style: normal; font-size: 10.5px; font-weight: 700; padding: 1px 6px; border-radius: 999px; background: color-mix(in srgb, var(--text-muted) 18%, transparent); color: inherit; font-variant-numeric: tabular-nums; }
+.sb-subtab.on em { background: rgba(0, 0, 0, .16); }
+.sb-subtab.hot em { background: color-mix(in srgb, var(--sev-critical) 22%, transparent); color: var(--sev-critical); }
+.sb-subtab.on.hot em { background: rgba(0, 0, 0, .16); color: inherit; }
+
+/* Pills and tags */
+.sb-pill { font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: color-mix(in srgb, var(--tc) 17%, transparent); color: var(--tc); white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; vertical-align: middle; }
+.sb-pill.solid { background: var(--tc); color: #fff; }
+.sb-tag { font-size: 10.5px; font-weight: 600; padding: 1px 7px; border-radius: 6px; background: var(--chip-bg); color: var(--text-secondary); white-space: nowrap; }
+.sb-fmt { font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; padding: 1px 6px; border-radius: 5px; border: 1px solid var(--card-border); color: var(--text-secondary); white-space: nowrap; }
+.sb-cve { font-family: var(--font-mono); font-size: 11px; font-weight: 600; }
+.sb-vexbar { display: flex; height: 7px; border-radius: 4px; overflow: hidden; background: var(--track); width: 110px; gap: 1px; }
+.sb-vexbar i { display: block; height: 100%; }
+
+/* Facets */
+.sb-facets { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; padding: 0 18px 12px; }
+.sb-fgroup { display: inline-flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+.sb-flabel { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); margin-right: 3px; }
+.sb-fchip { display: inline-flex; align-items: center; gap: 5px; font: inherit; font-size: 11.5px; font-weight: 600; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--card-border); background: var(--surface); color: var(--text-secondary); cursor: pointer; }
+.sb-fchip:hover { color: var(--text-primary); border-color: color-mix(in srgb, var(--m-core) 45%, var(--card-border)); }
+.sb-fchip.on { background: color-mix(in srgb, var(--m-core) 16%, transparent); border-color: var(--m-core); color: var(--text-primary); }
+.sb-fchip em { font-style: normal; font-size: 10px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+/* Hidden-exposure hero */
+.sb-hero { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 14px 18px; border: 1px solid color-mix(in srgb, var(--sev-critical) 40%, var(--card-border)); border-left: 4px solid var(--sev-critical); border-radius: var(--radius); background: linear-gradient(90deg, color-mix(in srgb, var(--sev-critical) 9%, var(--card-bg)), var(--card-bg) 60%); }
+.sb-hero.good { border-color: color-mix(in srgb, var(--good) 40%, var(--card-border)); border-left-color: var(--good); background: linear-gradient(90deg, color-mix(in srgb, var(--good) 8%, var(--card-bg)), var(--card-bg) 60%); }
+.sb-hero-ico { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; color: var(--sev-critical); background: color-mix(in srgb, var(--sev-critical) 16%, transparent); }
+.sb-hero.good .sb-hero-ico { color: var(--good); background: color-mix(in srgb, var(--good) 16%, transparent); }
+.sb-hero h3 { font-size: 15.5px; margin: 0 0 4px; }
+.sb-hero p { margin: 0; font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; }
+.sb-hero p b { color: var(--text-primary); }
+.sb-hero-act { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+
+/* Big stat trio */
+.sb-trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--card-border); border: 1px solid var(--card-border); border-radius: 12px; overflow: hidden; }
+.sb-trio button { display: grid; gap: 4px; padding: 11px 14px; border: 0; background: var(--card-bg); text-align: left; color: inherit; font: inherit; cursor: pointer; }
+.sb-trio button:hover { background: var(--surface-hover); }
+.sb-trio b { font-family: var(--font-display); font-size: 26px; line-height: 1; font-variant-numeric: tabular-nums; }
+.sb-trio span { font-size: 11px; color: var(--text-muted); }
+
+/* Regulation rows */
+.sb-regs { display: grid; }
+.sb-reg { display: grid; grid-template-columns: minmax(0, 1fr) 150px; gap: 4px 16px; align-items: center; padding: 10px 4px; border: 0; border-bottom: 1px solid var(--hairline-soft); background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; border-radius: 6px; }
+.sb-reg:last-child { border-bottom: 0; }
+.sb-reg:hover { background: var(--surface-hover); }
+.sb-reg-h { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.sb-reg-h b { font-size: 12.5px; }
+.sb-reg-h span { font-size: 10.5px; color: var(--text-muted); }
+.sb-reg p { margin: 2px 0 0; font-size: 11.5px; color: var(--text-secondary); line-height: 1.4; }
+.sb-reg-cov { display: grid; gap: 4px; justify-items: end; }
+.sb-reg-cov b { font-family: var(--font-display); font-size: 16px; font-variant-numeric: tabular-nums; }
+.sb-reg-cov small { font-size: 10.5px; color: var(--text-muted); }
+.sb-reg-track { width: 100%; height: 6px; border-radius: 3px; background: var(--track); overflow: hidden; }
+.sb-reg-track i { display: block; height: 100%; border-radius: 3px; }
+
+/* Request list */
+.sb-reqs { display: grid; }
+.sb-req { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; align-items: center; padding: 9px 2px; border-bottom: 1px solid var(--hairline-soft); }
+.sb-req:last-child { border-bottom: 0; }
+.sb-req-main { min-width: 0; cursor: pointer; }
+.sb-req-main b { display: block; font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-req-main span { display: block; font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-req-main:hover b { color: var(--m-core); }
+
+/* Product picker for the dependency graph */
+.sb-picker { display: grid; gap: 6px; max-height: 620px; overflow-y: auto; padding-right: 2px; }
+.sb-pick { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; align-items: center; padding: 8px 10px; border: 1px solid var(--card-border); border-radius: 9px; background: var(--surface); font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.sb-pick:hover { border-color: color-mix(in srgb, var(--m-core) 45%, var(--card-border)); }
+.sb-pick.on { border-color: var(--m-core); background: color-mix(in srgb, var(--m-core) 8%, var(--surface)); }
+.sb-pick b { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-pick span { grid-column: 1; font-size: 10.5px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-pick em { grid-row: 1 / span 2; grid-column: 2; font-style: normal; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 999px; font-variant-numeric: tabular-nums; }
+
+/* Flow maps: let longer library names breathe */
+.sb-flow .flowmap-grid { gap: 0 11%; }
+.sb-flow .flowmap-col.mid .flowmap-title { text-transform: none; letter-spacing: 0; font-size: 11.5px; }
+.sb-flow .flowmap-node { padding: 6px 9px; }
+.sb-flow4 .flowmap-grid { gap: 0 5%; }
+.sb-flow4 .flowmap-col.mid .flowmap-title { text-transform: none; letter-spacing: 0; font-size: 11.5px; }
+
+/* Path chain */
+.sb-path { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 11px; }
+.sb-path span { padding: 2px 7px; border-radius: 6px; background: var(--chip-bg); white-space: nowrap; }
+.sb-path span.prod { background: color-mix(in srgb, var(--m-core) 16%, transparent); color: var(--text-primary); font-weight: 600; }
+.sb-path span.bad { background: color-mix(in srgb, var(--sev-critical) 18%, transparent); color: var(--sev-critical); font-weight: 700; }
+.sb-path i { color: var(--text-muted); font-style: normal; }
+
+.sb-kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+.sb-kv > button, .sb-kv > div { border: 1px solid var(--hairline); border-radius: 9px; padding: 9px 11px; background: none; font: inherit; color: inherit; text-align: left; }
+.sb-kv > button { cursor: pointer; }
+.sb-kv > button:hover { border-color: color-mix(in srgb, var(--m-core) 50%, var(--card-border)); background: var(--surface-hover); }
+.sb-kv b { display: block; font-family: var(--font-display); font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.sb-kv span { font-size: 10.5px; color: var(--text-muted); }
+
+.sb-why { margin: 0; padding-left: 18px; display: grid; gap: 7px; font-size: 12.5px; color: var(--text-secondary); line-height: 1.45; }
+.sb-why b { color: var(--text-primary); }
+
+@media (max-width: 1100px) {
+  .sb-hero { grid-template-columns: auto minmax(0, 1fr); }
+  .sb-hero-act { grid-column: 1 / -1; justify-content: flex-start; }
+  .sb-trio { grid-template-columns: minmax(0, 1fr); }
+}
+.list-main .sb-path { display: flex; } .list-main .sb-path span { display: inline-block; font-size: 11px; color: var(--text-secondary); } .list-main .sb-path span.bad { color: var(--sev-critical); }

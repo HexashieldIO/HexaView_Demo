@@ -439,7 +439,12 @@ export function reportTemplates(c: CustomerProfile): ReportTemplate[] {
       { id: 'nis2', title: 'NIS2 incident notification', audience: 'Regulator', framework: 'NIS2', regulator: 'BSI (Germany) · NCSC-HU', owner: p.ciso.name, frequency: 'Event-driven', period: 'weekly', lastGeneratedDays: 58, pages: 5, citations: 19, format: 'DOCX', description: 'Early warning (24 h), notification (72 h) and final report for the Ingolstadt and Győr plants as essential entities.', sections: ['incidents', 'ot'], status: 'ready', scope: 'ingolstadt' },
     ],
   };
-  return [...common.slice(0, 3), ...reg[c.id], ...common.slice(3)].map(withPeriod);
+  // Crisis exercise programme and value evidence (Operations → Crisis Exercises, Reporting → Value & Outcomes).
+  const programmeTpl: TplSeed[] = [
+    { id: 'exercise-aar', title: 'Crisis exercise after-action report', audience: 'Executive', owner: p.grcLead.name, frequency: 'Event-driven', period: 'quarterly', lastGeneratedDays: 9, pages: 12, citations: 48, format: 'PDF', description: 'Scenario, timeline of injects and decisions, scores by capability (detect, decide, communicate, recover, notify), lessons learned and owned actions, with evidence pushed to HexaComply for the regulator or auditor.', sections: ['incidents', 'frameworks', 'risks'], status: 'ready' },
+    { id: 'value', title: 'Value & outcomes summary', audience: 'Board', owner: p.ciso.name, frequency: 'Quarterly', lastGeneratedDays: 87, pages: 6, citations: 39, format: 'PPTX', description: 'What HexaView and HexaShield services delivered against cost: incidents contained, hours saved, loss avoided, premium and tool savings, ROI multiple and top outcome stories, for the board and renewal.', sections: ['capability', 'incidents', 'insurance', 'risks'], status: 'due', deadline: 'Due before the HexaView renewal review' },
+  ];
+  return [...common.slice(0, 3), ...reg[c.id], ...common.slice(3), ...programmeTpl].map(withPeriod);
 }
 
 /* =====================================================================

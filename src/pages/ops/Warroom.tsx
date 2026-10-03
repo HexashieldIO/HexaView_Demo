@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Siren, Phone, Gavel, Users, Mic, MicOff, Plus, Radio } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Siren, Phone, Gavel, Users, Mic, MicOff, Plus, Radio, CalendarCheck } from 'lucide-react';
 import { useApp, rangeDays, rangeLabel } from '../../state/AppContext';
 import { warroom, type TaskStatus, type WarClock } from '../../data/modules/ops';
 import { Card, KpiStrip, Badge, StatusBadge, Btn, Callout, Bar, Timeline, Tabs, Sources, SevBadge } from '../../components/ui';
@@ -40,6 +41,7 @@ function WarroomInner() {
   const [onBridge, setOnBridge] = useState(false);
   const [clocks, setClocks] = useState<WarClock[]>(w.clocks);
   const [, openRecords, recordsNode] = useRecords();
+  const nav = useNavigate();
 
   const elapsedMin = w.declaredMinAgo + sec / 60;
   const tenant = c.tenants.find((t) => t.id === w.tenantId);
@@ -116,6 +118,9 @@ function WarroomInner() {
           <span className="mono" style={{ fontSize: 22, fontWeight: 700 }}>T+{fmtCountdown(elapsedMin * 60)}</span>
           <span className="muted" style={{ fontSize: 11 }}>Commander {w.commander}</span>
           <div className="row" style={{ gap: 6 }}>
+            <Btn sm ghost onClick={() => nav('/ops/exercises')} title="Quarterly crisis exercise programme">
+              <CalendarCheck size={13} /> Exercise programme
+            </Btn>
             <Btn sm onClick={() => { setOnBridge(!onBridge); toast(onBridge ? 'Left the bridge' : `Joined ${w.bridge}; your attendance is logged`); }}>
               {onBridge ? <MicOff size={13} /> : <Phone size={13} />} {onBridge ? 'Leave bridge' : 'Join bridge'}
             </Btn>

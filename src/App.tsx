@@ -18,6 +18,7 @@ function Loading() {
 const REDIRECTS: Record<string, string> = {
   'comply/risks': '/comply/caas?section=risks',
   'comply/continuity': '/comply/caas?section=bia',
+  'ops/trust': '/trust/portal',
 };
 
 function ModuleRoute({ moduleId }: { moduleId: string }) {

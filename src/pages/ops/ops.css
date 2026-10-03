@@ -65,7 +65,10 @@
 .ops-pub { border: 1px solid var(--card-border); border-radius: 12px; overflow: hidden; background: var(--surface-sunken); }
 .ops-pub-bar { display: flex; gap: 6px; align-items: center; padding: 7px 10px; border-bottom: 1px solid var(--card-border); font-size: 11px; color: var(--text-muted); }
 .ops-pub-bar i { width: 8px; height: 8px; border-radius: 50%; background: var(--track); }
-.ops-pub-body { padding: 16px; display: grid; gap: 12px; }
+.ops-pub-body { padding: 16px; display: grid; gap: 12px; overflow-x: auto; scrollbar-width: thin; scrollbar-color: var(--text-muted) transparent; }
+.ops-pub-body::-webkit-scrollbar { height: 8px; }
+.ops-pub-body::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 4px; }
+.ops-pub-body::-webkit-scrollbar-track { background: transparent; }
 
 .ops-tree { display: grid; gap: 2px; font-size: 12px; }
 .ops-tree-row { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 6px; }

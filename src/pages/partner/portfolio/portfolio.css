@@ -1,0 +1,118 @@
+/* Partner Console · Portfolio & M&A. Every class is prefixed pf- */
+
+.pf-subtabs { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; padding: 5px; border: 1px solid var(--card-border); border-radius: 12px; background: var(--card-bg); }
+.pf-subtab { display: inline-flex; align-items: center; gap: 6px; padding: 6px 13px; border-radius: 8px; border: 0; background: none; color: var(--text-muted); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.pf-subtab:hover { color: var(--text-primary); background: var(--surface-sunken); }
+.pf-subtab.on { background: color-mix(in srgb, var(--m-partner) 16%, transparent); color: var(--text-primary); box-shadow: inset 0 -2px 0 var(--m-partner); }
+.pf-subtabs-end { margin-left: auto; padding-right: 4px; display: flex; gap: 8px; align-items: center; }
+
+.pf-avatar { display: inline-grid; place-items: center; flex-shrink: 0; border-radius: 8px; font-family: var(--font-display); font-weight: 700; color: #fff; letter-spacing: .02em; }
+.pf-name { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.pf-name b { display: block; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pf-name > span > span { display: block; font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pf-live { display: inline-block !important; font-size: 10.5px; font-weight: 800; letter-spacing: .06em; padding: 1px 5px; border-radius: 4px; background: color-mix(in srgb, var(--m-partner) 16%, transparent); color: var(--m-partner); margin-left: 4px; vertical-align: 1px; }
+
+/* Quadrant */
+.pf-quad { width: 100%; height: auto; display: block; }
+.pf-quad text { font-family: inherit; }
+.pf-quad .pf-bub { cursor: pointer; }
+.pf-quad .pf-bub:hover circle { stroke-width: 3; }
+
+/* Heat grid */
+.pf-heat { display: grid; gap: 3px; font-size: 11px; }
+.pf-heat .pf-hh { font-size: 10.5px; font-weight: 700; color: var(--text-muted); text-align: center; letter-spacing: .04em; text-transform: uppercase; align-self: end; padding-bottom: 4px; }
+.pf-heat .pf-hr { all: unset; cursor: pointer; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; align-self: center; padding-right: 6px; font-size: 11.5px; }
+.pf-heat .pf-hr:hover { color: var(--m-partner); }
+.pf-cell { border-radius: 5px; min-height: 24px; display: grid; place-items: center; font-size: 10.5px; font-weight: 700; border: 0; color: #fff; cursor: pointer; font-family: inherit; }
+.pf-cell:hover { outline: 2px solid var(--text-primary); outline-offset: -1px; }
+
+.pf-fws { display: flex; flex-wrap: wrap; gap: 3px; max-width: 210px; }
+.pf-fws span { font-size: 10.5px; font-weight: 700; padding: 1px 5px; border-radius: 4px; border: 1px solid color-mix(in srgb, var(--tone) 45%, transparent); color: var(--tone); white-space: nowrap; }
+
+/* Due diligence */
+.pf-targets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.pf-target { text-align: left; border: 1px solid var(--card-border); border-radius: 12px; padding: 12px 14px; background: var(--surface-sunken); color: inherit; font: inherit; cursor: pointer; display: grid; gap: 8px; }
+.pf-target:hover { border-color: color-mix(in srgb, var(--m-partner) 50%, var(--card-border)); }
+.pf-target.on { border-color: var(--m-partner); box-shadow: 0 0 0 1px var(--m-partner) inset; background: color-mix(in srgb, var(--m-partner) 7%, var(--surface-sunken)); }
+.pf-target-top { display: flex; gap: 10px; align-items: center; }
+.pf-target-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; font-size: 11px; color: var(--text-muted); }
+.pf-target-stats b { display: block; font-family: var(--font-display); font-size: 15px; color: var(--text-primary); }
+@media (max-width: 1000px) { .pf-targets { grid-template-columns: 1fr; } }
+
+.pf-cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+.pf-cat { border: 1px solid var(--card-border); border-radius: 10px; padding: 8px 10px; background: var(--card-bg); text-align: left; color: inherit; font: inherit; cursor: pointer; }
+.pf-cat:hover, .pf-cat.on { border-color: var(--m-partner); }
+.pf-cat small { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
+.pf-cat b { font-family: var(--font-display); font-size: 18px; }
+.pf-cat .pf-sevs { display: flex; gap: 2px; margin-top: 4px; height: 5px; border-radius: 3px; overflow: hidden; background: var(--track); }
+.pf-cat .pf-sevs i { display: block; height: 100%; }
+
+.pf-impact { display: grid; gap: 0; }
+.pf-impact > div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 8px 0; border-bottom: 1px dashed var(--hairline); font-size: 12.5px; }
+.pf-impact > div:last-child { border-bottom: 0; }
+.pf-impact b { font-family: var(--font-display); font-size: 16px; white-space: nowrap; }
+.pf-impact.big > div:first-child b { font-size: 22px; }
+
+.pf-flag { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; align-items: start; padding: 7px 0; border-bottom: 1px solid var(--hairline-soft, var(--hairline)); font-size: 12.5px; }
+.pf-flag:last-child { border-bottom: 0; }
+.pf-flag svg { color: var(--bad); width: 16px; height: 16px; margin-top: 1px; }
+.pf-flag span { display: block; font-size: 11px; color: var(--text-muted); }
+
+/* Report (print view) */
+.pf-report { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 28px 32px; display: grid; gap: 18px; max-width: 1040px; margin: 0 auto; width: 100%; }
+.pf-report h1 { margin: 0; font-family: var(--font-display); font-size: 24px; }
+.pf-report h2 { margin: 0 0 8px; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--m-partner); border-bottom: 1px solid var(--hairline); padding-bottom: 6px; }
+.pf-report p { margin: 0; font-size: 13px; line-height: 1.6; color: var(--text-secondary); }
+.pf-report table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.pf-report th { text-align: left; font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); border-bottom: 1px solid var(--hairline); padding: 6px 8px 6px 0; }
+.pf-report td { border-bottom: 1px solid var(--hairline-soft, var(--hairline)); padding: 7px 8px 7px 0; vertical-align: top; }
+.pf-report td:first-child { white-space: nowrap; }
+.pf-report-meta { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.pf-report-meta > div { border: 1px solid var(--hairline); border-radius: 10px; padding: 9px 12px; }
+.pf-report-meta small { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); }
+.pf-report-meta b { font-family: var(--font-display); font-size: 18px; }
+.pf-report-foot { font-size: 10.5px; color: var(--text-muted); border-top: 1px solid var(--hairline); padding-top: 10px; }
+@media print {
+  .content:has(.pf-report) .mod-head, .content:has(.pf-report) .pf-subtabs { display: none !important; }
+  .pf-report { border: 0; padding: 0; max-width: none; background: #fff; color: #111; }
+  .pf-report p, .pf-report td { color: #222; }
+}
+
+/* 100 days */
+.pf-phases { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.pf-phase { border: 1px solid var(--card-border); border-radius: 12px; padding: 10px 12px; background: var(--surface-sunken); display: grid; gap: 6px; }
+.pf-phase.cur { border-color: var(--m-partner); box-shadow: 0 0 0 1px var(--m-partner) inset; }
+.pf-phase small { font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); }
+.pf-phase b { font-family: var(--font-display); font-size: 16px; }
+.pf-dayline { position: relative; height: 34px; margin: 4px 6px 0; }
+.pf-dayline .trk { position: absolute; left: 0; right: 0; top: 14px; height: 6px; border-radius: 3px; background: var(--track); }
+.pf-dayline .fill { position: absolute; left: 0; top: 14px; height: 6px; border-radius: 3px; background: var(--m-partner); }
+.pf-dayline .tick { position: absolute; top: 9px; width: 2px; height: 16px; background: var(--text-muted); }
+.pf-dayline .tick span { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); font-size: 10.5px; color: var(--text-muted); white-space: nowrap; }
+.pf-dayline .now { position: absolute; top: 4px; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: var(--card-bg); border: 3px solid var(--m-partner); }
+.pf-dayline .now span { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); font-size: 10.5px; font-weight: 700; color: var(--m-partner); white-space: nowrap; }
+@media (max-width: 1000px) { .pf-phases { grid-template-columns: 1fr 1fr; } }
+
+.pf-ms { display: grid; grid-template-columns: 24px 54px minmax(0, 1fr) 120px 110px; gap: 10px; align-items: center; padding: 8px 10px; border: 1px solid var(--card-border); border-radius: 9px; background: var(--card-bg); }
+.pf-ms + .pf-ms { margin-top: 6px; }
+.pf-ms b { font-size: 12.5px; display: block; }
+.pf-ms span.s { font-size: 11px; color: var(--text-muted); display: block; }
+.pf-chk { width: 18px; height: 18px; border-radius: 5px; border: 2px solid var(--text-muted); background: none; cursor: pointer; padding: 0; display: grid; place-items: center; color: #fff; }
+.pf-chk.on { background: var(--good); border-color: var(--good); }
+.pf-chk svg { width: 12px; height: 12px; }
+@media (max-width: 900px) { .pf-ms { grid-template-columns: 24px 44px minmax(0, 1fr); } .pf-ms > :nth-child(n+4) { display: none; } }
+
+.pf-conn { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; }
+.pf-conn > div { border: 1px solid var(--card-border); border-radius: 10px; padding: 8px 10px; background: var(--card-bg); display: grid; gap: 3px; font-size: 12px; }
+.pf-conn small { font-size: 10.5px; color: var(--text-muted); }
+
+/* Benchmark */
+.pf-rank { display: grid; gap: 5px; }
+.pf-rank-row { display: grid; grid-template-columns: 150px minmax(0, 1fr) 64px; gap: 10px; align-items: center; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; padding: 2px 0; }
+.pf-rank-row:hover .pf-rank-name { color: var(--m-partner); }
+.pf-rank-row.on .pf-rank-name { color: var(--m-partner); }
+.pf-rank-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pf-rank-bar { position: relative; height: 14px; border-radius: 4px; background: var(--track); }
+.pf-rank-bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; }
+.pf-rank-bar em { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--text-primary); opacity: .7; }
+.pf-rank-val { font-family: var(--font-display); font-weight: 700; font-size: 12.5px; text-align: right; }

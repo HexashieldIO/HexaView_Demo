@@ -1,5 +1,6 @@
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Server, ShieldCheck, Factory, Truck, Siren, ExternalLink } from 'lucide-react';
+import { Server, ShieldCheck, Factory, Truck, Siren, ExternalLink, Package } from 'lucide-react';
+import { sbAdvisoryExposure } from '../../../data/modules/sbom';
 import { Card, Callout, Badge } from '../../../components/ui';
 import { FlowMap, type FlowColumn, type FlowLink } from '../../../components/FlowMap';
 import { DataTable, type Column } from '../../../components/DataTable';
@@ -19,7 +20,7 @@ const LINK_OUT: Record<VrSource, { to: string; label: string }> = {
 const SRC_LABEL: Record<string, VrSource> = { HexaCore: 'core', 'Security Tooling': 'tooling', HexaOT: 'ot', 'Third parties': 'tprm' };
 
 export function Match() {
-  const { c, adv, rows, tally, sups, coverage, verdict, setParams } = useVr();
+  const { c, tenantId, adv, rows, tally, sups, coverage, verdict, setParams } = useVr();
   const [sp, setSp] = useSearchParams();
   const nav = useNavigate();
   const src = (sp.get('src') as VrSource | null) ?? null;
@@ -28,6 +29,7 @@ export function Match() {
   const runs = sups.filter((s) => s.runsProduct);
   const counts: Record<VrSource, number> = { ...tally.bySource, tprm: runs.length };
   const cov = new Map(coverage.map((x) => [x.source, x]));
+  const sbom = sbAdvisoryExposure(c, tenantId, adv.cve);
 
   const filtered = rows.filter((a) => (!src || a.source === src) && (!tenant || a.tenantId === tenant) && (!status || a.status === status));
   const openAsset = (a: VrAsset) => { const next = new URLSearchParams(sp); next.set('asset', a.id); setSp(next, { replace: true }); };
@@ -108,6 +110,15 @@ export function Match() {
           );
         })}
       </div>
+
+      {sbom && sbom.hidden.length > 0 && (
+        <button type="button" className="vr-srccard" style={{ ['--tc' as string]: 'var(--sev-critical)', width: '100%' }} onClick={() => nav(`/fabric/sbom?section=hidden&component=${sbom.comp.id}`)} title="Source: HexaCore Software Supply Chain (SBOM) · vendor SBOMs × this advisory">
+          <span className="vr-srccard-h"><span className="vr-row" style={{ gap: 6 }}><Package size={13} /> Found inside software (SBOM)</span></span>
+          <span className="vr-srccard-n"><b>{sbom.hidden.length}</b><span>more vendor {sbom.hidden.length === 1 ? 'product embeds' : 'products embed'} <span className="mono">{sbom.comp.name}</span> · {fmtNum(sbom.hiddenInstances)} units the asset match cannot see</span></span>
+          <small>{sbom.hidden.map((p) => p.name).join(' · ')}</small>
+          <span className="link">Open Software Supply Chain <ExternalLink size={11} /></span>
+        </button>
+      )}
 
       <Card title="Advisory to affected assets" sub="Where the match came from, which tenants it lands in and where each asset stands now · click any node to filter">
         <div className="vr-flow"><FlowMap columns={columns} links={links} height={Math.max(230, (tenants.length + 1) * 64)} badColor="#e0345e" /></div>
