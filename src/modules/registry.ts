@@ -211,6 +211,19 @@ export const MODULES: ModuleDef[] = [
     ],
   },
 
+  {
+    id: 'comms', group: 'ops', product: 'Communications Hub', title: 'Communications Hub', isNew: true,
+    tagline: 'Talk to HexaShield and to every licensed colleague in one secure place, with HexaView records shared in context.',
+    glyph: 'MessagesSquare', tone: 'var(--m-comms)', basePath: '/comms',
+    tabs: [
+      { id: 'inbox', label: 'Inbox' },
+      { id: 'channels', label: 'Team Channels' },
+      { id: 'support', label: 'HexaShield Support' },
+      { id: 'directory', label: 'Directory & Licences' },
+      { id: 'bridges', label: 'Calls & Bridges' },
+    ],
+  },
+
   // ---------- Operations ----------
   {
     id: 'ops', group: 'ops', product: 'Operations', title: 'Platform Operations', isNew: true,
@@ -218,6 +231,7 @@ export const MODULES: ModuleDef[] = [
     glyph: 'Settings2', tone: 'var(--m-ops)', basePath: '/ops',
     tabs: [
       { id: 'actions', label: 'Action Centre' },
+      { id: 'notifications', label: 'Notifications' },
       { id: 'audit', label: 'Audit Ledger' },
       { id: 'warroom', label: 'Crisis War Room' },
       { id: 'scorecard', label: 'Tool Scorecard' },
@@ -280,6 +294,7 @@ export const MODULES: ModuleDef[] = [
       { id: 'support', label: 'Partner Support' },
     ],
   },
+
 ];
 
 export const MODULE_BY_ID: Record<string, ModuleDef> = Object.fromEntries(MODULES.map((m) => [m.id, m]));

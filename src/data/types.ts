@@ -8,7 +8,7 @@ export type Tier = 'Essentials' | 'Professional' | 'Enterprise / CNI';
 export type Env = 'cloud' | 'onprem' | 'ot' | 'saas';
 export type Severity = 'critical' | 'high' | 'medium' | 'low' | 'info';
 export type Health = 'healthy' | 'degraded' | 'failing' | 'paused';
-export type Persona = 'executive' | 'analyst' | 'grc' | 'ot' | 'admin';
+export type Persona = 'master' | 'executive' | 'ciso' | 'finance' | 'socmanager' | 'analyst' | 'threat' | 'grc' | 'risk' | 'privacy' | 'ot' | 'cloud' | 'admin';
 export type Currency = 'USD' | 'GBP' | 'EUR';
 
 export type CapabilityId = 'soc' | 'int' | 'strike' | 'ot' | 'comply' | 'custody';

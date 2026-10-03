@@ -12,6 +12,7 @@ import { Chart } from '../../components/Chart';
 import { WorldMap } from '../../components/WorldMap';
 import { DataTable } from '../../components/DataTable';
 import { fmtAgo, fmtCompact, fmtNum, monthLabels, scoreTone } from '../../lib/format';
+import { ROLE_BY_ID } from '../../modules/roles';
 import { PlatformMap, type MapNodeInfo } from './PlatformMap';
 import type { Env } from '../../data/types';
 
@@ -22,13 +23,6 @@ const ENV_META: Record<Env, { label: string; icon: typeof Cloud; color: string }
   saas: { label: 'SaaS', icon: Globe2, color: 'var(--m-ai)' },
 };
 
-const PERSONA_TIPS = {
-  executive: { title: 'For the board', items: [['Board view', '/board'], ['Cyber insurance readiness', '/insurance/overview'], ['Board pack (draft, cited)', '/reports/library']] },
-  analyst: { title: 'For the SOC', items: [['Open incidents', '/soc/ir'], ['Approvals inbox', '/ops/actions'], ['Ask the copilot', '/ai/copilot']] },
-  grc: { title: 'For GRC & audit', items: [['Closed-loop assurance', '/loop'], ['Framework coverage', '/comply/caas'], ['Audit ledger', '/ops/audit']] },
-  ot: { title: 'For OT engineering', items: [['OT assets by Purdue level', '/ot/visibility'], ['OT vulnerabilities', '/ot/vulns'], ['Data planes & sensors', '/fabric/dataplanes']] },
-  admin: { title: 'For platform admins', items: [['Integrations health', '/fabric/integrations'], ['Data planes', '/fabric/dataplanes'], ['Entitlements & users', '/ops/admin']] },
-} as const;
 
 export default function CommandCentre() {
   const { customer: c, tenantId, persona, setTenantId, tick } = useApp();
@@ -88,7 +82,8 @@ export default function CommandCentre() {
       })
     : [];
 
-  const tips = PERSONA_TIPS[persona];
+  const role = ROLE_BY_ID[persona] ?? ROLE_BY_ID.ciso;
+  const tips = { title: `For ${role.label.toLowerCase().startsWith('ciso') ? 'the CISO' : role.label}`, items: role.workspace };
 
   const tenantRows = tenants.map((t) => {
     const tl = allLoops.filter((l) => l.tenantId === t.id);

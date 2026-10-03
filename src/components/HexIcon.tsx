@@ -1,7 +1,7 @@
-import { BadgeDollarSign, FileBarChart2, GraduationCap, Handshake, Hexagon, Network, LayoutDashboard, Palette, Presentation, Receipt, RefreshCcwDot, Settings2, ShieldCheck, type LucideIcon } from 'lucide-react';
+import { BadgeDollarSign, FileBarChart2, GraduationCap, Handshake, Hexagon, MessagesSquare, Network, LayoutDashboard, Palette, Presentation, Receipt, RefreshCcwDot, Settings2, ShieldCheck, type LucideIcon } from 'lucide-react';
 import type { ModuleDef } from '../modules/registry';
 
-const GLYPHS: Record<string, LucideIcon> = { BadgeDollarSign, FileBarChart2, GraduationCap, Handshake, LayoutDashboard, Network, Palette, Presentation, Receipt, RefreshCcwDot, Settings2, ShieldCheck };
+const GLYPHS: Record<string, LucideIcon> = { BadgeDollarSign, FileBarChart2, GraduationCap, Handshake, LayoutDashboard, MessagesSquare, Network, Palette, Presentation, Receipt, RefreshCcwDot, Settings2, ShieldCheck };
 
 /**
  * Module icon. Platform modules use their official hex icon from /brand; the

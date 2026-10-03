@@ -32,9 +32,10 @@ export interface Me {
 /** The signed-in persona, consistent with the avatar in the top bar. */
 export function signedIn(c: CustomerProfile, persona: string): Me {
   const p = c.people;
-  if (persona === 'executive') return { ...pick(p.ciso), role: 'Tenant Admin' };
-  if (persona === 'analyst') return { ...pick(p.socLead), role: 'Approver' };
-  if (persona === 'grc') return { ...pick(p.grcLead), role: 'GRC' };
+  if (persona === 'master') return { ...pick(p.admin), title: 'Master user (Admin)', role: 'Tenant Admin' };
+  if (persona === 'executive' || persona === 'ciso' || persona === 'finance') return { ...pick(p.ciso), role: 'Tenant Admin' };
+  if (persona === 'analyst' || persona === 'socmanager' || persona === 'threat') return { ...pick(p.socLead), role: 'Approver' };
+  if (persona === 'grc' || persona === 'risk' || persona === 'privacy') return { ...pick(p.grcLead), role: 'GRC' };
   if (persona === 'ot') return { ...pick(p.otLead ?? p.admin), role: 'OT engineer' };
   return { ...pick(p.admin), role: 'Tenant Admin' };
 }

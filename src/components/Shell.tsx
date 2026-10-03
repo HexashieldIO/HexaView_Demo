@@ -1,26 +1,25 @@
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Bell, CheckCircle2, ChevronDown, ChevronRight, Menu, Moon, RefreshCw, Search, Sun, Building2 } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronRight, Menu, Moon, RefreshCw, Search, Sun, Building2 } from 'lucide-react';
 import { MODULES, NAV_GROUPS, SERVICES, moduleForPath, type ModuleDef } from '../modules/registry';
 import { CUSTOMER_LIST } from '../data/customers';
 import { useApp, rangeLabel, type TimeRange } from '../state/AppContext';
-import type { CustomerId, Persona } from '../data/types';
+import type { CustomerId } from '../data/types';
 import { HexIcon } from './HexIcon';
 import { Modal } from './Overlay';
 import { ErrorBoundary } from './ErrorBoundary';
+import { NotificationBell } from './NotificationBell';
+import { RoleMenu } from './RoleMenu';
+import { UserProfile } from './UserProfile';
+import { ROLE_BY_ID, initialsOf, canAccess } from '../modules/roles';
 
-const PERSONAS: { id: Persona; label: string }[] = [
-  { id: 'executive', label: 'Board & exec' },
-  { id: 'analyst', label: 'SOC analyst' },
-  { id: 'grc', label: 'GRC & audit' },
-  { id: 'ot', label: 'OT engineer' },
-  { id: 'admin', label: 'Platform admin' },
-];
 
 function SideItem({ mod, onNavigate }: { mod: ModuleDef; onNavigate: () => void }) {
   const loc = useLocation();
-  const { customer } = useApp();
+  const { customer, persona, account } = useApp();
   const active = moduleForPath(loc.pathname).id === mod.id;
+  const role = ROLE_BY_ID[persona] ?? ROLE_BY_ID.ciso;
+  const locked = account === 'customer' && mod.group !== 'partner' && !canAccess(role, mod.id);
   const [open, setOpen] = useState(active);
   useEffect(() => {
     if (active) setOpen(true);
@@ -40,7 +39,8 @@ function SideItem({ mod, onNavigate }: { mod: ModuleDef; onNavigate: () => void 
             setOpen((o) => !o);
           } else onNavigate();
         }}
-        className={`nav-item ${active ? 'active' : ''} ${simple ? 'simple' : ''}`}
+        className={`nav-item ${active ? 'active' : ''} ${simple ? 'simple' : ''} ${locked ? 'locked' : ''}`}
+        title={locked ? `Outside the ${role.label} role. Switch to Master user (Admin) for full access.` : undefined}
       >
         <span className="nav-ico">
           <HexIcon mod={mod} size={22} />
@@ -65,6 +65,33 @@ function SideItem({ mod, onNavigate }: { mod: ModuleDef; onNavigate: () => void 
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+function Workspace({ onNavigate }: { onNavigate: () => void }) {
+  const { customer, persona, account } = useApp();
+  if (account === 'partner') return null;
+  const role = ROLE_BY_ID[persona] ?? ROLE_BY_ID.ciso;
+  const p = role.person(customer);
+  return (
+    <div className="nav-group ws-group">
+      <div className="nav-group-label">My workspace</div>
+      <div className="ws-who">
+        <span className="ws-av">{initialsOf(p.name)}</span>
+        <span className="ws-meta">
+          <b>{role.label}</b>
+          <span>{p.name}</span>
+        </span>
+      </div>
+      <div className="nav-sub ws-links">
+        {role.workspace.map(([label, to]) => (
+          <NavLink key={to} to={to} end onClick={onNavigate} className={({ isActive }) => (isActive ? 'active' : '')}>
+            <i className="dot" />
+            {label}
+          </NavLink>
+        ))}
+      </div>
     </div>
   );
 }
@@ -112,6 +139,8 @@ function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () => void }
           ))}
         </div>
       )}
+
+      <Workspace onNavigate={onNavigate} />
 
       {NAV_GROUPS.filter((g) => g.id !== 'partner' || account === 'partner').map((g) => (
         <div className="nav-group" key={g.id}>
@@ -183,7 +212,7 @@ function Palette({ onClose }: { onClose: () => void }) {
 function Topbar({ onMenu }: { onMenu: () => void }) {
   const loc = useLocation();
   const mod = moduleForPath(loc.pathname);
-  const { customer, tenantId, setTenantId, timeRange, setTimeRange, persona, setPersona, refresh, toast } = useApp();
+  const { customer, tenantId, setTenantId, timeRange, setTimeRange, refresh, toast } = useApp();
   const [palette, setPalette] = useState(false);
   const [spin, setSpin] = useState(false);
   const tabLabel = mod.tabs.find((t) => loc.pathname.endsWith(`/${t.id}`))?.label;
@@ -200,8 +229,6 @@ function Topbar({ onMenu }: { onMenu: () => void }) {
     return () => window.removeEventListener('keydown', h);
   }, []);
 
-  const personaInitials = persona === 'executive' ? customer.people.ciso.name : persona === 'analyst' ? customer.people.socLead.name : persona === 'grc' ? customer.people.grcLead.name : persona === 'ot' ? customer.people.otLead?.name ?? customer.people.admin.name : customer.people.admin.name;
-  const initials = personaInitials.split(' ').filter((w) => /^[A-Z]/.test(w)).slice(0, 2).map((w) => w[0]).join('');
 
   return (
     <header className="topbar">
@@ -231,16 +258,7 @@ function Topbar({ onMenu }: { onMenu: () => void }) {
         </select>
         <ChevronDown size={13} className="chev" />
       </label>
-      <label className="tb-ctl" title="Role-based view">
-        <select value={persona} onChange={(e) => setPersona(e.target.value as Persona)} aria-label="Role-based view">
-          {PERSONAS.map((p) => (
-            <option key={p.id} value={p.id}>
-              View: {p.label}
-            </option>
-          ))}
-        </select>
-        <ChevronDown size={13} className="chev" />
-      </label>
+      <RoleMenu />
       <button
         className="tb-ctl icon"
         onClick={() => {
@@ -256,11 +274,8 @@ function Topbar({ onMenu }: { onMenu: () => void }) {
       <button className="tb-ctl icon" onClick={() => setPalette(true)} aria-label="Search (Ctrl+K)" title="Search (Ctrl+K)">
         <Search size={15} />
       </button>
-      <button className="tb-ctl icon" aria-label="Notifications" onClick={() => toast('3 approvals waiting in the Action Centre')} style={{ position: 'relative' }}>
-        <Bell size={15} />
-        <i style={{ position: 'absolute', top: 6, right: 7, width: 7, height: 7, borderRadius: '50%', background: 'var(--bad)' }} />
-      </button>
-      <button className="avatar" title={personaInitials}>{initials}</button>
+      <NotificationBell />
+      <UserProfile />
       {palette && <Palette onClose={() => setPalette(false)} />}
     </header>
   );

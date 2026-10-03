@@ -54,7 +54,7 @@ function save(key: string, v: string) {
 export function AppProvider({ children }: { children: ReactNode }) {
   const [customerId, setCustomerIdRaw] = useState<CustomerId>(() => load('customer', 'maritime', ['maritime', 'finserv', 'media', 'healthcare', 'automotive'] as const));
   const [tenantId, setTenantId] = useState('all');
-  const [persona, setPersonaRaw] = useState<Persona>(() => load('persona', 'executive', ['executive', 'analyst', 'grc', 'ot', 'admin'] as const));
+  const [persona, setPersonaRaw] = useState<Persona>(() => load('persona', 'master', ['master', 'executive', 'ciso', 'finance', 'socmanager', 'analyst', 'threat', 'grc', 'risk', 'privacy', 'ot', 'cloud', 'admin'] as const));
   const [timeRange, setTimeRange] = useState<TimeRange>('24h');
   const [theme, setThemeRaw] = useState<Theme>(() => load('theme', 'dark', ['dark', 'light'] as const));
   const [account, setAccount] = useState<AccountType>('customer');

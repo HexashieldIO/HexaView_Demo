@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Check, X, ShieldCheck, Lock, FileSignature, Bot, Clock } from 'lucide-react';
 import { useApp, rangeDays, rangeLabel } from '../../state/AppContext';
 import { headlines } from '../../data/core';
@@ -53,7 +54,15 @@ function ActionsInner() {
   const pending = useMemo(() => pendingActions(c, tenantId, me), [c, tenantId, me]);
   const history = useMemo(() => actionHistory(c, tenantId), [c, tenantId]);
   const [local, setLocal] = useState<Record<string, LocalState>>(() => Object.fromEntries(pending.map((p) => [p.id, { approvals: p.approvals, state: 'PendingApproval' as LifecycleState }])));
-  const [selId, setSelId] = useState(pending[0]?.id);
+  const [searchParams] = useSearchParams();
+  const deepId = searchParams.get('id');
+  const [selId, setSelId] = useState(pending.find((p) => p.id === deepId)?.id ?? pending[0]?.id);
+  useEffect(() => {
+    if (deepId && pending.some((p) => p.id === deepId)) {
+      setSelId(deepId);
+      setTimeout(() => document.querySelector('.ops-req.sel')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
+    }
+  }, [deepId, pending]);
   const [confirm, setConfirm] = useState<{ p: PendingAction; mode: 'approve' | 'reject' } | null>(null);
   const [hist, setHist] = useState<HistoryAction | null>(null);
   const [types, setTypes] = useState<ActionType[]>(() => actionTypes(c, tenantId));
