@@ -198,6 +198,19 @@ export const MODULES: ModuleDef[] = [
     ],
   },
 
+  {
+    id: 'tooling', group: 'fabric', product: 'Security Tooling', title: 'Security Tooling', isNew: true,
+    tagline: 'Every integrated security tool: what it is, what it is doing right now, and exactly how it is wired into HexaView.',
+    glyph: 'Network', tone: 'var(--m-tooling)', basePath: '/tooling',
+    tabs: [
+      { id: 'overview', label: 'Tool Itinerary' },
+      { id: 'topology', label: 'Architecture Topology' },
+      { id: 'activity', label: 'Live Activity' },
+      { id: 'matrix', label: 'Integration Matrix' },
+      { id: 'lineage', label: 'Data Lineage' },
+    ],
+  },
+
   // ---------- Operations ----------
   {
     id: 'ops', group: 'ops', product: 'Operations', title: 'Platform Operations', isNew: true,

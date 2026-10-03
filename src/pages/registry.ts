@@ -91,4 +91,9 @@ export const PAGES: Record<string, LazyExoticComponent<ComponentType>> = {
   "pbilling/invoices": lazy(() => import("./pbilling/Invoices")),
   "pbilling/commissions": lazy(() => import("./pbilling/Commissions")),
   "pbilling/support": lazy(() => import("./pbilling/Support")),
+  "tooling/overview": lazy(() => import("./tooling/Overview")),
+  "tooling/topology": lazy(() => import("./tooling/Topology")),
+  "tooling/activity": lazy(() => import("./tooling/Activity")),
+  "tooling/matrix": lazy(() => import("./tooling/Matrix")),
+  "tooling/lineage": lazy(() => import("./tooling/Lineage")),
 };
