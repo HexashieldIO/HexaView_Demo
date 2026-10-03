@@ -581,3 +581,63 @@ svg text, .chart text { text-rendering: geometricPrecision; }
 .locked-page { max-width: 520px; margin: 60px auto; text-align: center; display: grid; gap: 12px; justify-items: center; }
 .locked-page .lp-ico { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-sunken); border: 1px solid var(--card-border); color: var(--text-muted); }
 .locked-page p { color: var(--text-secondary); margin: 0; }
+
+/* ---------- Command Centre hero (Resilience Index motion) ---------- */
+.rh { position: relative; display: grid; gap: 30px; }
+.rh-flow { position: absolute; inset: 0; pointer-events: none; overflow: visible; z-index: 0; }
+.rh-motion .rh-track { stroke-dasharray: 1200; stroke-dashoffset: 1200; animation: rh-draw 1.6s ease-out forwards; }
+.rh-top { position: relative; z-index: 1; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 22px; align-items: center; }
+.rh-hex { background: none; border: 0; padding: 0; cursor: pointer; border-radius: 50%; }
+.rh-hexbox { position: relative; display: grid; place-items: center; }
+.rh-hexbox svg { position: relative; z-index: 1; overflow: visible; }
+.rh-hexval { position: absolute; inset: 0; z-index: 2; display: grid; place-content: center; text-align: center; line-height: 1; }
+.rh-hexval b { font-family: var(--font-display); font-size: 44px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.rh-hexval small { font-size: 9.5px; letter-spacing: .14em; color: var(--text-muted); margin-top: 5px; font-weight: 600; }
+.rh-pulse { position: absolute; inset: 14px; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, #3b82f6 35%, transparent), transparent 70%); animation: rh-pulse 3.2s ease-out infinite; }
+.rh-pulse.two { animation-delay: 1.6s; }
+.rh-spin { animation: rh-spin 40s linear infinite; }
+.rh-copy { min-width: 0; display: grid; gap: 8px; }
+.rh-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.rh-title h3 { flex-shrink: 0; }
+.rh-live { flex-shrink: 0; }
+.rh-title h3 { font-size: 19px; }
+.rh-live { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--good); padding: 2px 8px; border-radius: 999px; background: color-mix(in srgb, var(--good) 13%, transparent); }
+.rh-live i { width: 6px; height: 6px; border-radius: 50%; background: var(--good); animation: rh-blink 1.4s ease-in-out infinite; }
+.rh-copy p { margin: 0; max-width: 540px; }
+.rh-ticker { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; max-width: 520px; padding: 6px 10px; border-radius: 9px; border: 1px solid var(--card-border); background: color-mix(in srgb, var(--surface-sunken) 80%, transparent); text-align: left; cursor: pointer; overflow: hidden; color: inherit; font: inherit; }
+.rh-ticker:hover { border-color: color-mix(in srgb, var(--m-view) 60%, transparent); }
+.rh-kind { flex-shrink: 0; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; padding: 2px 6px; border-radius: 5px; color: var(--m-view); background: color-mix(in srgb, var(--m-view) 15%, transparent); }
+.rh-kind.k-detect { color: var(--m-soc); background: color-mix(in srgb, var(--m-soc) 16%, transparent); }
+.rh-kind.k-intel { color: var(--m-int); background: color-mix(in srgb, var(--m-int) 16%, transparent); }
+.rh-kind.k-test { color: var(--m-strike); background: color-mix(in srgb, var(--m-strike) 16%, transparent); }
+.rh-kind.k-evidence, .rh-kind.k-loop { color: var(--m-comply); background: color-mix(in srgb, var(--m-comply) 16%, transparent); }
+.rh-kind.k-custody { color: var(--m-custody); background: color-mix(in srgb, var(--m-custody) 16%, transparent); }
+.rh-ticker-txt { font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; animation: rh-tick-in .5s ease-out; }
+.rh-spark { display: grid; justify-items: end; gap: 2px; background: none; border: 0; padding: 0; cursor: pointer; color: inherit; font: inherit; }
+.rh-spark svg { overflow: visible; display: block; }
+.rh-motion .rh-line { stroke-dasharray: 1; stroke-dashoffset: 1; animation: rh-draw-line 1.8s .4s cubic-bezier(.3,.7,.3,1) forwards; }
+.rh-motion .rh-area { opacity: 0; animation: rh-fade .9s 1.4s ease-out forwards; }
+.rh-motion .rh-end { opacity: 0; animation: rh-fade .3s 2.1s forwards; }
+.rh-motion .rh-end-ping { transform-box: fill-box; transform-origin: center; opacity: 0; animation: rh-ping 2s 2.2s ease-out infinite; }
+.rh-delta { font-size: 11px; color: var(--text-muted); }
+.rh-delta b { color: var(--good); font-variant-numeric: tabular-nums; }
+.rh-gauges { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+.rh-motion .rh-gauge { opacity: 0; animation: rh-rise .6s ease-out forwards; }
+.rh-gauge .ring { filter: drop-shadow(0 0 0 transparent); transition: filter .3s; }
+.rh-gauge:hover .ring { filter: drop-shadow(0 0 8px var(--c)); }
+@keyframes rh-draw { to { stroke-dashoffset: 0; } }
+@keyframes rh-draw-line { to { stroke-dashoffset: 0; } }
+@keyframes rh-fade { to { opacity: 1; } }
+@keyframes rh-ping { 0% { opacity: .9; transform: scale(1); } 100% { opacity: 0; transform: scale(3.2); } }
+@keyframes rh-pulse { 0% { transform: scale(.7); opacity: .9; } 100% { transform: scale(1.5); opacity: 0; } }
+@keyframes rh-spin { to { transform: rotate(360deg); } }
+@keyframes rh-blink { 50% { opacity: .3; } }
+@keyframes rh-tick-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes rh-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@media (max-width: 1100px) { .rh-gauges { grid-template-columns: repeat(3, minmax(0, 1fr)); } .rh-flow { display: none; } }
+@media (prefers-reduced-motion: reduce) { .rh *, .rh *::before { animation: none !important; } }
+.rh-card { container-type: inline-size; }
+@container (max-width: 760px) {
+  .rh-top { grid-template-columns: auto minmax(0, 1fr); }
+  .rh-spark { grid-column: 1 / -1; justify-self: end; }
+}

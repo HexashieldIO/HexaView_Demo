@@ -220,3 +220,34 @@ button.soc-stat:hover { border-color: color-mix(in srgb, var(--tone, var(--m-soc
   .soc-rank-row .bar { display: none; }
   .soc-funnel-row { grid-template-columns: 120px minmax(0, 1fr) 64px; }
 }
+
+/* ---------- Speed against SLA (motion) ---------- */
+.sla-m { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.sla-tile { display: grid; gap: 6px; padding: 10px 10px 6px; border-radius: 12px; border: 1px solid transparent; background: none; text-align: left; color: inherit; font: inherit; cursor: pointer; min-width: 0; transition: background .2s, border-color .2s; }
+.sla-tile:hover { background: color-mix(in srgb, var(--c) 7%, transparent); border-color: color-mix(in srgb, var(--c) 35%, transparent); }
+.sla-head { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.sla-dial { flex-shrink: 0; overflow: visible; }
+.sla-dial-cap { font-size: 9.5px; fill: var(--text-muted); font-family: var(--font-ui); font-weight: 600; letter-spacing: .04em; }
+.sla-read { display: grid; gap: 3px; min-width: 0; }
+.sla-val { font-family: var(--font-display); font-size: 40px; font-weight: 700; line-height: 1; color: var(--v); font-variant-numeric: tabular-nums; }
+.sla-val small { font-family: var(--font-ui); font-size: 14px; font-weight: 600; color: var(--text-secondary); margin-left: 4px; }
+.sla-room { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.sla-room.good { color: var(--good); }
+.sla-room.bad { color: var(--bad); }
+.sla-ok { font-size: 10.5px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sla-trend { width: 100%; min-width: 0; }
+.sla-trend svg { display: block; overflow: visible; }
+.sla-ceiling-label { font-size: 9px; fill: #f8646f; font-family: var(--font-ui); font-weight: 600; }
+.sla-motion .sla-line { stroke-dasharray: 1; stroke-dashoffset: 1; animation: sla-draw 1.6s cubic-bezier(.3,.7,.3,1) forwards; }
+.sla-motion .sla-area { opacity: 0; animation: sla-fade .8s ease-out forwards; }
+.sla-motion .sla-last { opacity: 0; animation: sla-fade .3s forwards; }
+.sla-motion .sla-ceiling { animation: sla-march 1.2s linear infinite; }
+.sla-motion .sla-scan { opacity: 0; animation: sla-fade .4s forwards; }
+.sla-hub-ping { transform-box: fill-box; transform-origin: center; animation: sla-ping 2.4s ease-out infinite; }
+@keyframes sla-draw { to { stroke-dashoffset: 0; } }
+@keyframes sla-fade { to { opacity: 1; } }
+@keyframes sla-march { to { stroke-dashoffset: -10; } }
+@keyframes sla-ping { 0% { opacity: .9; transform: scale(1); } 100% { opacity: 0; transform: scale(3); } }
+@media (max-width: 1250px) { .sla-head { flex-direction: column; align-items: flex-start; } }
+@media (max-width: 800px) { .sla-m { grid-template-columns: minmax(0, 1fr); } }
+@media (prefers-reduced-motion: reduce) { .sla-m *, .sla-hub-ping { animation: none !important; } }

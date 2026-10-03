@@ -8,6 +8,7 @@ import { isStale } from '../../data/customers';
 import { incidents, mdrData, type Incident } from '../../data/modules/soc';
 import { fmtAgo, fmtCompact, fmtNum, fmtPct } from '../../lib/format';
 import type { Severity } from '../../data/types';
+import { SlaMotion } from './SlaMotion';
 import { useSoc, tenantShort, TechChips, INC_STATUS_COLOR, RecordsDrawer, SegBar, RankList } from './parts';
 
 const SLA = { mttd: 15, mtta: 15, mttr: 60 };
@@ -64,34 +65,15 @@ export default function SocMdr() {
 
       <div className="grid g-2-1">
         <Card title="Speed against SLA" sub="Median per incident, critical and high · 30-day trend" actions={<Sources items={srcChips.slice(0, 4)} />}>
-          <div className="grid g3">
-            {([
-              ['Mean time to detect', s.mttdMin, SLA.mttd, d.mttTrend.mttd, PALETTE[0]],
-              ['Mean time to acknowledge', s.mttaMin, SLA.mtta, d.mttTrend.mtta, PALETTE[1]],
-              ['Mean time to contain', s.mttrMin, SLA.mttr, d.mttTrend.mttr, PALETTE[2]],
-            ] as const).map(([label, v, sla, series, col]) => (
-              <div key={label} className="soc-mtt">
-                <span className="section-label" style={{ margin: 0 }}>{label}</span>
-                <div className="soc-mtt-val" style={{ color: v <= sla ? 'var(--good)' : 'var(--bad)' }}>
-                  {v}
-                  <small>min</small>
-                </div>
-                <span className="muted" style={{ fontSize: 11 }}>SLA {sla} min · {Math.round((1 - v / sla) * 100)}% headroom</span>
-                <Chart
-                  height={64}
-                  option={{
-                    grid: { left: 0, right: 0, top: 6, bottom: 0 },
-                    xAxis: { type: 'category', show: false, data: series.map((_, i) => `D-${29 - i}`) },
-                    yAxis: { type: 'value', show: false, min: 0, max: Math.max(sla * 1.1, ...series) },
-                    tooltip: { trigger: 'axis' },
-                    series: [
-                      { type: 'line', data: [...series], symbol: 'none', lineStyle: { color: col, width: 2 }, areaStyle: { color: col, opacity: 0.12 }, markLine: { symbol: 'none', silent: true, lineStyle: { color: '#f8646f', type: 'dashed' }, label: { show: false }, data: [{ yAxis: sla }] } },
-                    ],
-                  }}
-                />
-              </div>
-            ))}
-          </div>
+          <SlaMotion
+            introKey={`${c.id}-${tenantId}-${days}`}
+            metrics={[
+              { key: 'mttd', label: 'Mean time to detect', value: s.mttdMin, sla: SLA.mttd, series: d.mttTrend.mttd, color: PALETTE[0] },
+              { key: 'mtta', label: 'Mean time to acknowledge', value: s.mttaMin, sla: SLA.mtta, series: d.mttTrend.mtta, color: PALETTE[1] },
+              { key: 'mttr', label: 'Mean time to contain', value: s.mttrMin, sla: SLA.mttr, series: d.mttTrend.mttr, color: PALETTE[2] },
+            ]}
+            onOpen={() => setPanel('sla')}
+          />
         </Card>
 
         <Card title="Open incidents" count={open.length} sub="By tenant and severity" actions={<button className="link" onClick={() => nav('/soc/ir')}>Incident queue →</button>}>

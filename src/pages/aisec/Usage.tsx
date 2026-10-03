@@ -115,7 +115,7 @@ export default function AisecUsage() {
             const pct = Math.round((l.active / l.paid) * 100);
             return (
               <div key={l.name} className="row" style={{ gap: 14, alignItems: 'center' }}>
-                <Ring value={pct} size={86} stroke={9} color={pct >= 80 ? '#2dd4bf' : pct >= 65 ? '#f0a338' : '#f0466e'} sub="used" />
+                <Ring value={pct} size={86} stroke={9} color={pct >= 80 ? '#2dd4bf' : pct >= 65 ? '#f0a338' : '#f0466e'} label={`${pct}%`} sub="used" />
                 <div className="stack" style={{ gap: 3, flex: 1, minWidth: 0 }}>
                   <b style={{ fontSize: 13 }}>{l.name}</b>
                   <span className="muted" style={{ fontSize: 11.5 }}>{fmtNum(l.active)} of {fmtNum(l.paid)} seats · {fmtMoney(l.price, c.currency, false)}/seat/month</span>

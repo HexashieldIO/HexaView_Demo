@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { LayoutGrid, Table2 } from 'lucide-react';
-import { Card, KpiStrip, Chip, Btn, Legend, SevBadge, Badge, Stacked } from '../../components/ui';
-import { Chart } from '../../components/Chart';
+import { Card, KpiStrip, Chip, Btn, SevBadge, Badge } from '../../components/ui';
 import { DataTable } from '../../components/DataTable';
 import { fmtCompact, fmtNum } from '../../lib/format';
 import { aiControlPlane } from '../../data/modules/ai';
@@ -10,6 +9,7 @@ import {
   AS_KINDS, KIND_HEX, STATUS_HEX, VENDOR_HEX, MODEL_VENDORS, aisecSensors,
   type AsItem, type AsKind, type AsStatus, type ModelVendor,
 } from '../../data/modules/aisec';
+import { EstateTiles, StatusSplit, DiscoveryTimeline } from './InventoryVisuals';
 import { AS_TONE, BASE, CoverageDot, ItemDrawer, KIND_ICON, KindBadge, RecordsDrawer, SensorNote, StatusPill, VendorDot, itemRows, toneStyle, useAs } from './parts';
 
 const STATUSES: AsStatus[] = ['sanctioned', 'pilot', 'in review', 'shadow'];
@@ -46,13 +46,7 @@ export default function AisecInventory() {
       .sort((a, b) => b.items.length - a.items.length);
   }, [shown, groupBy]);
 
-  const scatter = STATUSES.map((st) => ({
-    name: st === 'shadow' ? 'Shadow' : st.charAt(0).toUpperCase() + st.slice(1),
-    type: 'scatter' as const,
-    itemStyle: { color: STATUS_HEX[st], opacity: 0.85 },
-    data: shown.filter((x) => x.status === st).map((x) => ({ value: [-Math.min(x.firstSeenDays, 400), AS_KINDS.indexOf(x.kind), x.users], name: x.name, id: x.id })),
-    symbolSize: (v: number[]) => Math.max(8, Math.min(34, Math.sqrt(v[2]) * 1.4)),
-  }));
+
 
   return (
     <div className="stack" style={{ gap: 16, ...toneStyle }}>
@@ -72,45 +66,21 @@ export default function AisecInventory() {
         ]}
       />
 
-      <div className="grid g-3-2">
+      <div className="grid g2">
         <Card
           title={groupBy === 'vendor' ? 'Estate by model vendor' : 'Estate by type'}
           sub="Block size = items · click to filter"
           actions={<div className="row" style={{ gap: 6 }}><Chip on={groupBy === 'vendor'} onClick={() => setGroupBy('vendor')} color={AS_TONE}>Vendor</Chip><Chip on={groupBy === 'kind'} onClick={() => setGroupBy('kind')} color={AS_TONE}>Type</Chip></div>}
         >
-          <div className="as-tree">
-            {groups.map((g) => (
-              <button
-                key={g.key}
-                className="as-tree-block"
-                style={{ flex: `${g.items.length} 1 ${Math.max(110, g.items.length * 34)}px`, background: `linear-gradient(160deg, ${g.color}, color-mix(in srgb, ${g.color} 62%, #0b1122))` }}
-                onClick={() => (groupBy === 'vendor' ? setParam('vendor', vendor === g.key ? null : g.key) : setParam('kind', kind === g.key ? null : g.key))}
-                title={g.items.map((x) => x.name).join(', ')}
-              >
-                <b>{g.key}</b>
-                <span>{g.items.length} item{g.items.length === 1 ? '' : 's'} · {fmtCompact(g.sessions)} sessions</span>
-                <span style={{ opacity: 0.8 }}>{g.items.filter((x) => x.status === 'shadow').length ? `${g.items.filter((x) => x.status === 'shadow').length} shadow` : 'all registered'}</span>
-              </button>
-            ))}
-          </div>
-          <div style={{ marginTop: 12 }}>
-            <Stacked tall showLabels parts={STATUSES.map((st) => ({ value: shown.filter((x) => x.status === st).length, color: STATUS_HEX[st], label: st }))} />
-            <div style={{ marginTop: 8 }}><Legend items={STATUSES.map((st) => ({ label: `${st.charAt(0).toUpperCase() + st.slice(1)} ${shown.filter((x) => x.status === st).length}`, color: STATUS_HEX[st] }))} /></div>
-          </div>
-        </Card>
-        <Card title="Discovery timeline" sub="When each item was first seen · bubble size = users · click a bubble">
-          <Chart
-            height={260}
-            onClick={(p) => { const id = (p as { data?: { id?: string } }).data?.id; const x = inv.find((i) => i.id === id); if (x) setOpen(x); }}
-            option={{
-              grid: { left: 8, right: 16, top: 30, bottom: 8, containLabel: true },
-              legend: { top: 0, right: 0 },
-              tooltip: { trigger: 'item', formatter: (p: unknown) => { const q = p as { data: { name: string; value: number[] } }; return `<b>${q.data.name}</b><br/>First seen ${-q.data.value[0]} days ago · ${q.data.value[2]} users`; } },
-              xAxis: { type: 'value', name: 'days ago', nameLocation: 'middle', nameGap: 22, axisLabel: { formatter: (v: number) => String(-v) }, max: 0 },
-              yAxis: { type: 'category', data: AS_KINDS as unknown as string[], axisLabel: { fontSize: 10.5 } },
-              series: scatter,
-            }}
+          <EstateTiles
+            groups={groups}
+            active={groupBy === 'vendor' ? vendor : kind}
+            onPick={(k) => (groupBy === 'vendor' ? setParam('vendor', vendor === k ? null : k) : setParam('kind', kind === k ? null : k))}
           />
+          <StatusSplit items={shown} active={status} onPick={(st) => setParam('status', status === st ? null : st)} />
+        </Card>
+        <Card title="Discovery timeline" sub="When each item was first seen, by type · bubble size = users · hover or click a bubble">
+          <DiscoveryTimeline items={shown} activeStatus={status} onPickStatus={(st) => setParam('status', status === st ? null : st)} onOpen={setOpen} />
         </Card>
       </div>
 

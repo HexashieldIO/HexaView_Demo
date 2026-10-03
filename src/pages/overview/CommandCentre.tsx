@@ -6,14 +6,14 @@ import { headlines, resilienceIndex, riTrend, loops, loopSummary, LOOP_STATUS_CO
 import { attention, feed } from '../../data/overview';
 import { scopedConnectors, scopedTenants, isStale } from '../../data/customers';
 import { MODULE_BY_ID, CAPABILITIES } from '../../modules/registry';
-import { Card, GaugeTile, HexScore, SevBadge, Badge, Bar, Stacked, Legend, Freshness, Btn } from '../../components/ui';
+import { Card, GaugeTile, SevBadge, Badge, Bar, Stacked, Legend, Freshness, Btn } from '../../components/ui';
 import { HexIcon } from '../../components/HexIcon';
-import { Chart } from '../../components/Chart';
 import { WorldMap } from '../../components/WorldMap';
 import { DataTable } from '../../components/DataTable';
-import { fmtAgo, fmtCompact, fmtNum, monthLabels, scoreTone } from '../../lib/format';
+import { fmtAgo, fmtCompact, fmtNum, scoreTone } from '../../lib/format';
 import { ROLE_BY_ID } from '../../modules/roles';
 import { PlatformMap, type MapNodeInfo } from './PlatformMap';
+import { ResilienceHero, useIntro } from './ResilienceHero';
 import type { Env } from '../../data/types';
 
 const ENV_META: Record<Env, { label: string; icon: typeof Cloud; color: string }> = {
@@ -82,6 +82,8 @@ export default function CommandCentre() {
       })
     : [];
 
+  const introKey = `${c.id}-${tenantId}`;
+  const sideAnim = useIntro(introKey, 2400);
   const role = ROLE_BY_ID[persona] ?? ROLE_BY_ID.ciso;
   const tips = { title: `For ${role.label.toLowerCase().startsWith('ciso') ? 'the CISO' : role.label}`, items: role.workspace };
 
@@ -100,42 +102,22 @@ export default function CommandCentre() {
       </p>
 
       <div className="grid g-2-1">
-        <Card>
-          <div className="row" style={{ gap: 22, alignItems: 'center', flexWrap: 'wrap' }}>
-            <button className="cc-link" onClick={() => nav('/board')} title="Open the Board view: how the Index is made">
-              <HexScore value={ri.value} size={104} />
-            </button>
-            <div style={{ flex: 1, minWidth: 220 }}>
-              <h3 style={{ fontSize: 18 }}>Resilience Index</h3>
-              <p className="secondary" style={{ marginTop: 4, maxWidth: 520 }}>
-                One explainable score for {tenantId === 'all' ? `${c.tenants.length} tenants, weighted by criticality` : tenants[0]?.name}. It moves as controls are validated, evidence ages and exposure changes.{' '}
-                <button className="link" onClick={() => nav('/board')}>
-                  See how it is made →
-                </button>
-              </p>
-            </div>
-            <div style={{ width: 200 }}>
-              <Chart
-                height={70}
-                option={{
-                  grid: { left: 0, right: 0, top: 6, bottom: 0 },
-                  xAxis: { type: 'category', data: monthLabels(12), show: false },
-                  yAxis: { type: 'value', show: false, min: 50 },
-                  tooltip: { trigger: 'axis' },
-                  series: [{ type: 'line', data: trend, symbol: 'none', lineStyle: { color: '#3ad0ae', width: 2 }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(58,208,174,.35)' }, { offset: 1, color: 'rgba(58,208,174,0)' }] } } }],
-                }}
-              />
-              <div className="muted" style={{ fontSize: 11, textAlign: 'right' }}>
-                <span style={{ color: 'var(--good)', fontWeight: 700 }}>+{trend[11] - trend[0]}</span> over 12 months
-              </div>
-            </div>
-          </div>
-          <div className="grid g6" style={{ marginTop: 16, gap: 6 }}>
-            {CAPABILITIES.map((cap) => {
+        <Card className="rh-card">
+          <ResilienceHero
+            key={introKey}
+            introKey={introKey}
+            value={ri.value}
+            trend={trend}
+            scopeText={tenantId === 'all' ? `${c.tenants.length} tenants, weighted by criticality` : tenants[0]?.name ?? ''}
+            gauges={CAPABILITIES.map((cap) => {
               const m = MODULE_BY_ID[cap.moduleId];
-              return <GaugeTile key={cap.id} value={scoreFor(cap.id)} color={m.tone} label={m.scoreLabel ?? m.title} sub={m.product} onClick={() => nav(`${m.basePath}/${m.tabs[0].id}`)} />;
+              return { key: cap.id, value: scoreFor(cap.id), color: m.tone, label: m.scoreLabel ?? m.title, sub: m.product, to: `${m.basePath}/${m.tabs[0].id}` };
             })}
-          </div>
+            events={baseFeed}
+            onOpenIndex={() => nav('/board')}
+            onOpenGauge={(g) => nav(g.to)}
+            onOpenEvent={(e) => { const m = MODULE_BY_ID[e.module]; nav(m ? (m.tabs.length ? `${m.basePath}/${m.tabs[0].id}` : m.basePath) : '/ops/notifications'); }}
+          />
         </Card>
 
         <Card title={tips.title} sub="Your role-based starting points" toneColor="var(--m-view)" tinted>
@@ -152,7 +134,7 @@ export default function CommandCentre() {
           <div className="grid g3" style={{ marginTop: 14, gap: 8 }}>
             {(['ai', 'insurance', 'fabric'] as const).map((k) => {
               const m = MODULE_BY_ID[k];
-              return <GaugeTile key={k} value={scoreFor(k)} color={m.tone} label={m.scoreLabel ?? ''} sub={m.product} size={60} onClick={() => nav(`${m.basePath}/${m.tabs[0].id}`)} />;
+              return <GaugeTile key={k} value={Math.round(sideAnim(scoreFor(k), 900 + ['ai', 'insurance', 'fabric'].indexOf(k) * 150, 1200))} color={m.tone} label={m.scoreLabel ?? ''} sub={m.product} size={60} onClick={() => nav(`${m.basePath}/${m.tabs[0].id}`)} />;
             })}
           </div>
         </Card>
