@@ -115,7 +115,7 @@ function ServicesInner() {
       </div>
 
       <div id="ops-tiers" style={{ scrollMarginTop: 80 }} />
-      <Card title="HexaView licence tiers" sub={`You are on ${c.tier}. Indicative list prices; managed services are licensed separately.`} actions={<Badge color={OPS_TONE}><Crown size={11} /> {c.tier}</Badge>}>
+      <Card title="HexaView licence tiers" sub={`You are on ${c.tier}. Managed services are licensed separately.`} actions={<Badge color={OPS_TONE}><Crown size={11} /> {c.tier}</Badge>}>
         <div className="grid g3">
           {LICENCE_TIERS.map((t) => {
             const on = t.tier === c.tier;
@@ -125,7 +125,6 @@ function ServicesInner() {
                   <h4 style={{ flex: 1 }}>{t.tier}</h4>
                   {on && <Badge color={OPS_TONE} solid>Your plan</Badge>}
                 </div>
-                <div className="kpi-value" style={{ fontSize: 20 }}>{t.price}</div>
                 <ul>
                   {t.items.map((i) => (
                     <li key={i}>{i}</li>

@@ -1423,9 +1423,9 @@ export function serviceUsage(c: CustomerProfile, tenantId: string, id: ServiceId
 }
 
 export const LICENCE_TIERS = [
-  { tier: 'Essentials', price: 'from US$22.5k / yr', items: ['Up to 5 integrations', 'Standard views and dashboards', 'Community connectors', 'Email support', 'HexaShield-hosted, multi-tenant'] },
-  { tier: 'Professional', price: '~US$81k / yr', items: ['~20 integrations', 'HexaAI copilot (cited)', 'Two-way write-back with approvals', 'Closed-loop assurance', 'Priority support'] },
-  { tier: 'Enterprise / CNI', price: 'from US$225k / yr', items: ['Unlimited integrations', 'Multi-tenant hierarchy & BYOK', 'Customer-hosted or air-gapped data planes', 'SSO / SCIM, granular roles', 'Named customer success manager', 'Contractual SLAs & assurance pack'] },
+  { tier: 'Essentials', items: ['Up to 5 integrations', 'Standard views and dashboards', 'Community connectors', 'Email support', 'HexaShield-hosted, multi-tenant'] },
+  { tier: 'Professional', items: ['~20 integrations', 'HexaAI copilot (cited)', 'Two-way write-back with approvals', 'Closed-loop assurance', 'Priority support'] },
+  { tier: 'Enterprise / CNI', items: ['Unlimited integrations', 'Multi-tenant hierarchy & BYOK', 'Customer-hosted or air-gapped data planes', 'SSO / SCIM, granular roles', 'Named customer success manager', 'Contractual SLAs & assurance pack'] },
 ] as const;
 
 /* =====================================================================
