@@ -11,6 +11,8 @@ import { ErrorBoundary } from './ErrorBoundary';
 import { NotificationBell } from './NotificationBell';
 import { RoleMenu } from './RoleMenu';
 import { UserProfile } from './UserProfile';
+import { DemoMenu } from '../demo/DemoMenu';
+import { TourOverlay } from '../demo/TourOverlay';
 import { ROLE_BY_ID, initialsOf, canAccess } from '../modules/roles';
 
 
@@ -289,6 +291,7 @@ function Topbar({ onMenu }: { onMenu: () => void }) {
         </select>
         <ChevronDown size={13} className="chev" />
       </label>
+      <DemoMenu />
       <RoleMenu />
       <button
         className="tb-ctl icon"
@@ -326,6 +329,7 @@ export function Shell({ children }: { children: ReactNode }) {
       <div className={`sidebar-backdrop ${open ? 'open' : ''}`} onClick={() => setOpen(false)} />
       <div className="main">
         <Topbar onMenu={() => setOpen(true)} />
+        <TourOverlay />
         <main className="content">
           <ErrorBoundary resetKey={loc.pathname}>{children}</ErrorBoundary>
         </main>
