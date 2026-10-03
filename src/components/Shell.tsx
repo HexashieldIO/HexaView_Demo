@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { CheckCircle2, ChevronDown, ChevronRight, Menu, Moon, RefreshCw, Search, Sun, Building2 } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronRight, Lock, Menu, Moon, RefreshCw, Search, Sun, Building2 } from 'lucide-react';
 import { MODULES, NAV_GROUPS, SERVICES, moduleForPath, type ModuleDef } from '../modules/registry';
 import { CUSTOMER_LIST } from '../data/customers';
 import { useApp, rangeLabel, type TimeRange } from '../state/AppContext';
@@ -16,14 +16,14 @@ import { ROLE_BY_ID, initialsOf, canAccess } from '../modules/roles';
 
 function SideItem({ mod, onNavigate }: { mod: ModuleDef; onNavigate: () => void }) {
   const loc = useLocation();
-  const { customer, persona, account } = useApp();
+  const { customer, persona, account, toast } = useApp();
   const active = moduleForPath(loc.pathname).id === mod.id;
   const role = ROLE_BY_ID[persona] ?? ROLE_BY_ID.ciso;
   const locked = account === 'customer' && mod.group !== 'partner' && !canAccess(role, mod.id);
-  const [open, setOpen] = useState(active);
+  const [open, setOpen] = useState(active && !locked);
   useEffect(() => {
-    if (active) setOpen(true);
-  }, [active]);
+    if (active && !locked) setOpen(true);
+  }, [active, locked]);
   const style = { '--tone': mod.tone } as CSSProperties;
   const hasSub = mod.tabs.length > 0 && mod.group !== 'overview';
   const to = mod.tabs.length ? `${mod.basePath}/${mod.tabs[0].id}` : mod.basePath;
@@ -34,13 +34,19 @@ function SideItem({ mod, onNavigate }: { mod: ModuleDef; onNavigate: () => void 
         to={to}
         end={mod.basePath === '/'}
         onClick={(e) => {
+          if (locked) {
+            e.preventDefault();
+            toast(`${mod.product} is not included in the ${role.label} role`);
+            return;
+          }
           if (active && hasSub) {
             e.preventDefault();
             setOpen((o) => !o);
           } else onNavigate();
         }}
         className={`nav-item ${active ? 'active' : ''} ${simple ? 'simple' : ''} ${locked ? 'locked' : ''}`}
-        title={locked ? `Outside the ${role.label} role. Switch to Master user (Admin) for full access.` : undefined}
+        title={locked ? `Locked: outside the ${role.label} role. Switch to Master user (Admin) for full access.` : undefined}
+        aria-disabled={locked || undefined}
       >
         <span className="nav-ico">
           <HexIcon mod={mod} size={22} />
@@ -49,9 +55,9 @@ function SideItem({ mod, onNavigate }: { mod: ModuleDef; onNavigate: () => void 
           <b>{simple ? mod.product : mod.product}</b>
           {!simple && <span>{mod.title}</span>}
         </span>
-        {hasSub && <ChevronRight size={14} className={`nav-caret ${open ? 'open' : ''}`} />}
+        {locked ? <Lock size={13} className="nav-lock" aria-label="Locked" /> : hasSub && <ChevronRight size={14} className={`nav-caret ${open ? 'open' : ''}`} />}
       </NavLink>
-      {hasSub && open && (
+      {hasSub && open && !locked && (
         <div className="nav-sub">
           {mod.tabs.map((t) => {
             const st = t.service ? customer.services[t.service] : undefined;

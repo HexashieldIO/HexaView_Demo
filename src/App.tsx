@@ -1,6 +1,9 @@
 import { Suspense, lazy } from 'react';
-import { BrowserRouter, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
-import { AppProvider } from './state/AppContext';
+import type { ReactNode } from 'react';
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Lock } from 'lucide-react';
+import { AppProvider, useApp } from './state/AppContext';
+import { ROLE_BY_ID, canAccess } from './modules/roles';
 import { Shell } from './components/Shell';
 import { ModuleLayout } from './components/ModuleLayout';
 import { MODULES } from './modules/registry';
@@ -21,6 +24,26 @@ const REDIRECTS: Record<string, string> = {
   'ops/trust': '/trust/portal',
 };
 
+/** Blocks a module the signed-in role is not licensed for, even via a typed URL. */
+function RoleGuard({ moduleId, children }: { moduleId: string; children: ReactNode }) {
+  const { persona, account, setPersona } = useApp();
+  const nav = useNavigate();
+  const mod = MODULES.find((m) => m.id === moduleId);
+  const role = ROLE_BY_ID[persona] ?? ROLE_BY_ID.ciso;
+  if (account !== 'customer' || !mod || mod.group === 'partner' || canAccess(role, moduleId)) return <>{children}</>;
+  return (
+    <div className="locked-page">
+      <span className="lp-ico"><Lock size={24} /></span>
+      <h2>{mod.product} is locked</h2>
+      <p>{mod.title} is not included in the <b>{role.label}</b> role. Ask your Master user (Admin) for access.</p>
+      <div className="row" style={{ gap: 8, justifyContent: 'center' }}>
+        <button className="btn primary" onClick={() => nav(role.landing)}>Go to my workspace</button>
+        <button className="btn" onClick={() => setPersona('master')}>Switch to Master user (Admin)</button>
+      </div>
+    </div>
+  );
+}
+
 function ModuleRoute({ moduleId }: { moduleId: string }) {
   const { tab } = useParams();
   const { search } = useLocation();
@@ -30,11 +53,13 @@ function ModuleRoute({ moduleId }: { moduleId: string }) {
   const Page = tab ? PAGES[`${moduleId}/${tab}`] : undefined;
   if (!Page) return <Navigate to={`${mod.basePath}/${mod.tabs[0].id}`} replace />;
   return (
-    <ModuleLayout moduleId={moduleId} tabId={tab}>
-      <Suspense fallback={<Loading />}>
-        <Page />
-      </Suspense>
-    </ModuleLayout>
+    <RoleGuard moduleId={moduleId}>
+      <ModuleLayout moduleId={moduleId} tabId={tab}>
+        <Suspense fallback={<Loading />}>
+          <Page />
+        </Suspense>
+      </ModuleLayout>
+    </RoleGuard>
   );
 }
 
@@ -49,17 +74,21 @@ export default function App() {
               <Route
                 path="/board"
                 element={
-                  <ModuleLayout moduleId="board">
-                    <BoardView />
-                  </ModuleLayout>
+                  <RoleGuard moduleId="board">
+                    <ModuleLayout moduleId="board">
+                      <BoardView />
+                    </ModuleLayout>
+                  </RoleGuard>
                 }
               />
               <Route
                 path="/loop"
                 element={
-                  <ModuleLayout moduleId="loop">
-                    <ClosedLoop />
-                  </ModuleLayout>
+                  <RoleGuard moduleId="loop">
+                    <ModuleLayout moduleId="loop">
+                      <ClosedLoop />
+                    </ModuleLayout>
+                  </RoleGuard>
                 }
               />
               {MODULES.filter((m) => m.tabs.length).map((m) => (

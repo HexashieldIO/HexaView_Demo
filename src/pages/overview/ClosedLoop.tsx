@@ -5,12 +5,13 @@ import { useApp, rangeDays, rangeLabel } from '../../state/AppContext';
 import { loops, loopSummary, LOOP_STATUS_COLOR, LINK_ORDER, type Loop, type LoopStatus, type LinkKey } from '../../data/core';
 import { tenantName, scopedConnectors, isStale } from '../../data/customers';
 import { frameworkStatus, loopTransitions, siemFor, type LoopTransition } from '../../data/modules/comply';
-import { Card, KpiStrip, Badge, Bar, Legend, Sources, Freshness, Btn, KV, Chip, Callout, SectionLabel, StatusBadge, Tabs } from '../../components/ui';
-import { Chart } from '../../components/Chart';
+import { Card, KpiStrip, Badge, Sources, Freshness, Btn, KV, Chip, Callout, SectionLabel, StatusBadge, Tabs } from '../../components/ui';
 import { DataTable } from '../../components/DataTable';
 import { Drawer } from '../../components/Overlay';
 import { fmtAgo, fmtNum } from '../../lib/format';
 import { LoopChain, CloseLoopWizard, LINK_STATE_COLOR } from './loopParts';
+import { LoopMotion } from './LoopMotion';
+import { AssuranceGap, StatusBars } from './LoopVisuals';
 import './board.css';
 
 const tone = 'var(--m-view)';
@@ -87,6 +88,19 @@ export default function ClosedLoop() {
     .slice(0, 16);
   const heatMax = Math.max(1, ...techs.flatMap((x) => STATUS_ORDER.map((s) => ls.filter((l) => l.technique === x.t && l.status === s).length)));
 
+  // Every filter on this page acts on the loop register: bring it into view and flash it.
+  const loopsRef = useRef<HTMLDivElement>(null);
+  const focusLoops = useCallback(() => {
+    requestAnimationFrame(() => {
+      const el = loopsRef.current;
+      if (!el) return;
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      el.classList.remove('loops-flash');
+      void el.offsetWidth;
+      el.classList.add('loops-flash');
+    });
+  }, []);
+
   const openRef = useRef<Loop | null>(null);
   openRef.current = open;
   const onClosed = useCallback((l: Loop) => {
@@ -119,58 +133,45 @@ export default function ClosedLoop() {
       </p>
 
       <Card title="The six-link loop" sub="Every link is read from a live tool; when any link is missing, stale or failing, the loop is not closed" actions={<Sources items={conns.slice(0, 6).map((k) => ({ name: k.product, status: k.status }))} />}>
-        <LoopChain captions={captions} />
+        <LoopMotion loops={ls} captions={captions} tenantLabel={(id) => tenantName(c, id)} onOpen={setOpen} />
       </Card>
 
       <KpiStrip
         toneColor={tone}
         items={[
-          { label: 'Assured', value: `${sum.assuredPct}%`, bar: sum.assuredPct, unit: 'stale counts half', onClick: () => setFStatus('closed'), source: loopSrc },
+          { label: 'Assured', value: `${sum.assuredPct}%`, bar: sum.assuredPct, unit: 'stale counts half', onClick: () => { setFStatus('closed'); focusLoops(); }, source: loopSrc },
           { label: 'Loops', value: fmtNum(sum.total), unit: `${sum.applicable} applicable`, onClick: () => { setFStatus('all'); setFFw('all'); setFTenant('all'); setFOwner('all'); setFMissing('all'); setFTech(null); setFControl(null); }, source: loopSrc },
-          { label: 'Closed', value: sum.closed, toneColor: 'var(--good)', onClick: () => setFStatus('closed'), delta: { text: `+${closedInRange} · ${rangeLabel(timeRange).toLowerCase()}`, good: true }, source: loopSrc },
-          { label: 'Partial', value: sum.partial, toneColor: 'var(--sev-medium)', onClick: () => setFStatus('partial'), source: loopSrc },
-          { label: 'Broken', value: sum.broken, toneColor: 'var(--bad)', onClick: () => setFStatus('broken'), source: loopSrc },
-          { label: 'Stale', value: sum.stale, toneColor: 'var(--sev-low)', onClick: () => setFStatus('stale'), delta: { text: `${brokeInRange} regressions · ${timeRange}`, good: false }, source: loopSrc },
-          { label: 'Not applicable', value: sum.na, toneColor: 'var(--sev-info)', onClick: () => setFStatus('not_applicable'), source: 'HexaComply applicability decisions' },
+          { label: 'Closed', value: sum.closed, toneColor: 'var(--good)', onClick: () => { setFStatus('closed'); focusLoops(); }, delta: { text: `+${closedInRange} · ${rangeLabel(timeRange).toLowerCase()}`, good: true }, source: loopSrc },
+          { label: 'Partial', value: sum.partial, toneColor: 'var(--sev-medium)', onClick: () => { setFStatus('partial'); focusLoops(); }, source: loopSrc },
+          { label: 'Broken', value: sum.broken, toneColor: 'var(--bad)', onClick: () => { setFStatus('broken'); focusLoops(); }, source: loopSrc },
+          { label: 'Stale', value: sum.stale, toneColor: 'var(--sev-low)', onClick: () => { setFStatus('stale'); focusLoops(); }, delta: { text: `${brokeInRange} regressions · ${timeRange}`, good: false }, source: loopSrc },
+          { label: 'Not applicable', value: sum.na, toneColor: 'var(--sev-info)', onClick: () => { setFStatus('not_applicable'); focusLoops(); }, source: 'HexaComply applicability decisions' },
         ]}
       />
 
-      <div className="grid g-1-2">
-        <Card title="Documented vs assured" sub="Documented: control implemented with fresh evidence · Assured: its loops proven closed">
-          <div className="stack" style={{ gap: 9 }}>
-            {fws.map((f) => (
-              <button key={f.fw.id} className="row" style={{ fontSize: 12, background: 'none', border: 0, padding: 0, textAlign: 'left' }} onClick={() => setFFw(frameworksUsed.includes(f.fw.short) ? f.fw.short : 'all')}>
-                <span style={{ width: 92, fontWeight: 600 }}>{f.fw.short}</span>
-                <div style={{ flex: 1, display: 'grid', gap: 3 }}>
-                  <Bar value={f.documented} color="var(--m-comply)" size="thin" />
-                  <Bar value={f.assured} color={tone} size="thin" />
-                </div>
-                <span className="muted" style={{ width: 92, textAlign: 'right' }}>{f.documented}% / <b style={{ color: 'var(--text-primary)' }}>{f.assured}%</b></span>
-              </button>
-            ))}
-          </div>
-          <div style={{ marginTop: 10 }}><Legend items={[{ label: 'Documented', color: 'var(--m-comply)' }, { label: 'Assured (loop-proven)', color: tone }]} /></div>
+      <div className="grid g2">
+        <Card title="Documented vs assured" sub="How far documented controls run ahead of loop-proven assurance">
+          <AssuranceGap
+            rows={fws.map((f) => ({ id: f.fw.id, short: f.fw.short, documented: f.documented, assured: f.assured, loops: ls.filter((l) => l.framework === f.fw.short).length }))}
+            active={fFw}
+            onFilter={(short) => { setFFw(frameworksUsed.includes(short) ? short : 'all'); focusLoops(); }}
+            onOpenFramework={(id) => nav(`/comply/caas?section=frameworks&framework=${id}`)}
+          />
         </Card>
 
-        <Card title="Loop status" sub={`By ${byDim} · click a bar to filter`} actions={<Tabs color={tone} value={byDim} onChange={setByDim} tabs={[{ id: 'tenant', label: 'Tenant' }, { id: 'framework', label: 'Framework' }]} />}>
-          <Chart
-            height={Math.max(200, dims.length * 34 + 40)}
-            onClick={(p) => {
-              const name = (p as { name: string }).name;
-              const d = dims.find((x) => x.label === name);
-              if (!d) return;
-              if (byDim === 'tenant') setFTenant(d.key); else setFFw(d.key);
-            }}
-            option={{
-              tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-              legend: { bottom: 0 },
-              grid: { left: 8, right: 16, top: 6, bottom: 28, containLabel: true },
-              xAxis: { type: 'value' },
-              yAxis: { type: 'category', data: dims.map((d) => d.label).reverse() },
-              series: STATUS_ORDER.map((s) => ({
-                name: STATUS_LABEL[s], type: 'bar', stack: 'st', barWidth: 16, itemStyle: { color: STATUS_HEX[s], borderRadius: 0 },
-                data: dims.map((d) => dimLoops(d.key).filter((l) => l.status === s).length).reverse(),
-              })),
+        <Card title="Loop status" sub={`By ${byDim} · every segment filters the loop register`} actions={<Tabs color={tone} value={byDim} onChange={setByDim} tabs={[{ id: 'tenant', label: 'Tenant' }, { id: 'framework', label: 'Framework' }]} />}>
+          <StatusBars
+            dims={dims}
+            loopsFor={dimLoops}
+            order={STATUS_ORDER}
+            colors={STATUS_HEX}
+            labels={STATUS_LABEL}
+            activeDim={byDim === 'tenant' ? fTenant : fFw}
+            activeStatus={fStatus}
+            onPick={(dim, st) => {
+              if (dim) { if (byDim === 'tenant') { setFTenant(dim); setFFw('all'); } else { setFFw(dim); setFTenant('all'); } } else { setFTenant('all'); setFFw('all'); }
+              setFStatus(st ?? 'all');
+              focusLoops();
             }}
           />
         </Card>
@@ -185,11 +186,11 @@ export default function ClosedLoop() {
             </div>
             {techs.map((x) => (
               <div key={x.t} className="loop-heat-row">
-                <span title={x.name}><button className="link" style={{ fontSize: 11 }} onClick={() => setFTech(fTech === x.t ? null : x.t)}>{x.t}</button> <span className="muted">{x.name}</span></span>
+                <span title={x.name}><button className="link" style={{ fontSize: 11 }} onClick={() => { setFTech(fTech === x.t ? null : x.t); focusLoops(); }}>{x.t}</button> <span className="muted">{x.name}</span></span>
                 {STATUS_ORDER.map((s) => {
                   const n = ls.filter((l) => l.technique === x.t && l.status === s).length;
                   return (
-                    <button key={s} type="button" className="loop-heat-cell" onClick={() => { setFTech(x.t); setFStatus(s); }}
+                    <button key={s} type="button" className="loop-heat-cell" onClick={() => { setFTech(x.t); setFStatus(s); focusLoops(); }}
                       style={{ background: n ? `color-mix(in srgb, ${LOOP_STATUS_COLOR[s]} ${20 + (n / heatMax) * 65}%, transparent)` : 'var(--surface-sunken)' }}>
                       {n || ''}
                     </button>
@@ -221,6 +222,7 @@ export default function ClosedLoop() {
         </Card>
       </div>
 
+      <div ref={loopsRef} className="loops-anchor">
       <Card
         title="Loops"
         count={rows.length}
@@ -284,6 +286,7 @@ export default function ClosedLoop() {
           ]}
         />
       </Card>
+      </div>
 
       <div className="row wrap" style={{ gap: 10 }}>
         {conns.map((k) => <Freshness key={k.id} minutes={k.lastSyncMin} stale={isStale(k) || k.status !== 'healthy'} label={k.product} />)}
