@@ -4,7 +4,7 @@ import type { CapabilityId, ServiceId } from '../data/types';
 // services. Sidebar, routes, Command Centre and the Service Catalogue all read
 // from here.
 
-export type NavGroupId = 'overview' | 'core' | 'platform' | 'fabric' | 'ops';
+export type NavGroupId = 'overview' | 'core' | 'platform' | 'fabric' | 'ops' | 'partner';
 
 export interface ServiceDef {
   id: ServiceId;
@@ -48,6 +48,7 @@ export const NAV_GROUPS: { id: NavGroupId; label: string }[] = [
   { id: 'platform', label: 'Intelligence & assurance' },
   { id: 'fabric', label: 'Integration fabric' },
   { id: 'ops', label: 'Operations' },
+  { id: 'partner', label: 'Partner / MSSP' },
 ];
 
 export const MODULES: ModuleDef[] = [
@@ -62,12 +63,20 @@ export const MODULES: ModuleDef[] = [
     tagline: '24/7 AI-agentic detection and response, hunting, forensics and detection engineering across every tool you run.',
     brandIcon: 'HexaSOC_icon.svg', tone: 'var(--m-soc)', basePath: '/soc', scoreKey: 'soc', scoreLabel: 'Detection & response',
     tabs: [
-      { id: 'mdr', label: '24/7 MDR', service: 'mdr' },
-      { id: 'ir', label: 'Incident Response', service: 'ir' },
+      { id: 'mdr', label: 'Overview · 24/7 MDR', service: 'mdr' },
+      { id: 'ir', label: 'Incidents & Response', service: 'ir' },
+      { id: 'attack', label: 'HexaMatrix', service: 'attack-coverage' },
+      { id: 'tickets', label: 'Tickets', service: 'mdr' },
+      { id: 'endpoint', label: 'Endpoint Vulnerabilities', service: 'mdr' },
+      { id: 'recommendations', label: 'Recommendations', service: 'mdr' },
+      { id: 'geomap', label: 'Geo Map', service: 'mdr' },
+      { id: 'identity', label: 'Identity', service: 'mdr' },
+      { id: 'entities', label: 'Entities', service: 'mdr' },
+      { id: 'insight', label: 'Insight', service: 'mdr' },
       { id: 'hunting', label: 'Threat Hunting', service: 'hunting' },
       { id: 'forensics', label: 'Digital Forensics', service: 'forensics' },
       { id: 'detection', label: 'Detection Engineering', service: 'detection-eng' },
-      { id: 'attack', label: 'ATT&CK Coverage', service: 'attack-coverage' },
+      { id: 'reports', label: 'Reports', service: 'mdr' },
     ],
   },
   {
@@ -75,9 +84,13 @@ export const MODULES: ModuleDef[] = [
     tagline: 'What the outside world can see, take and imitate: dark web, OSINT, threat intel and exposed credentials.',
     brandIcon: 'HexaInt_icon.svg', tone: 'var(--m-int)', basePath: '/int', scoreKey: 'int', scoreLabel: 'Intel coverage',
     tabs: [
-      { id: 'darkweb', label: 'Dark Web Monitoring', service: 'darkweb' },
+      { id: 'overview', label: 'Overview', service: 'darkweb' },
+      { id: 'surface', label: 'Attack Surface', service: 'osint' },
+      { id: 'exposure', label: 'Credential Exposure', service: 'exposure' },
+      { id: 'darkweb', label: 'Brand & Dark Web', service: 'darkweb' },
+      { id: 'supply', label: 'Supply Chain', service: 'osint' },
+      { id: 'ioc', label: 'IOC', service: 'osint' },
       { id: 'osint', label: 'OSINT & Threat Intel', service: 'osint' },
-      { id: 'exposure', label: 'Credential & Executive Exposure', service: 'exposure' },
     ],
   },
   {
@@ -96,8 +109,12 @@ export const MODULES: ModuleDef[] = [
     tagline: 'Passive visibility, vulnerability management and safe testing for the systems that cannot go down. Read-only by design.',
     brandIcon: 'HexaOT_icon.svg', tone: 'var(--m-ot)', basePath: '/ot', scoreKey: 'ot', scoreLabel: 'OT coverage',
     tabs: [
-      { id: 'visibility', label: 'Asset Visibility', service: 'ot-visibility' },
-      { id: 'vulns', label: 'OT Vulnerability Management', service: 'ot-vuln' },
+      { id: 'visibility', label: 'Overview', service: 'ot-visibility' },
+      { id: 'sites', label: 'Sites', service: 'ot-visibility' },
+      { id: 'assets', label: 'Assets', service: 'ot-visibility' },
+      { id: 'network', label: 'Network', service: 'ot-visibility' },
+      { id: 'vulns', label: 'Vulnerabilities', service: 'ot-vuln' },
+      { id: 'alerts', label: 'Alerts', service: 'ot-visibility' },
       { id: 'pentest', label: 'OT Penetration Testing', service: 'ot-pentest' },
     ],
   },
@@ -106,8 +123,11 @@ export const MODULES: ModuleDef[] = [
     tagline: 'Compliance as a service across every framework, third-party risk built in, and AI governance for the models you run.',
     brandIcon: 'HexaComply_icon.svg', tone: 'var(--m-comply)', basePath: '/comply', scoreKey: 'comply', scoreLabel: 'Control assurance',
     tabs: [
-      { id: 'caas', label: 'Compliance as a Service', service: 'caas' },
+      { id: 'overview', label: 'Overview', service: 'caas' },
+      { id: 'caas', label: 'Compliance', service: 'caas' },
+      { id: 'risks', label: 'Risk Register', service: 'caas' },
       { id: 'tprm', label: 'Third-Party Risk', service: 'tprm' },
+      { id: 'continuity', label: 'Business Continuity', service: 'caas' },
       { id: 'aigov', label: 'AI Security & Governance', service: 'ai-gov' },
     ],
   },
@@ -116,7 +136,9 @@ export const MODULES: ModuleDef[] = [
     tagline: 'Chain of custody and chain of evidence for your most valuable digital assets, with revocation at supplier, user and session level.',
     brandIcon: 'HexaCustody_icon.svg', tone: 'var(--m-custody)', basePath: '/custody', scoreKey: 'custody', scoreLabel: 'Custody integrity',
     tabs: [
-      { id: 'overview', label: 'Custody Overview', service: 'custody' },
+      { id: 'overview', label: 'Overview', service: 'custody' },
+      { id: 'lineage', label: 'Lineage', service: 'custody' },
+      { id: 'telemetry', label: 'Threat & Telemetry', service: 'custody' },
       { id: 'evidence', label: 'Chain of Evidence', service: 'custody' },
       { id: 'revocation', label: 'Revocation', service: 'custody' },
       { id: 'vendors', label: 'Vendor Chain', service: 'custody' },
@@ -190,6 +212,59 @@ export const MODULES: ModuleDef[] = [
       { id: 'trust', label: 'Trust Centre' },
       { id: 'services', label: 'Service Catalogue' },
       { id: 'admin', label: 'Administration' },
+    ],
+  },
+
+  // ---------- Partner / MSSP (shown only in Partner account mode) ----------
+  {
+    id: 'partner', group: 'partner', product: 'Partner Console', title: 'Partner Console', isNew: true,
+    tagline: 'Your side of the partnership: clients, health across your book, and what needs you today.',
+    glyph: 'Handshake', tone: 'var(--m-partner)', basePath: '/partner',
+    tabs: [
+      { id: 'overview', label: 'Overview' },
+      { id: 'clients', label: 'Clients' },
+      { id: 'provisioning', label: 'Provisioning' },
+    ],
+  },
+  {
+    id: 'psales', group: 'partner', product: 'Partner Sales', title: 'Deals & Quotes', isNew: true,
+    tagline: 'Register and protect opportunities, price HexaView and services, and track your pipeline.',
+    glyph: 'BadgeDollarSign', tone: 'var(--m-partner)', basePath: '/partner-sales',
+    tabs: [
+      { id: 'deals', label: 'Deal Registration' },
+      { id: 'quotes', label: 'Quotes & Pricing' },
+      { id: 'pipeline', label: 'Pipeline' },
+    ],
+  },
+  {
+    id: 'whitelabel', group: 'partner', product: 'White Label', title: 'White Label & Branding', isNew: true,
+    tagline: 'Run HexaView under your own brand: theme, domain, emails, reports and the client login.',
+    glyph: 'Palette', tone: 'var(--m-partner)', basePath: '/white-label',
+    tabs: [
+      { id: 'branding', label: 'Branding' },
+      { id: 'domains', label: 'Domains & Login' },
+      { id: 'templates', label: 'Report & Email Templates' },
+    ],
+  },
+  {
+    id: 'penable', group: 'partner', product: 'Enablement', title: 'Content & Enablement', isNew: true,
+    tagline: 'Collateral, training and co-marketing to sell and deliver HexaShield capabilities.',
+    glyph: 'GraduationCap', tone: 'var(--m-partner)', basePath: '/enablement',
+    tabs: [
+      { id: 'library', label: 'Content Library' },
+      { id: 'training', label: 'Training & Certification' },
+      { id: 'marketing', label: 'Co-marketing & MDF' },
+    ],
+  },
+  {
+    id: 'pbilling', group: 'partner', product: 'Billing', title: 'Billing & Commissions', isNew: true,
+    tagline: 'Usage across your clients, invoices, margin and commissions in one place.',
+    glyph: 'Receipt', tone: 'var(--m-partner)', basePath: '/partner-billing',
+    tabs: [
+      { id: 'usage', label: 'Usage & Metering' },
+      { id: 'invoices', label: 'Invoices' },
+      { id: 'commissions', label: 'Commissions' },
+      { id: 'support', label: 'Partner Support' },
     ],
   },
 ];

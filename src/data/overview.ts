@@ -17,7 +17,7 @@ export interface FeedEvent {
   kind: 'detect' | 'action' | 'evidence' | 'intel' | 'loop' | 'custody' | 'test' | 'system';
 }
 
-const ATTENTION: Record<CustomerId, AttentionItem[]> = {
+const ATTENTION: Partial<Record<CustomerId, AttentionItem[]>> = {
   maritime: [
     { sev: 'critical', module: 'soc', title: 'Hands-on-keyboard activity on PKL-ENG-WS03', detail: 'Engineering workstation in the Port Klang Level 3 zone; HexaSOC isolated the IT NIC, OT side left untouched pending approval', path: '/soc/ir', ageMin: 38, tenant: 'pkl' },
     { sev: 'high', module: 'ot', title: 'Unscheduled PLC programme download to STS crane 14', detail: 'S7comm download from jump host outside change window, Maasvlakte quay 3', path: '/ot/visibility', ageMin: 72, tenant: 'rtm' },
@@ -50,7 +50,52 @@ const ATTENTION: Record<CustomerId, AttentionItem[]> = {
   ],
 };
 
+ATTENTION.healthcare = [
+  { sev: 'critical', module: 'soc', title: 'Help-desk MFA reset then Citrix login from residential proxy: ICU charge nurse account', detail: 'Scattered Spider pattern; sessions revoked by approval, Epic access reviewed', path: '/soc/ir', ageMin: 31, tenant: 'mrmc' },
+  { sev: 'high', module: 'ot', title: '1,140 legacy infusion pumps and imaging workstations on a flat clinical VLAN', detail: 'Community hospitals; Windows 7 imaging consoles reachable from guest Wi-Fi bridge', path: '/ot/visibility', ageMin: 210, tenant: 'community' },
+  { sev: 'high', module: 'int', title: 'Patient portal credentials and 2 clinician logins in a Qilin-affiliate stealer log', detail: 'MyChart login cookies included; forced resets queued for approval', path: '/int/exposure', ageMin: 95, tenant: 'clinics' },
+  { sev: 'high', module: 'fabric', title: 'KEV: CVE-2023-4966 on the Citrix gateway at Zanesville', detail: 'Internet-facing, exploited by healthcare ransomware crews; 2 days left in SLA', path: '/fabric/exposure', ageMin: 300, tenant: 'community' },
+  { sev: 'medium', module: 'comply', title: 'HITRUST r2 validated assessment in 5 months', detail: '31 evidence tasks overdue; HIPAA risk analysis refresh due in January', path: '/comply/caas', ageMin: 1440, tenant: 'mrmc' },
+  { sev: 'medium', module: 'ops', title: '4 write-back actions awaiting approval', detail: 'Contain host (CrowdStrike), revoke sessions (Entra), deploy rule (Sentinel), block sender (Mimecast)', path: '/ops/actions', ageMin: 45, tenant: 'mrmc' },
+  { sev: 'medium', module: 'ai', title: 'ChatGPT used with patient identifiers by 9 clinicians', detail: 'Netskope-equivalent DLP via Defender; BAA not in place', path: '/ai/discovery', ageMin: 520, tenant: 'mrmc' },
+  { sev: 'low', module: 'fabric', title: 'Epic Clarity extract late after upgrade', detail: 'Break-the-glass evidence stale for HIPAA 164.312(b)', path: '/fabric/integrations', ageMin: 150, tenant: 'mrmc' },
+];
+ATTENTION.automotive = [
+  { sev: 'critical', module: 'ot', title: 'Unscheduled PLC download to body-shop press line 3', detail: 'From a KUKA service laptop via BeyondTrust session outside the change window, Ingolstadt', path: '/ot/visibility', ageMin: 27, tenant: 'ingolstadt' },
+  { sev: 'critical', module: 'soc', title: 'Akira-style lateral movement on Puebla MES server', detail: 'HexaSOC contained IT side; OT conduit left untouched pending plant approval', path: '/soc/ir', ageMin: 52, tenant: 'puebla' },
+  { sev: 'high', module: 'int', title: 'Supplier stealer log contains OTA signing portal credentials', detail: 'Tier 1 telematics supplier engineer; R156 key-use review opened', path: '/int/exposure', ageMin: 120, tenant: 'connected' },
+  { sev: 'high', module: 'custody', title: 'Project Lumen design renders opened on an unmanaged device', detail: 'External design agency, Milan; watermark ID traced, supplier session revoked', path: '/custody/overview', ageMin: 85, tenant: 'group' },
+  { sev: 'high', module: 'fabric', title: 'Vehicle API: 41k token-replay attempts against remote-unlock endpoint', detail: 'Upstream vSOC flagged; rate limits holding, no vehicles affected', path: '/fabric/exposure', ageMin: 160, tenant: 'connected' },
+  { sev: 'medium', module: 'comply', title: 'UNECE R155 CSMS re-audit in 6 months', detail: '23 tasks overdue; TISAX AL3 renewal in February', path: '/comply/caas', ageMin: 1440, tenant: 'group' },
+  { sev: 'medium', module: 'ops', title: '6 write-back actions awaiting approval', detail: '2 high-risk (terminate vendor session, revoke sessions) need a Tenant Admin', path: '/ops/actions', ageMin: 38, tenant: 'group' },
+  { sev: 'low', module: 'fabric', title: 'Battery plant bundle arrives every 6 h (air-gapped)', detail: 'Last signed bundle 6 h ago; next import due 14:00', path: '/fabric/dataplanes', ageMin: 360, tenant: 'battery' },
+];
+
 const FEED: Record<CustomerId, FeedEvent[]> = {
+  healthcare: [
+    { module: 'soc', kind: 'detect', tenant: 'mrmc', text: 'HexaSOC closed 1,410 benign Imprivata badge-tap alerts (shift change)' },
+    { module: 'ot', kind: 'detect', tenant: 'kids', text: 'Claroty xDome: new Philips IntelliVue monitor joined PICU VLAN' },
+    { module: 'loop', kind: 'loop', tenant: 'mrmc', text: 'Loop closed: CTL-BKP-06 × T1490, Epic downtime restore validated' },
+    { module: 'int', kind: 'intel', tenant: 'mrmc', text: 'Health-ISAC flash: Rhysida targeting Citrix in US hospitals' },
+    { module: 'comply', kind: 'evidence', tenant: 'clinics', text: 'Evidence collected: BAA register review (HIPAA 164.308(b))' },
+    { module: 'ops', kind: 'action', tenant: 'mrmc', text: 'Action verified: Sentinel rule "HV-T1621-MFA-fatigue" enabled' },
+    { module: 'custody', kind: 'custody', tenant: 'research', text: 'Genomics cohort GX-2026 shared with partner university, hashes verified' },
+    { module: 'strike', kind: 'test', tenant: 'community', text: 'HexaStrike purple test T1133 (Citrix): detection fired in 52 s' },
+    { module: 'fabric', kind: 'system', tenant: 'community', text: 'Marion MPLS recovered: 3,200 buffered device events ingested' },
+    { module: 'ai', kind: 'detect', tenant: 'mrmc', text: 'HexaAI: DAX ambient notes model card updated, risk re-assessed' },
+  ],
+  automotive: [
+    { module: 'soc', kind: 'detect', tenant: 'group', text: 'HexaSOC closed 3,960 benign QRadar offenses (SAP batch window)' },
+    { module: 'ot', kind: 'detect', tenant: 'gyor', text: 'Armis: new Siemens S7-1500 on e-drive line 2, matched change CHG0142201' },
+    { module: 'loop', kind: 'loop', tenant: 'connected', text: 'Loop closed: CTL-OTA-01 × T1195.002, signing anomaly detection validated' },
+    { module: 'int', kind: 'intel', tenant: 'group', text: 'Auto-ISAC: Black Basta campaign against European Tier 1 suppliers' },
+    { module: 'comply', kind: 'evidence', tenant: 'group', text: 'Evidence collected: TISAX prototype protection walk-through (8.1)' },
+    { module: 'ops', kind: 'action', tenant: 'ingolstadt', text: 'Action verified: BeyondTrust vendor session terminated (2 approvers)' },
+    { module: 'custody', kind: 'custody', tenant: 'connected', text: 'OTA 24.9.3 rolled to 412k vehicles, package lineage intact' },
+    { module: 'strike', kind: 'test', tenant: 'connected', text: 'HexaStrike: vehicle API BOLA retest passed' },
+    { module: 'fabric', kind: 'system', tenant: 'battery', text: 'Battery plant signed bundle imported via data diode (6 h cycle)' },
+    { module: 'soc', kind: 'detect', tenant: 'retail', text: 'Defender XDR: OAuth consent phishing against dealer accounts blocked' },
+  ],
   maritime: [
     { module: 'soc', kind: 'detect', tenant: 'rtm', text: 'HexaSOC triage agent closed 212 benign alerts on gate OCR lanes (known maintenance)' },
     { module: 'ot', kind: 'detect', tenant: 'ant', text: 'New asset discovered: Siemens S7-1500 on crane network VLAN 310' },
@@ -90,7 +135,7 @@ const FEED: Record<CustomerId, FeedEvent[]> = {
 };
 
 export function attention(c: CustomerProfile, tenantId = 'all'): AttentionItem[] {
-  const items = ATTENTION[c.id];
+  const items = ATTENTION[c.id] ?? [];
   return tenantId === 'all' ? items : items.filter((i) => i.tenant === tenantId);
 }
 export function feed(c: CustomerProfile, tenantId = 'all'): FeedEvent[] {

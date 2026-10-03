@@ -2,9 +2,11 @@ import type { CustomerId, CustomerProfile, Connector, Tenant } from '../types';
 import { maritime } from './maritime';
 import { finserv } from './finserv';
 import { media } from './media';
+import { healthcare } from './healthcare';
+import { automotive } from './automotive';
 
-export const CUSTOMERS: Record<CustomerId, CustomerProfile> = { maritime, finserv, media };
-export const CUSTOMER_LIST: CustomerProfile[] = [maritime, finserv, media];
+export const CUSTOMERS: Record<CustomerId, CustomerProfile> = { maritime, finserv, media, healthcare, automotive };
+export const CUSTOMER_LIST: CustomerProfile[] = [maritime, finserv, media, healthcare, automotive];
 
 /** Tenants in scope for the current tenant filter ('all' = group roll-up). */
 export function scopedTenants(c: CustomerProfile, tenantId: string): Tenant[] {

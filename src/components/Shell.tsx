@@ -7,6 +7,7 @@ import { useApp, rangeLabel, type TimeRange } from '../state/AppContext';
 import type { CustomerId, Persona } from '../data/types';
 import { HexIcon } from './HexIcon';
 import { Modal } from './Overlay';
+import { ErrorBoundary } from './ErrorBoundary';
 
 const PERSONAS: { id: Persona; label: string }[] = [
   { id: 'executive', label: 'Board & exec' },
@@ -25,7 +26,7 @@ function SideItem({ mod, onNavigate }: { mod: ModuleDef; onNavigate: () => void 
     if (active) setOpen(true);
   }, [active]);
   const style = { '--tone': mod.tone } as CSSProperties;
-  const hasSub = mod.tabs.length > 0 && (mod.group === 'core' || mod.group === 'platform' || mod.group === 'fabric' || mod.group === 'ops');
+  const hasSub = mod.tabs.length > 0 && mod.group !== 'overview';
   const to = mod.tabs.length ? `${mod.basePath}/${mod.tabs[0].id}` : mod.basePath;
   const simple = mod.group === 'overview';
   return (
@@ -71,15 +72,12 @@ function SideItem({ mod, onNavigate }: { mod: ModuleDef; onNavigate: () => void 
 function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () => void }) {
   const { customer, setCustomerId, theme, setTheme, account, setAccount } = useApp();
   const [orgOpen, setOrgOpen] = useState(false);
+  const navTo = useNavigate();
   return (
     <aside className={`sidebar ${open ? 'open' : ''}`} aria-label="Main navigation">
-      <div className="brand">
-        <img src="/brand/HexaView_mark.svg" alt="" />
-        <div>
-          <div className="brand-name">HexaView</div>
-          <div className="brand-sub">CYBER SECURITY</div>
-        </div>
-      </div>
+      <NavLink to="/" className="brand" aria-label="HexaView home" onClick={onNavigate}>
+        <img src="/brand/HexaView_logo_reverse.png" alt="HexaView" className="brand-logo" />
+      </NavLink>
 
       <button className="org-switch" onClick={() => setOrgOpen((o) => !o)} aria-expanded={orgOpen}>
         <span className="org-avatar" style={{ background: customer.colour }}>{customer.initials}</span>
@@ -115,7 +113,7 @@ function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () => void }
         </div>
       )}
 
-      {NAV_GROUPS.map((g) => (
+      {NAV_GROUPS.filter((g) => g.id !== 'partner' || account === 'partner').map((g) => (
         <div className="nav-group" key={g.id}>
           <div className="nav-group-label">{g.label}</div>
           {MODULES.filter((m) => m.group === g.id).map((m) => (
@@ -131,8 +129,8 @@ function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () => void }
         </button>
         <div className="side-label">ACCOUNT TYPE</div>
         <div className="seg">
-          <button className={account === 'customer' ? 'on' : ''} onClick={() => setAccount('customer')}>Customer</button>
-          <button className={account === 'partner' ? 'on' : ''} onClick={() => setAccount('partner')}>Partner / MSSP</button>
+          <button className={account === 'customer' ? 'on' : ''} onClick={() => { setAccount('customer'); navTo('/'); }}>Customer</button>
+          <button className={account === 'partner' ? 'on' : ''} onClick={() => { setAccount('partner'); navTo('/partner/overview'); }}>Partner / MSSP</button>
         </div>
         <div className="side-note">Demo build · illustrative data</div>
       </div>
@@ -282,7 +280,9 @@ export function Shell({ children }: { children: ReactNode }) {
       <div className={`sidebar-backdrop ${open ? 'open' : ''}`} onClick={() => setOpen(false)} />
       <div className="main">
         <Topbar onMenu={() => setOpen(true)} />
-        <main className="content">{children}</main>
+        <main className="content">
+          <ErrorBoundary resetKey={loc.pathname}>{children}</ErrorBoundary>
+        </main>
       </div>
       <div className="toasts" aria-live="polite">
         {toasts.map((t) => (

@@ -55,6 +55,28 @@ const BASE: Record<CustomerId, Omit<Headlines, 'fabric'>> = {
     insurance: { insurability: 71, premiumDeltaPct: 4, expectedLossM: 3.1, tailLossM: 38, attestedControls: 18, totalControls: 26 },
     ops: { pendingApprovals: 2, actions30d: 38, auditEvents30d: 21980, lastAnchorMin: 4 },
   },
+  healthcare: {
+    soc: { openIncidents: 18, critical: 1, high: 5, mttdMin: 6, mttaMin: 4, mttrMin: 44, slaPct: 99.94, alerts24h: 8620, autoTriagedPct: 95, attackCoveragePct: 66, huntsActive: 3, detectionsLive: 604 },
+    int: { prioritisedItems: 36, exposedCredentials: 241, stealerMachines: 31, lookalikeDomains: 12, darkWebMentions: 29, vipsMonitored: 16 },
+    strike: { openFindings: 27, criticalFindings: 2, findingsToDetectionsPct: 57, externalAssets: 468, testsThisQuarter: 5, meanTimeToRemediateDays: 26 },
+    ot: { otAssets: 14600, sites: 7, otAlerts: 1760, otVulns: 9840, sensors: 19, purdueCoveragePct: 82 },
+    comply: { controlsMetPct: 79, frameworks: 6, evidenceItems: 2380, overdueTasks: 31, vendors: 286, highRiskVendors: 13, aiSystems: 8 },
+    custody: { assetsUnderCustody: 3920, vendorsInChain: 14, transfers7d: 980, revocations30d: 11, anomalies: 4, agents: 210 },
+    ai: { aiSystems: 8, shadowAi: 4, copilotQueries30d: 2140, agentActions7d: 19800, humanApprovalPct: 100 },
+    insurance: { insurability: 73, premiumDeltaPct: 3, expectedLossM: 6.9, tailLossM: 71, attestedControls: 19, totalControls: 26 },
+    ops: { pendingApprovals: 4, actions30d: 88, auditEvents30d: 74300, lastAnchorMin: 3 },
+  },
+  automotive: {
+    soc: { openIncidents: 26, critical: 2, high: 7, mttdMin: 5, mttaMin: 3, mttrMin: 37, slaPct: 99.97, alerts24h: 16480, autoTriagedPct: 96, attackCoveragePct: 74, huntsActive: 4, detectionsLive: 1124 },
+    int: { prioritisedItems: 52, exposedCredentials: 388, stealerMachines: 44, lookalikeDomains: 31, darkWebMentions: 47, vipsMonitored: 22 },
+    strike: { openFindings: 38, criticalFindings: 2, findingsToDetectionsPct: 69, externalAssets: 1460, testsThisQuarter: 14, meanTimeToRemediateDays: 17 },
+    ot: { otAssets: 9800, sites: 34, otAlerts: 3920, otVulns: 7410, sensors: 46, purdueCoveragePct: 84 },
+    comply: { controlsMetPct: 82, frameworks: 7, evidenceItems: 5180, overdueTasks: 23, vendors: 640, highRiskVendors: 21, aiSystems: 8 },
+    custody: { assetsUnderCustody: 11200, vendorsInChain: 37, transfers7d: 3260, revocations30d: 29, anomalies: 6, agents: 1480 },
+    ai: { aiSystems: 8, shadowAi: 5, copilotQueries30d: 5320, agentActions7d: 41200, humanApprovalPct: 100 },
+    insurance: { insurability: 78, premiumDeltaPct: -4, expectedLossM: 21.4, tailLossM: 410, attestedControls: 21, totalControls: 26 },
+    ops: { pendingApprovals: 6, actions30d: 171, auditEvents30d: 162800, lastAnchorMin: 2 },
+  },
 };
 
 export function headlines(c: CustomerProfile, tenantId = 'all'): Headlines {
@@ -107,6 +129,8 @@ const RI_OFFSETS: Record<CustomerId, Record<RiKey, number>> = {
   maritime: { loop: -14, coverage: 1, exposure: 4, detection: 9, data: 12 },
   finserv: { loop: -11, coverage: 3, exposure: 2, detection: 7, data: 9 },
   media: { loop: -15, coverage: -1, exposure: 5, detection: 8, data: 13 },
+  healthcare: { loop: -16, coverage: 2, exposure: 3, detection: 9, data: 12 },
+  automotive: { loop: -12, coverage: 2, exposure: 3, detection: 8, data: 9 },
 };
 
 export interface RiBreakdown {
@@ -164,6 +188,20 @@ export function riDrivers(c: CustomerProfile): { text: string; gain: number; mod
       { text: 'Rotate the KnowBe4 API key so awareness evidence (ISO A.6.3) is fresh again', gain: 0.6, module: 'Integrations', path: '/fabric/integrations' },
       { text: 'Upgrade the Atlanta broadcast edge agent and restore the PTP timing feed', gain: 0.5, module: 'Data planes', path: '/fabric/dataplanes' },
     ],
+    healthcare: [
+      { text: 'Close 12 partial loops on remote-access and MFA controls (HPH CPGs 1.5, HIPAA 164.312) with the staged Sentinel rules', gain: 2.3, module: 'Closed loop', path: '/loop' },
+      { text: 'Segment 1,140 legacy infusion pumps and imaging workstations still on the flat clinical VLAN at the community hospitals', gain: 1.8, module: 'HexaOT', path: '/ot/visibility' },
+      { text: 'Enforce phishing-resistant MFA for the 214 help-desk reset-eligible accounts (Scattered Spider pattern)', gain: 1.3, module: 'Identity', path: '/fabric/identity' },
+      { text: 'Restore the Epic Clarity extract so break-the-glass evidence stops going stale', gain: 0.8, module: 'Integrations', path: '/fabric/integrations' },
+      { text: 'Upgrade the community-hospital edge agent and relieve the Marion MPLS link', gain: 0.6, module: 'Data planes', path: '/fabric/dataplanes' },
+    ],
+    automotive: [
+      { text: 'Close 10 partial loops on vendor remote access to robot cells (IEC 62443 SR 1.13, TISAX 4.1.3) by validating BeyondTrust detections', gain: 2.0, module: 'Closed loop', path: '/loop' },
+      { text: 'Remove the 3 IT-to-OT conduits at Puebla that bypass the Level 3.5 DMZ', gain: 1.7, module: 'HexaOT', path: '/ot/visibility' },
+      { text: 'Rotate the OTA signing HSM operator credentials found in a supplier stealer log (R156 7.1.1)', gain: 1.2, module: 'HexaInt', path: '/int/exposure' },
+      { text: 'Restore SAP Enterprise Threat Detection field mapping so supplier-master changes are monitored again', gain: 0.8, module: 'Integrations', path: '/fabric/integrations' },
+      { text: 'Bring the Puebla plant edge agent two versions forward and off LTE failover', gain: 0.6, module: 'Data planes', path: '/fabric/dataplanes' },
+    ],
   };
   return common[c.id];
 }
@@ -213,7 +251,7 @@ interface ControlSeed {
   techniques: string[];
 }
 
-const CONTROL_SEEDS: Record<CustomerId, ControlSeed[]> = {
+const CONTROL_SEEDS: Partial<Record<CustomerId, ControlSeed[]>> = {
   maritime: [
     { id: 'CTL-ACC-01', name: 'MFA for all remote and privileged access', req: 'ISO 27001 A.8.5 · NIS2 21(2)(j)', techniques: ['T1078', 'T1110.003', 'T1621', 'T1133'] },
     { id: 'CTL-OT-02', name: 'Vendor remote access to OT brokered via PAM jump host', req: 'IACS UR E26 4.2.2 · IEC 62443 SR 1.13', techniques: ['T0886', 'T1133', 'T1219'] },
@@ -261,7 +299,38 @@ const CONTROL_SEEDS: Record<CustomerId, ControlSeed[]> = {
   ],
 };
 
+CONTROL_SEEDS.healthcare = [
+  { id: 'CTL-IAM-01', name: 'Phishing-resistant MFA for remote access, email and privileged users', req: 'HIPAA 164.312(d) · HPH CPG 1.5 · HITRUST 01.q', techniques: ['T1078', 'T1621', 'T1110.003', 'T1539'] },
+  { id: 'CTL-HD-02', name: 'Help-desk identity verification before credential or MFA reset', req: 'HPH CPG 1.6 · NIST CSF PR.AA-02', techniques: ['T1078', 'T1098', 'T1621'] },
+  { id: 'CTL-MD-03', name: 'Medical device network segmentation (clinical VLANs, no internet)', req: 'HPH CPG 2.7 · FDA 524B · NIST CSF PR.IR-01', techniques: ['T0886', 'T0866', 'T1021.002'] },
+  { id: 'CTL-MD-04', name: 'Biomed vendor remote access brokered and recorded', req: 'HIPAA 164.312(b) · HPH CPG 2.2', techniques: ['T1133', 'T1219', 'T0886'] },
+  { id: 'CTL-EDR-05', name: 'EDR on all servers and workstations incl. clinical workstations', req: 'HIPAA 164.308(a)(5)(ii)(B) · HPH CPG 2.4', techniques: ['T1486', 'T1059.001', 'T1562.001'] },
+  { id: 'CTL-BKP-06', name: 'Immutable backups and tested Epic downtime recovery', req: 'HIPAA 164.308(a)(7) · HPH CPG 2.9', techniques: ['T1490', 'T1486', 'T1489'] },
+  { id: 'CTL-LOG-07', name: 'Audit logging of ePHI access (EHR, PACS) with review', req: 'HIPAA 164.312(b) · HITRUST 09.aa', techniques: ['T1213', 'T1070.001', 'T1530'] },
+  { id: 'CTL-VUL-08', name: 'Known exploited vulnerabilities remediated within 14 days', req: 'HPH CPG 1.1 · HIPAA 164.308(a)(1)', techniques: ['T1190', 'T1133'] },
+  { id: 'CTL-EML-09', name: 'Email impersonation and attachment protection', req: 'HPH CPG 1.2 · HITRUST 09.j', techniques: ['T1566.001', 'T1566.002', 'T1657'] },
+  { id: 'CTL-TPR-10', name: 'Business associate (BAA) access reviewed and time-bound', req: 'HIPAA 164.308(b) · HPH CPG 1.8', techniques: ['T1199', 'T1195.002'] },
+  { id: 'CTL-DLP-11', name: 'Research data exfiltration controls (genomics, trials)', req: 'NIH data security · HIPAA 164.312(e)', techniques: ['T1567.002', 'T1048.003', 'T1560.001'] },
+  { id: 'CTL-PRV-12', name: 'Privileged accounts vaulted, Tier 0 isolated', req: 'HPH CPG 2.3 · HITRUST 01.c', techniques: ['T1003.001', 'T1558.003', 'T1550.002'] },
+];
+CONTROL_SEEDS.automotive = [
+  { id: 'CTL-OTA-01', name: 'OTA package signing in HSM with dual control', req: 'UNECE R156 7.1.1 · ISO/SAE 21434 RQ-10', techniques: ['T1195.002', 'T1078'] },
+  { id: 'CTL-VSOC-02', name: 'Vehicle fleet monitoring and incident response (VSOC)', req: 'UNECE R155 7.2.2.2(g) · ISO/SAE 21434 RQ-08', techniques: ['T1190', 'T1078', 'T1071.001'] },
+  { id: 'CTL-OT-03', name: 'Vendor remote access to robot cells via PAM with session recording', req: 'IEC 62443 SR 1.13 · TISAX 4.1.3', techniques: ['T0886', 'T1133', 'T1219'] },
+  { id: 'CTL-OT-04', name: 'Plant IT/OT segmentation with Level 3.5 DMZ', req: 'IEC 62443-3-3 SR 5.1 · NIS2 21(2)(e)', techniques: ['T1021.002', 'T1570', 'T0866'] },
+  { id: 'CTL-OT-05', name: 'PLC programme change detection on press and body lines', req: 'IEC 62443 SR 3.4 · TISAX 5.2.6', techniques: ['T0843', 'T0821', 'T0836'] },
+  { id: 'CTL-IP-06', name: 'Prototype and design IP protection (TISAX prototype module)', req: 'TISAX 8.1 · ISO 27001 A.5.12', techniques: ['T1567.002', 'T1530', 'T1213'] },
+  { id: 'CTL-IAM-07', name: 'Phishing-resistant MFA for workforce, suppliers and dealers', req: 'TISAX 4.1.2 · NIS2 21(2)(j)', techniques: ['T1078', 'T1621', 'T1110.003', 'T1539'] },
+  { id: 'CTL-EDR-08', name: 'EDR on IT and plant Windows hosts (allow-listing where EDR not supported)', req: 'TISAX 5.2.3 · ISO 27001 A.8.7', techniques: ['T1486', 'T1059.001', 'T1562.001'] },
+  { id: 'CTL-BKP-09', name: 'Immutable backups of MES, SAP and PLC projects with tested restore', req: 'NIS2 21(2)(c) · TISAX 5.2.8', techniques: ['T1490', 'T1486', 'T1489'] },
+  { id: 'CTL-SUP-10', name: 'Supplier access to engineering data reviewed (TISAX label required)', req: 'TISAX 6.1.1 · NIS2 21(2)(d)', techniques: ['T1199', 'T1195.002'] },
+  { id: 'CTL-API-11', name: 'Vehicle backend API authorisation and abuse monitoring', req: 'UNECE R155 Annex 5 · ISO/SAE 21434 RQ-09', techniques: ['T1190', 'T1550.001', 'T1078'] },
+  { id: 'CTL-ERP-12', name: 'SAP critical transaction and supplier-master change monitoring', req: 'ISO 27001 A.8.16 · TISAX 5.2.4', techniques: ['T1098', 'T1565.001', 'T1657'] },
+];
+
 const DETECTION_SOURCE: Record<CustomerId, string[]> = {
+  healthcare: ['Sentinel', 'CrowdStrike', 'Claroty xDome', 'FairWarning'],
+  automotive: ['QRadar', 'Defender XDR', 'Armis', 'Upstream vSOC'],
   maritime: ['Sentinel', 'Defender XDR', 'Dragos', 'HexaOT'],
   finserv: ['Splunk ES', 'CrowdStrike', 'Zscaler', 'Netskope'],
   media: ['Google SecOps', 'SentinelOne', 'Netskope', 'Cloudflare'],
@@ -269,7 +338,7 @@ const DETECTION_SOURCE: Record<CustomerId, string[]> = {
 
 export function loops(c: CustomerProfile, tenantId = 'all'): Loop[] {
   const r = rng(`loops-${c.id}`);
-  const seeds = CONTROL_SEEDS[c.id];
+  const seeds = CONTROL_SEEDS[c.id] ?? [];
   const owners = [c.people.grcLead.name, c.people.socLead.name, c.people.ciso.name, c.people.otLead?.name ?? c.people.admin.name, c.people.admin.name];
   const all: Loop[] = [];
   const fwShort = c.frameworks.map((f) => f.short);

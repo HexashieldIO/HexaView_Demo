@@ -107,7 +107,9 @@ export default function CommandCentre() {
       <div className="grid g-2-1">
         <Card>
           <div className="row" style={{ gap: 22, alignItems: 'center', flexWrap: 'wrap' }}>
-            <HexScore value={ri.value} size={104} />
+            <button className="cc-link" onClick={() => nav('/board')} title="Open the Board view: how the Index is made">
+              <HexScore value={ri.value} size={104} />
+            </button>
             <div style={{ flex: 1, minWidth: 220 }}>
               <h3 style={{ fontSize: 18 }}>Resilience Index</h3>
               <p className="secondary" style={{ marginTop: 4, maxWidth: 520 }}>
@@ -170,7 +172,7 @@ export default function CommandCentre() {
           const meta = ENV_META[e.env];
           const Icon = meta.icon;
           return (
-            <Card key={e.env} toneColor={meta.color} tinted>
+            <Card key={e.env} toneColor={meta.color} tinted className="cc-click" onClick={() => nav(`/fabric/integrations?env=${e.env}`)}>
               <div className="row">
                 <span className="ico-box" style={{ '--tone': meta.color } as CSSProperties}>
                   <Icon />
@@ -210,7 +212,7 @@ export default function CommandCentre() {
         <Card title="Closed-loop assurance" sub="Policy → evidence → ATT&CK → detection → validation" actions={<button className="link" onClick={() => nav('/loop')}>Open loops →</button>}>
           <div className="row" style={{ gap: 18, alignItems: 'center' }}>
             <div>
-              <div className="stat-big" style={{ color: 'var(--good)' }}>{lsum.assuredPct}%</div>
+              <button className="cc-link stat-big" style={{ color: 'var(--good)' }} onClick={() => nav('/loop')}>{lsum.assuredPct}%</button>
               <div className="stat-label">assured · {lsum.closed} of {lsum.applicable} loops closed</div>
             </div>
           </div>
@@ -230,7 +232,7 @@ export default function CommandCentre() {
           ]} />
           <div className="stack" style={{ marginTop: 14, gap: 6 }}>
             {c.frameworks.slice(0, 4).map((f) => (
-              <div key={f.id} className="row" style={{ fontSize: 12 }}>
+              <div key={f.id} className="row cc-row" style={{ fontSize: 12 }} onClick={() => nav(`/comply/caas?framework=${f.id}`)} role="link">
                 <span style={{ width: 92, fontWeight: 600 }}>{f.short}</span>
                 <div style={{ flex: 1, display: 'grid', gap: 3 }}>
                   <Bar value={f.documented} color="var(--m-comply)" size="thin" />
@@ -299,7 +301,7 @@ export default function CommandCentre() {
             { key: 'name', header: 'Tenant', sort: (r) => r.t.name, render: (r) => (<><div className="t-main">{r.t.name}</div><div className="t-sub">{r.t.kind} · {r.t.city}, {r.t.country}</div></>) },
             { key: 'crit', header: 'Criticality', sort: (r) => r.t.criticality, render: (r) => <span title="Weight in group roll-up">{'◆'.repeat(r.t.criticality)}<span style={{ opacity: 0.2 }}>{'◆'.repeat(5 - r.t.criticality)}</span></span> },
             { key: 'ri', header: 'Resilience', sort: (r) => r.t.ri, render: (r) => <span className="num" style={{ fontWeight: 700, color: scoreTone(r.t.ri) }}>{r.t.ri}</span> },
-            { key: 'inc', header: 'Open incidents', align: 'right', sort: (r) => r.incidents, render: (r) => r.incidents },
+            { key: 'inc', header: 'Open incidents', align: 'right', sort: (r) => r.incidents, render: (r) => <button className="link" onClick={(ev) => { ev.stopPropagation(); setTenantId(r.t.id); nav('/soc/ir?status=open'); }}>{r.incidents}</button> },
             { key: 'loops', header: 'Loops closed', sort: (r) => r.loops.assuredPct, render: (r) => (<div style={{ minWidth: 120 }}><Bar value={r.loops.assuredPct} color="var(--m-view)" size="thin" /><span className="t-sub">{r.loops.closed}/{r.loops.applicable} · {r.loops.assuredPct}%</span></div>) },
             { key: 'env', header: 'Estate', render: (r) => <span className="chips">{r.t.env.map((e) => <Badge key={e} color={ENV_META[e].color}>{ENV_META[e].label.split(' ')[0]}</Badge>)}</span> },
             { key: 'dp', header: 'Data plane', render: (r) => (r.dp ? (<><div className="t-main" style={{ fontWeight: 500 }}>{r.dp.placement}</div><Freshness minutes={r.dp.heartbeatSecAgo / 60} stale={r.dp.status !== 'healthy'} label={r.dp.status !== 'healthy' ? r.dp.name : 'Heartbeat'} /></>) : '—') },

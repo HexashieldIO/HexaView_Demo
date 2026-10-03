@@ -3,7 +3,7 @@
 // > connector instance, with assets, identities, findings, detections, cases,
 // controls, evidence, techniques, validations and loops underneath.
 
-export type CustomerId = 'maritime' | 'finserv' | 'media';
+export type CustomerId = 'maritime' | 'finserv' | 'media' | 'healthcare' | 'automotive';
 export type Tier = 'Essentials' | 'Professional' | 'Enterprise / CNI';
 export type Env = 'cloud' | 'onprem' | 'ot' | 'saas';
 export type Severity = 'critical' | 'high' | 'medium' | 'low' | 'info';

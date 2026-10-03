@@ -46,10 +46,24 @@ export function PlatformMap({ info, coreInfo }: { info: Record<string, MapNodeIn
     <div className="grid g-3-2" style={{ alignItems: 'center' }}>
       <svg viewBox="0 0 640 560" style={{ width: '100%', maxHeight: 520 }} role="region" aria-label="HexaCore platform map">
         <defs>
-          <radialGradient id="coreGlow" cx="50%" cy="50%" r="50%">
-            <stop offset="0" stopColor="#22d3ee" stopOpacity="0.28" />
-            <stop offset="1" stopColor="#22d3ee" stopOpacity="0" />
+          <radialGradient id="coreHalo">
+            <stop offset="0" stopColor="#22d3ee" stopOpacity="0.22" />
+            <stop offset="0.6" stopColor="#3b82f6" stopOpacity="0.10" />
+            <stop offset="1" stopColor="#8b5cf6" stopOpacity="0" />
           </radialGradient>
+          <linearGradient id="coreStroke" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#22d3ee" />
+            <stop offset="0.5" stopColor="#3b82f6" />
+            <stop offset="1" stopColor="#8b5cf6" />
+          </linearGradient>
+          <linearGradient id="coreFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#3b82f6" stopOpacity="0.16" />
+            <stop offset="1" stopColor="#8b5cf6" stopOpacity="0.06" />
+          </linearGradient>
+          <linearGradient id="coreSweep" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#2dd4bf" stopOpacity="0" />
+            <stop offset="1" stopColor="#2dd4bf" stopOpacity="0.55" />
+          </linearGradient>
         </defs>
         <circle cx={CX} cy={CY} r={168} fill="none" stroke="var(--hairline)" strokeDasharray="2 6" />
         <ellipse cx={CX} cy={CY} rx={252} ry={218} fill="none" stroke="var(--hairline-soft)" strokeDasharray="1 7" />
@@ -65,13 +79,30 @@ export function PlatformMap({ info, coreInfo }: { info: Record<string, MapNodeIn
             </g>
           );
         })}
-        <circle cx={CX} cy={CY} r={120} fill="url(#coreGlow)" />
-        <g style={{ cursor: 'pointer' }} onMouseEnter={() => setHover('core')} onClick={() => nav('/fabric/integrations')}>
-          <path d={hexPath(CX, CY, 74)} fill="color-mix(in srgb, var(--m-core) 12%, var(--card-bg))" stroke="var(--m-core)" strokeWidth={2.4} style={{ filter: 'drop-shadow(0 0 14px rgba(34,211,238,.45))' }} />
-          <path d={hexPath(CX, CY, 62)} fill="none" stroke="var(--m-core)" strokeOpacity={0.35} strokeWidth={1} />
-          <image href="/brand/HexaCore_icon.svg" x={CX - 15} y={CY - 44} width={30} height={30} />
-          <text x={CX} y={CY + 10} textAnchor="middle" fontFamily="var(--font-display)" fontWeight={700} fontSize={19} fill="var(--text-primary)">HexaCore</text>
-          <text x={CX} y={CY + 28} textAnchor="middle" fontSize={8.5} letterSpacing="2" fill="var(--text-muted)">RESILIENCE CORE</text>
+        {/* Core: radial ticks, radar sweep, halo, rotating dashed orbit, breathing inner hex (original v2 look). */}
+        <g className="pm-rays" aria-hidden>
+          {Array.from({ length: 36 }, (_, i) => {
+            const ang = (i * 10 * Math.PI) / 180;
+            const r1 = 128 + (i % 3) * 6;
+            const r2 = r1 + 7 + (i % 2) * 5;
+            const col = ['#22d3ee', '#8b5cf6', '#3b82f6', '#f5a83d', '#2dd4bf', '#ec4899'][i % 6];
+            return <line key={i} x1={CX + Math.cos(ang) * r1} y1={CY + Math.sin(ang) * r1} x2={CX + Math.cos(ang) * r2} y2={CY + Math.sin(ang) * r2} stroke={col} strokeWidth={1.6} strokeLinecap="round" opacity={0.55} />;
+          })}
+        </g>
+        <circle className="pm-halo" cx={CX} cy={CY} r={145} fill="url(#coreHalo)" />
+        <g className="pm-sweep" aria-hidden>
+          <path d={`M${CX},${CY} L${CX - 26},${CY + 150} L${CX + 26},${CY + 150} Z`} fill="url(#coreSweep)" />
+        </g>
+        <path className="pm-core-orbit" d={hexPath(CX, CY, 104)} fill="none" stroke="url(#coreStroke)" strokeWidth={1} strokeDasharray="3 9" opacity={0.5} />
+        <g className="pm-core" style={{ cursor: 'pointer' }} onMouseEnter={() => setHover('core')} onClick={() => nav('/fabric/integrations')} role="link" aria-label="HexaCore, the shared resilience core">
+          <path d={hexPath(CX, CY, 82)} fill="url(#coreFill)" stroke="url(#coreStroke)" strokeWidth={2.4} strokeLinejoin="round" style={{ filter: 'drop-shadow(0 0 14px rgba(59,130,246,.45))' }} />
+          <path className="pm-core-inner" d={hexPath(CX, CY, 68)} fill="none" stroke="url(#coreStroke)" strokeWidth={1} opacity={0.45} strokeLinejoin="round" />
+          <svg x={CX - 26} y={CY - 58} width={52} height={52} viewBox="0 0 48 48" fill="none" stroke="url(#coreStroke)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M24 13 32.66 18 32.66 30 24 35 15.34 30 15.34 18 Z" />
+            <path d="M24 13 24 24 M24 24 15.34 18 M24 24 32.66 18" />
+          </svg>
+          <text className="pm-core-name" x={CX} y={CY + 14} textAnchor="middle">HexaCore</text>
+          <text className="pm-core-sub" x={CX} y={CY + 34} textAnchor="middle">RESILIENCE CORE</text>
         </g>
         {nodes.map((n) => {
           const tone = n.mod?.tone ?? 'var(--m-core)';

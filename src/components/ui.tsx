@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Info, AlertTriangle, CheckCircle2, X } from 'lucide-react';
 import type { Health, Severity } from '../data/types';
 import { fmtAgo } from '../lib/format';
@@ -8,13 +9,13 @@ const tone = (t?: string): ToneStyle | undefined => (t ? { '--tone': t } : undef
 
 /* ---------------- Card ---------------- */
 export function Card({
-  title, sub, count, actions, children, className = '', flush, tinted, toneColor, style, foot,
+  title, sub, count, actions, children, className = '', flush, tinted, toneColor, style, foot, onClick,
 }: {
   title?: ReactNode; sub?: ReactNode; count?: ReactNode; actions?: ReactNode; children?: ReactNode;
-  className?: string; flush?: boolean; tinted?: boolean; toneColor?: string; style?: CSSProperties; foot?: ReactNode;
+  className?: string; flush?: boolean; tinted?: boolean; toneColor?: string; style?: CSSProperties; foot?: ReactNode; onClick?: () => void;
 }) {
   return (
-    <section className={`card ${flush ? 'flush' : ''} ${tinted ? 'tinted' : ''} ${className}`} style={{ ...tone(toneColor), ...style }}>
+    <section className={`card ${flush ? 'flush' : ''} ${tinted ? 'tinted' : ''} ${onClick ? 'card-click' : ''} ${className}`} style={{ ...tone(toneColor), ...style }} onClick={onClick} role={onClick ? 'link' : undefined}>
       {(title || actions) && (
         <div className="card-head">
           <div>
@@ -45,11 +46,17 @@ export interface KpiProps {
   toneColor?: string;
   delta?: { text: string; good: boolean };
   onClick?: () => void;
+  /** Route to pivot to (e.g. '/soc/ir?status=open'). Headlines should always lead to their data. */
+  to?: string;
+  /** Tooltip naming the data source behind the number. */
+  source?: string;
 }
-export function Kpi({ label, hint, value, unit, bar, toneColor, delta, onClick }: KpiProps) {
-  const Tag = onClick ? 'button' : 'div';
+export function Kpi({ label, hint, value, unit, bar, toneColor, delta, onClick, to, source }: KpiProps) {
+  const nav = useNavigate();
+  const click = onClick ?? (to ? () => nav(to) : undefined);
+  const Tag = click ? 'button' : 'div';
   return (
-    <Tag className="kpi" onClick={onClick} style={tone(toneColor)}>
+    <Tag className={`kpi ${click ? 'kpi-link' : ''}`} onClick={click} style={tone(toneColor)} title={source ? `Source: ${source}${click ? ' · click to open' : ''}` : click ? 'Click to open the records behind this number' : undefined}>
       <div className="kpi-label">
         {label}
         {hint && <em>{hint}</em>}

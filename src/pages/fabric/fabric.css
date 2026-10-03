@@ -1,0 +1,88 @@
+/* HexaCore Integration Fabric — module-local styles (prefix: fab-) */
+
+.fab-code {
+  background: var(--surface-sunken);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.fab-code-label {
+  font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--text-muted); padding: 7px 12px; border-bottom: 1px solid var(--hairline);
+  background: color-mix(in srgb, var(--m-core) 7%, transparent);
+}
+.fab-code pre {
+  margin: 0; padding: 12px 14px; font-family: var(--font-mono); font-size: 11.5px; line-height: 1.6;
+  color: var(--text-secondary); white-space: pre-wrap; word-break: break-word; overflow-x: auto;
+}
+
+/* connector tiles */
+.fab-cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.fab-tile {
+  text-align: left; border: 1px solid var(--card-border); border-radius: 10px; padding: 12px 13px;
+  background: var(--surface); display: flex; flex-direction: column; gap: 8px; transition: border-color .15s, box-shadow .15s;
+}
+button.fab-tile:hover { border-color: color-mix(in srgb, var(--m-core) 45%, var(--card-border)); box-shadow: var(--shadow-card-hover); }
+.fab-tile-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.fab-tile-name { font-weight: 700; font-size: 13px; line-height: 1.2; }
+.fab-tile-vendor { font-size: 11px; color: var(--text-muted); }
+.fab-tile-meta { display: flex; flex-wrap: wrap; gap: 5px 10px; font-size: 11px; color: var(--text-secondary); }
+.fab-tile-foot { display: flex; align-items: center; justify-content: space-between; font-size: 10.5px; color: var(--text-muted); border-top: 1px solid var(--hairline); padding-top: 7px; }
+.fab-tile-caps { display: flex; gap: 5px; }
+.fab-cap { font-size: 9.5px; font-weight: 700; padding: 1px 6px; border-radius: 5px; letter-spacing: .04em; }
+.fab-cap.read { background: color-mix(in srgb, var(--m-core) 16%, transparent); color: var(--m-core); }
+.fab-cap.write { background: color-mix(in srgb, var(--m-comply) 16%, transparent); color: var(--m-comply); }
+.fab-cap.gated { background: color-mix(in srgb, var(--sev-medium) 18%, transparent); color: var(--sev-medium); }
+.fab-cap.ro { background: var(--chip-bg); color: var(--text-muted); }
+
+.fab-cat-head { display: flex; align-items: center; gap: 8px; margin: 2px 0 2px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
+.fab-cat-head .ln { flex: 1; height: 1px; background: var(--hairline); }
+
+/* data-plane topology */
+.fab-topo { position: relative; width: 100%; overflow-x: auto; }
+.fab-trust-note { font-size: 11px; color: var(--sev-medium); font-weight: 600; }
+
+/* marketplace */
+.fab-mkt { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.fab-mkt-item { border: 1px solid var(--card-border); border-radius: 10px; padding: 11px 13px; background: var(--surface); display: flex; flex-direction: column; gap: 6px; }
+.fab-mkt-item.on { border-color: color-mix(in srgb, var(--good) 45%, var(--card-border)); background: color-mix(in srgb, var(--good) 5%, var(--surface)); }
+.fab-mkt-name { font-weight: 700; font-size: 12.5px; }
+.fab-mkt-blurb { font-size: 11px; color: var(--text-secondary); line-height: 1.45; }
+
+/* generic key/value grid for small cards */
+.fab-kvgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.fab-kvgrid > div { border: 1px solid var(--hairline); border-radius: 9px; padding: 9px 11px; }
+.fab-kvgrid b { display: block; font-family: var(--font-display); font-size: 18px; font-weight: 700; }
+.fab-kvgrid span { font-size: 10.5px; color: var(--text-muted); }
+
+/* path list */
+.fab-path { border: 1px solid var(--card-border); border-radius: 10px; padding: 10px 12px; background: var(--surface); cursor: pointer; transition: border-color .15s; }
+.fab-path:hover, .fab-path.on { border-color: color-mix(in srgb, var(--m-core) 50%, var(--card-border)); }
+.fab-path.on { background: color-mix(in srgb, var(--m-core) 6%, var(--surface)); }
+.fab-steps { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 7px; font-size: 11px; }
+.fab-step { padding: 2px 7px; border-radius: 6px; background: var(--chip-bg); white-space: nowrap; }
+.fab-step.entry { background: color-mix(in srgb, var(--sev-high) 18%, transparent); color: var(--sev-high); }
+.fab-step.jewel { background: color-mix(in srgb, var(--m-custody) 20%, transparent); color: var(--m-custody); }
+.fab-step.ot { background: color-mix(in srgb, var(--m-ot) 18%, transparent); color: var(--m-ot); }
+.fab-arrow { color: var(--text-muted); }
+
+/* legend row */
+.fab-legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 11px; color: var(--text-secondary); }
+.fab-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.fab-legend i { width: 10px; height: 10px; border-radius: 3px; }
+
+/* air-gapped bundle timeline */
+.fab-bundles { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.fab-bundle { display: inline-flex; align-items: center; gap: 5px; padding: 5px 8px; border-radius: 7px; border: 1px solid color-mix(in srgb, var(--m-ot) 40%, var(--card-border)); background: color-mix(in srgb, var(--m-ot) 10%, var(--surface)); color: var(--text-secondary); font: inherit; font-size: 11px; cursor: pointer; }
+.fab-bundle:hover { border-color: var(--m-ot); color: var(--text-primary); }
+.fab-bundle svg { color: var(--m-ot); }
+.fab-kv-btn { border: 1px solid var(--hairline); border-radius: 9px; padding: 9px 11px; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.fab-kv-btn:hover { border-color: color-mix(in srgb, var(--m-core) 50%, var(--card-border)); background: var(--surface-hover); }
+.fab-kv-btn b { display: block; font-family: var(--font-display); font-size: 18px; font-weight: 700; }
+.fab-kv-btn span { font-size: 10.5px; color: var(--text-muted); }
+/* attack path flow map: many columns, so tighten the gutters */
+.fab-pathmap .flowmap-grid { column-gap: 3.2%; }
+.fab-pathmap .flowmap-node { padding: 6px 8px; }
+.fab-pathmap .flowmap-title { font-size: 11.5px; }
+.fab-pathmap .flowmap-col.mid .flowmap-title { text-transform: none; letter-spacing: 0; font-size: 11.5px; }
+.fab-pathmap .flowmap-col { gap: 14px; }

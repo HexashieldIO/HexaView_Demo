@@ -1,0 +1,46 @@
+/* Cyber Insurance & Risk Quantification module (prefix: ins-) */
+.ins-src { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.ins-src-row { padding: 6px 0; border-bottom: 1px solid var(--hairline-soft); }
+.ins-metric { font-family: var(--font-display); font-size: 15px; font-weight: 600; color: var(--text-primary); padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, var(--m-insurance) 10%, transparent); border: 1px solid color-mix(in srgb, var(--m-insurance) 28%, transparent); }
+.ins-test { display: grid; gap: 4px; padding: 9px 12px; border-left: 3px solid var(--good); border-radius: 0 8px 8px 0; background: var(--surface); font-size: 12.5px; }
+.ins-test b { font-weight: 600; }
+
+.ins-ctl { display: grid; grid-template-columns: 26px minmax(0, 1.3fr) minmax(0, 1.6fr) minmax(0, 1.3fr) 92px 86px; gap: 12px; align-items: center; padding: 10px 18px; border-bottom: 1px solid var(--hairline-soft); cursor: pointer; text-align: left; width: 100%; background: none; border-left: 0; border-right: 0; border-top: 0; color: inherit; font: inherit; }
+.ins-ctl:hover { background: var(--surface-hover); }
+.ins-ctl:last-child { border-bottom: 0; }
+.ins-ctl-head { cursor: default; font-size: 10px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--text-muted); padding-top: 4px; padding-bottom: 8px; }
+.ins-ctl-head:hover { background: none; }
+.ins-ctl .ins-name { font-weight: 600; font-size: 12.5px; }
+.ins-ctl .ins-sub { font-size: 11px; color: var(--text-muted); }
+.ins-ctl .ins-live { font-size: 12px; }
+.ins-pips { display: flex; gap: 3px; }
+.ins-pips i { width: 10px; height: 10px; border-radius: 3px; background: var(--track); }
+.ins-pips i.ok { background: var(--good); }
+.ins-pips i.bad { background: var(--sev-medium); }
+@media (max-width: 1100px) {
+  .ins-ctl { grid-template-columns: 26px minmax(0, 1fr) minmax(0, 1fr) 86px; }
+  .ins-ctl > :nth-child(4), .ins-ctl > :nth-child(6) { display: none; }
+}
+
+.ins-drivers .bar-row { grid-template-columns: minmax(0, 1fr) 90px 52px; }
+.ins-premium { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.ins-premium .from { color: var(--text-muted); text-decoration: line-through; font-size: 14px; }
+.ins-premium .to { font-family: var(--font-display); font-size: 28px; font-weight: 700; }
+
+.ins-steps { display: grid; gap: 0; }
+.ins-step { display: grid; grid-template-columns: 64px 18px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 9px 0; border-bottom: 1px dashed var(--hairline-soft); }
+.ins-step:last-child { border-bottom: 0; }
+.ins-step .t { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); padding-top: 2px; }
+.ins-step .d { width: 12px; height: 12px; border-radius: 50%; margin-top: 3px; background: var(--track); box-shadow: 0 0 0 3px color-mix(in srgb, var(--tone, var(--track)) 22%, transparent); }
+.ins-step b { display: block; font-size: 12.5px; }
+.ins-step span.x { display: block; font-size: 11.5px; color: var(--text-secondary, var(--text-muted)); margin-top: 2px; }
+.ins-step.active { background: color-mix(in srgb, var(--m-insurance) 7%, transparent); border-radius: 8px; }
+
+.ins-hash { font-family: var(--font-mono); font-size: 11.5px; word-break: break-all; padding: 10px 12px; border-radius: 8px; background: var(--surface); border: 1px solid var(--card-border); }
+.ins-check { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--hairline-soft); font-size: 12.5px; cursor: pointer; }
+.ins-check:last-child { border-bottom: 0; }
+.ins-check input { margin-top: 2px; accent-color: var(--m-insurance); }
+.ins-check .ins-roi { margin-left: auto; text-align: right; white-space: nowrap; font-size: 11.5px; }
+.ins-tl-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+.ins-hl { background: color-mix(in srgb, var(--m-insurance) 9%, transparent); }
+.ins-big { font-family: var(--font-display); font-size: 26px; font-weight: 700; line-height: 1.1; }

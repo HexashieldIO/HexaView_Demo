@@ -8,7 +8,7 @@ import {
   GridComponent, TooltipComponent, LegendComponent, RadarComponent, VisualMapComponent, DataZoomComponent,
   MarkLineComponent, MarkAreaComponent, MarkPointComponent, TitleComponent, PolarComponent, SingleAxisComponent, GraphicComponent, CalendarComponent,
 } from 'echarts/components';
-import { CanvasRenderer } from 'echarts/renderers';
+import { CanvasRenderer, SVGRenderer } from 'echarts/renderers';
 import type { EChartsOption } from 'echarts';
 import { useApp } from '../state/AppContext';
 
@@ -17,7 +17,7 @@ echarts.use([
   TreemapChart, SunburstChart, FunnelChart, BoxplotChart, CustomChart, EffectScatterChart, LinesChart,
   GridComponent, TooltipComponent, LegendComponent, RadarComponent, VisualMapComponent, DataZoomComponent,
   MarkLineComponent, MarkAreaComponent, MarkPointComponent, TitleComponent, PolarComponent, SingleAxisComponent, GraphicComponent, CalendarComponent,
-  CanvasRenderer,
+  CanvasRenderer, SVGRenderer,
 ]);
 
 /** Categorical palette shared by every chart (order matters: first series first). */
@@ -73,6 +73,36 @@ echarts.registerTheme('hv-light', makeTheme(false));
 /** Default grid so axes line up across cards; pass `grid` in the option to override. */
 const DEFAULT_GRID = { left: 8, right: 12, top: 28, bottom: 6, containLabel: true };
 
+const TEXT_KEYS = new Set(['label', 'axisLabel', 'endLabel', 'edgeLabel', 'textStyle', 'nameTextStyle', 'axisName', 'upperLabel', 'detail', 'title']);
+
+/** Resolve CSS custom properties (e.g. 'var(--sev-high)') to real colours for the chart engine. */
+function resolveVar(v: string): string {
+  const m = /^var((--[w-]+))$/.exec(v.trim());
+  if (!m) return v;
+  const out = getComputedStyle(document.documentElement).getPropertyValue(m[1]).trim();
+  return out || v;
+}
+
+/**
+ * Make every chart crisp: real colours instead of CSS variables, and no text
+ * outlines or shadows (ECharts' default label halo is what made text look fuzzy).
+ */
+function crisp<T>(v: T, key = ''): T {
+  if (typeof v === 'string') return (v.startsWith('var(') ? resolveVar(v) : v) as T;
+  if (Array.isArray(v)) return v.map((x) => crisp(x)) as T;
+  if (v && typeof v === 'object' && !(v instanceof Date)) {
+    const o: Record<string, unknown> = {};
+    for (const [k, val] of Object.entries(v as Record<string, unknown>)) o[k] = typeof val === 'function' ? val : crisp(val, k);
+    if (TEXT_KEYS.has(key)) {
+      o.textBorderWidth = 0;
+      o.textShadowBlur = 0;
+      if (o.fontFamily === undefined) o.fontFamily = 'Inter Variable, Segoe UI, sans-serif';
+    }
+    return o as T;
+  }
+  return v;
+}
+
 function ChartImpl({ option, height = 240, onClick, className }: { option: EChartsOption; height?: number | string; onClick?: (p: unknown) => void; className?: string }) {
   const { theme } = useApp();
   const el = useRef<HTMLDivElement>(null);
@@ -82,7 +112,7 @@ function ChartImpl({ option, height = 240, onClick, className }: { option: EChar
 
   useEffect(() => {
     if (!el.current) return;
-    const chart = echarts.init(el.current, theme === 'dark' ? 'hv-dark' : 'hv-light', { renderer: 'canvas' });
+    const chart = echarts.init(el.current, theme === 'dark' ? 'hv-dark' : 'hv-light', { renderer: 'svg' });
     inst.current = chart;
     chart.on('click', (p) => clickRef.current?.(p));
     const ro = new ResizeObserver(() => chart.resize());
@@ -97,7 +127,7 @@ function ChartImpl({ option, height = 240, onClick, className }: { option: EChar
   // Re-apply only when the option content changes, so parent re-renders do not replay animations.
   const optKey = JSON.stringify(option);
   useEffect(() => {
-    inst.current?.setOption({ grid: DEFAULT_GRID, tooltip: { confine: true }, ...option } as EChartsOption, { notMerge: true, lazyUpdate: true });
+    inst.current?.setOption(crisp({ grid: DEFAULT_GRID, tooltip: { confine: true }, ...option }) as EChartsOption, { notMerge: true, lazyUpdate: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [optKey, theme]);
 
