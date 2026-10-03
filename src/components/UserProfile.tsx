@@ -4,6 +4,7 @@ import { Bell, Check, KeyRound, LogOut, ShieldCheck, UserCog } from 'lucide-reac
 import { useApp } from '../state/AppContext';
 import { ROLE_BY_ID, initialsOf } from '../modules/roles';
 import { MODULES } from '../modules/registry';
+import { signOut } from '../pages/auth/SignIn';
 
 /** Avatar button that opens the signed-in user's role-based profile. */
 export function UserProfile() {
@@ -83,7 +84,7 @@ export function UserProfile() {
             <button onClick={() => go('/ops/admin')}><UserCog size={14} /> {master ? 'Manage users & licences' : 'My access'}</button>
             <button onClick={() => go('/ops/notifications?view=preferences')}><Bell size={14} /> Notification preferences</button>
             <button onClick={() => { setOpen(false); toast('Security keys: 2 FIDO2 keys registered'); }}><KeyRound size={14} /> Security keys</button>
-            <button onClick={() => { setOpen(false); toast('Signed out (demo): you are still viewing as ' + p.name); }}><LogOut size={14} /> Sign out</button>
+            <button onClick={() => { setOpen(false); signOut(); nav('/signin'); }}><LogOut size={14} /> Sign out</button>
           </div>
         </div>
       )}

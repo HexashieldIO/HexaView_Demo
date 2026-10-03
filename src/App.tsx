@@ -8,7 +8,9 @@ import { Shell } from './components/Shell';
 import { ModuleLayout } from './components/ModuleLayout';
 import { MODULES } from './modules/registry';
 import { PAGES } from './pages/registry';
+import { isSignedIn } from './pages/auth/SignIn';
 
+const SignIn = lazy(() => import('./pages/auth/SignIn'));
 const CommandCentre = lazy(() => import('./pages/overview/CommandCentre'));
 const BoardView = lazy(() => import('./pages/overview/BoardView'));
 const ClosedLoop = lazy(() => import('./pages/overview/ClosedLoop'));
@@ -63,10 +65,11 @@ function ModuleRoute({ moduleId }: { moduleId: string }) {
   );
 }
 
-export default function App() {
+/** The signed-in app. Without a session, go to the branded sign-in first and come back. */
+function Authed() {
+  const { pathname, search } = useLocation();
+  if (!isSignedIn()) return <Navigate to={`/signin${pathname !== '/' || search ? `?next=${encodeURIComponent(pathname + search)}` : ''}`} replace />;
   return (
-    <AppProvider>
-      <BrowserRouter>
         <Shell>
           <Suspense fallback={<Loading />}>
             <Routes>
@@ -101,6 +104,17 @@ export default function App() {
             </Routes>
           </Suspense>
         </Shell>
+  );
+}
+
+export default function App() {
+  return (
+    <AppProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/signin" element={<Suspense fallback={null}><SignIn /></Suspense>} />
+          <Route path="*" element={<Authed />} />
+        </Routes>
       </BrowserRouter>
     </AppProvider>
   );
