@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 120 120" role="img" aria-label="HexaStrike icon">
+  <defs><linearGradient id="g_hexastrike" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#EB7074"/><stop offset="1" stop-color="#C03C41"/></linearGradient></defs>
+  <path d="M60 8 L105 34 L105 86 L60 112 L15 86 L15 34 Z" fill="url(#g_hexastrike)" stroke="url(#g_hexastrike)" stroke-width="11" stroke-linejoin="round"/>
+  <g transform="translate(39,39) scale(1.75)" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h6l-1 8 9-12h-6z"/></g>
+</svg>

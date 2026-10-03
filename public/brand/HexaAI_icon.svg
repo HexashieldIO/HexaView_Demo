@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 120 120" role="img" aria-label="HexaAI icon">
+  <defs><linearGradient id="g_hexaai" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9980FD"/><stop offset="1" stop-color="#684DD4"/></linearGradient></defs>
+  <path d="M60 8 L105 34 L105 86 L60 112 L15 86 L15 34 Z" fill="url(#g_hexaai)" stroke="url(#g_hexaai)" stroke-width="11" stroke-linejoin="round"/>
+  <g transform="translate(39,39) scale(1.75)" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3"/><circle cx="12" cy="12" r="2.3"/></g>
+</svg>

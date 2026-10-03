@@ -1,0 +1,109 @@
+/* HexaView design tokens. Mirrors the v2 demo: light by default with a navy rail,
+   dark theme via :root[data-theme=dark]. Module accents come from the platform icons. */
+:root {
+  --bg: #f3f5f9;
+  --sidebar-bg: #050a18;
+  --rail-edge: rgba(255, 255, 255, .12);
+  --sidebar-muted: #7c88a0;
+  --sidebar-text: #96a0b5;
+  --sidebar-text-active: #ffffff;
+  --header-bg: #ffffff;
+  --card-bg: #ffffff;
+  --card-border: #e5e9f1;
+  --text-primary: #17203a;
+  --text-secondary: #5a6478;
+  --text-muted: #8b94a8;
+  --accent: #2563eb;
+  --good: #0e7a5a;
+  --warn: #b7791f;
+  --bad: #d64545;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --sidebar-width: 256px;
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, .04);
+  --shadow-card-hover: 0 4px 14px rgba(16, 24, 40, .07);
+  --surface: #ffffff;
+  --surface-sunken: #fbfcfe;
+  --surface-hover: #f6f8fc;
+  --chip-bg: #eff2f7;
+  --hairline: #eef1f6;
+  --hairline-soft: #f1f4f9;
+  --scrollbar: #c3ccdb;
+  --neutral-fill: #c3cad6;
+  --track: #e8ecf3;
+
+  /* Severity */
+  --sev-critical: #c2264b;
+  --sev-high: #e5533d;
+  --sev-medium: #e3912c;
+  --sev-low: #d6b42a;
+  --sev-info: #64748b;
+
+  /* Module accents */
+  --m-core: #22b8d8;
+  --m-soc: #8b5cf6;
+  --m-int: #e0559b;
+  --m-strike: #ef4f5c;
+  --m-ot: #f08c2e;
+  --m-comply: #6db33f;
+  --m-custody: #d9a93a;
+  --m-matrix: #3d8cf0;
+  --m-ai: #6d6af5;
+  --m-view: #20b292;
+  --m-insurance: #0f9f8a;
+  --m-reports: #4b7bd8;
+  --m-ops: #5b6b8c;
+
+  --grad: linear-gradient(120deg, #22d3ee 0%, #8b5cf6 48%, #ec4899 100%);
+
+  --font-ui: "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Space Grotesk Variable", var(--font-ui);
+  --font-mono: ui-monospace, "SFMono-Regular", "Cascadia Code", Menlo, Consolas, monospace;
+}
+
+:root[data-theme=dark] {
+  --bg: #050a18;
+  --sidebar-bg: #030711;
+  --sidebar-text: #8593b4;
+  --header-bg: #070d1e;
+  --card-bg: #0b1122;
+  --card-border: #1b2440;
+  --text-primary: #eaf0fb;
+  --text-secondary: #b7c2db;
+  --text-muted: #8593b4;
+  --accent: #4f8cff;
+  --good: #2dd4bf;
+  --warn: #f5b946;
+  --bad: #f87171;
+  --surface: #0b1122;
+  --surface-sunken: #080e1d;
+  --surface-hover: #111a30;
+  --chip-bg: #151e36;
+  --hairline: #18213a;
+  --hairline-soft: #131b31;
+  --scrollbar: #26314f;
+  --neutral-fill: #2b3552;
+  --track: #18213a;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, .5);
+  --shadow-card-hover: 0 8px 26px rgba(0, 0, 0, .55);
+
+  --sev-critical: #f0466e;
+  --sev-high: #ff6b4f;
+  --sev-medium: #f5a83d;
+  --sev-low: #e8cf4f;
+  --sev-info: #8593b4;
+
+  --m-core: #3fd0f0;
+  --m-soc: #a07cfb;
+  --m-int: #ef6aae;
+  --m-strike: #f8646f;
+  --m-ot: #f7a04a;
+  --m-comply: #93d65a;
+  --m-custody: #ecc873;
+  --m-matrix: #68b1ff;
+  --m-ai: #8f8cff;
+  --m-view: #3ad0ae;
+  --m-insurance: #2ec4a8;
+  --m-reports: #79a5f5;
+  --m-ops: #8a9bc0;
+}
