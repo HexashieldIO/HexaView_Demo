@@ -120,7 +120,7 @@ export const MODULES: ModuleDef[] = [
   },
   {
     id: 'comply', group: 'core', product: 'HexaComply', title: 'Governance, Risk & Compliance', capability: 'comply',
-    tagline: 'Compliance as a service across every framework, third-party risk built in, and AI governance for the models you run.',
+    tagline: 'Compliance as a service across every framework, third-party risk built in, and the AI management system (ISO 42001) for the models you run.',
     brandIcon: 'HexaComply_icon.svg', tone: 'var(--m-comply)', basePath: '/comply', scoreKey: 'comply', scoreLabel: 'Control assurance',
     tabs: [
       { id: 'overview', label: 'Overview', service: 'caas' },
@@ -128,7 +128,7 @@ export const MODULES: ModuleDef[] = [
       { id: 'risks', label: 'Risk Register', service: 'caas' },
       { id: 'tprm', label: 'Third-Party Risk', service: 'tprm' },
       { id: 'continuity', label: 'Business Continuity', service: 'caas' },
-      { id: 'aigov', label: 'AI Security & Governance', service: 'ai-gov' },
+      { id: 'aigov', label: 'AI Management System (ISO 42001)', service: 'caas' },
     ],
   },
   {
@@ -155,6 +155,23 @@ export const MODULES: ModuleDef[] = [
       { id: 'discovery', label: 'AI Discovery & Runtime' },
       { id: 'agents', label: 'Agentic SOC' },
       { id: 'redteam', label: 'AI Red Teaming' },
+    ],
+  },
+  {
+    id: 'aisec', group: 'platform', product: 'HexaAI Governance', title: 'AI Security & Governance', isNew: true,
+    tagline: 'See the AI. Govern the AI. Prove it. Runtime visibility and control on the execution path (Nexovern kernel sensor), governed in HexaComply, proven here.',
+    brandIcon: 'HexaAI_icon.svg', tone: 'var(--m-aisec)', basePath: '/ai-governance', scoreKey: 'ai', scoreLabel: 'AI posture',
+    tabs: [
+      { id: 'overview', label: 'Overview', service: 'ai-gov' },
+      { id: 'inventory', label: 'AI Inventory', service: 'ai-gov' },
+      { id: 'runtime', label: 'Runtime & Agents', service: 'ai-gov' },
+      { id: 'dataflows', label: 'Data Flows', service: 'ai-gov' },
+      { id: 'policy', label: 'Guardrails & Kill Switch', service: 'ai-gov' },
+      { id: 'threats', label: 'AI Threats', service: 'ai-gov' },
+      { id: 'usage', label: 'AI Usage', service: 'ai-gov' },
+      { id: 'roi', label: 'Board ROI', service: 'ai-gov' },
+      { id: 'compliance', label: 'Standards & Evidence', service: 'ai-gov' },
+      { id: 'sensors', label: 'Sensor Coverage', service: 'ai-gov' },
     ],
   },
   {
@@ -327,7 +344,7 @@ export const SERVICES: ServiceDef[] = [
   { id: 'ot-pentest', name: 'OT Penetration Testing', capability: 'ot', path: '/ot/pentest', sla: 'Safety-case approved scope only', blurb: 'Guard-railed OT testing with change windows, safety approvals and human-on-the-loop.' },
   { id: 'caas', name: 'Compliance as a Service (ISMS)', capability: 'comply', path: '/comply/caas', sla: 'Evidence collected continuously', blurb: 'An operated ISMS across ISO 27001, NIS2, DORA, TPN and more, assessment to certification.' },
   { id: 'tprm', name: 'Third-Party Risk Management', capability: 'comply', path: '/comply/tprm', sla: 'Tier 1 vendors reassessed annually', blurb: 'Tiered supplier assessments, outside-in ratings and contract obligations in one register.' },
-  { id: 'ai-gov', name: 'AI Security & Governance', capability: 'comply', path: '/comply/aigov', sla: 'AI inventory refreshed daily', blurb: 'ISO/IEC 42001, EU AI Act and NIST AI RMF governance for the AI you build and buy.' },
+  { id: 'ai-gov', name: 'AI Security & Governance', capability: 'comply', path: '/ai-governance/overview', sla: 'AI inventory refreshed daily', blurb: 'ISO/IEC 42001, EU AI Act and NIST AI RMF governance for the AI you build and buy.' },
   { id: 'custody', name: 'Content Custody & Chain of Evidence', capability: 'custody', path: '/custody/overview', sla: 'Revocation propagates in < 60 s', blurb: 'Track every asset across organisations, with revocation at supplier, user and session level.' },
 ];
 

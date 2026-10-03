@@ -56,6 +56,7 @@
   --m-partner: #c2410c;
   --m-tooling: #0284c7;
   --m-comms: #c026d3;
+  --m-aisec: #7c3aed;
 
   --grad: linear-gradient(120deg, #22d3ee 0%, #8b5cf6 48%, #ec4899 100%);
 
@@ -112,4 +113,5 @@
   --m-partner: #fb923c;
   --m-tooling: #38bdf8;
   --m-comms: #e879f9;
+  --m-aisec: #a78bfa;
 }

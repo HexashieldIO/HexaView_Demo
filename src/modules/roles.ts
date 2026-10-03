@@ -44,7 +44,7 @@ export const ROLES: RoleDef[] = [
     person: (c) => c.people.board,
     licence: 'Viewer',
     rights: ['Read-only summaries', 'Approve board reports for release'],
-    access: ['command', 'board', 'loop', 'insurance', 'reports', 'ops', 'comms'],
+    access: ['command', 'board', 'loop', 'aisec', 'insurance', 'reports', 'ops', 'comms'],
   },
   {
     id: 'ciso', label: 'CISO / Head of security', group: 'Leadership',
@@ -74,7 +74,7 @@ export const ROLES: RoleDef[] = [
     person: (c) => c.people.socLead,
     licence: 'Approver',
     rights: ['Approve low and medium-risk write-back', 'Second approver on high-risk actions', 'Set agent autonomy (not OT)'],
-    access: ['command', 'loop', 'soc', 'int', 'strike', 'ai', 'fabric', 'tooling', 'ops', 'reports', 'comms'],
+    access: ['command', 'loop', 'soc', 'int', 'strike', 'ai', 'aisec', 'fabric', 'tooling', 'ops', 'reports', 'comms'],
   },
   {
     id: 'analyst', label: 'SOC analyst', group: 'Security operations',
@@ -104,7 +104,7 @@ export const ROLES: RoleDef[] = [
     person: (c) => c.people.grcLead,
     licence: 'Approver',
     rights: ['Approve control status changes', 'Scope requirements (SoA)', 'Export evidence and the audit ledger'],
-    access: ['command', 'board', 'loop', 'comply', 'custody', 'reports', 'ops', 'comms'],
+    access: ['command', 'board', 'loop', 'comply', 'aisec', 'custody', 'reports', 'ops', 'comms'],
   },
   {
     id: 'risk', label: 'Risk & resilience', group: 'Governance & risk',
@@ -120,11 +120,11 @@ export const ROLES: RoleDef[] = [
     id: 'privacy', label: 'Privacy & legal', group: 'Governance & risk',
     description: 'Breach clocks, notifications, custody and AI governance',
     landing: '/ops/warroom',
-    workspace: [['Crisis war room (clocks)', '/ops/warroom'], ['Chain of evidence', '/custody/evidence'], ['AI governance', '/comply/aigov'], ['Claims readiness', '/insurance/claims'], ['Regulator reports', '/reports/library']],
+    workspace: [['Crisis war room (clocks)', '/ops/warroom'], ['Chain of evidence', '/custody/evidence'], ['AI management system (ISO 42001)', '/comply/aigov'], ['Claims readiness', '/insurance/claims'], ['Regulator reports', '/reports/library']],
     person: (c) => c.people.grcLead,
     licence: 'Full',
     rights: ['Submit regulatory notifications', 'Place legal holds on evidence', 'Approve AI systems'],
-    access: ['command', 'comply', 'custody', 'insurance', 'ops', 'reports', 'comms'],
+    access: ['command', 'comply', 'aisec', 'custody', 'insurance', 'ops', 'reports', 'comms'],
   },
   {
     id: 'ot', label: 'OT engineer', group: 'Engineering & platform',

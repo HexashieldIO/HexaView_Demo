@@ -10,7 +10,8 @@ import { Card, KpiStrip, Badge, Bar, Btn, KV, Callout, SectionLabel, StatusBadge
 import { Chart } from '../../components/Chart';
 import { DataTable } from '../../components/DataTable';
 import { Drawer } from '../../components/Overlay';
-import { fmtNum, scoreTone } from '../../lib/format';
+import { fmtAgo, fmtNum, scoreTone } from '../../lib/format';
+import { rng } from '../../lib/rng';
 import { WriteBackModal, Field } from './parts';
 import './comply.css';
 
@@ -54,15 +55,28 @@ export default function ComplyAigov() {
   const impactDone = governed.filter((s) => s.impact === 'Complete').length;
   const impactNeeded = governed.filter((s) => s.impact !== 'Not required').length;
   const unsanctioned = governed.filter((s) => s.source === 'Unsanctioned');
-  const newShadow = Math.max(days >= 7 ? 1 : 0, Math.round((h.ai.shadowAi * Math.min(90, days)) / 90));
   const aiFeeds = scopedConnectors(c, tenantId).filter((k) => ['DLP', 'SASE', 'AI', 'Identity'].includes(k.category));
+  const runtimeEvidence = useMemo(() => {
+    const r = rng(`aigov-evidence-${c.id}-${tenantId}`);
+    const sys = c.vocab.aiSystems;
+    const items: { title: string; control: string; status: 'Accepted' | 'Pushed' | 'Needs review'; minAgo: number; hash: string }[] = [
+      { title: `Kill-switch test executed on ${sys[0]}`, control: 'ISO 42001 A.6.2.6 · EU AI Act Art. 14' },
+      { title: `Guardrail policy v12 enforced on ${r.int(18, 60)} agents`, control: 'ISO 42001 A.9.2 · NIST AI RMF MANAGE 2.4' },
+      { title: 'MCP server and agent inventory snapshot', control: 'ISO 42001 A.4.2 · NIST AI RMF MAP 1.1' },
+      { title: `Sensitive-data flow attestation for ${sys[1]}`, control: 'ISO 42001 A.7.4 · EU AI Act Art. 10' },
+      { title: 'Prompt-injection detections mapped to OWASP LLM01', control: 'ISO 42001 A.6.2.4 · NIST AI RMF MEASURE 2.7' },
+      { title: `Human approval gate log for ${sys[2] ?? sys[0]}`, control: 'EU AI Act Art. 14 · ISO 42001 A.9.3' },
+      { title: 'Shadow AI discovery report (weekly)', control: 'ISO 42001 A.4.3 · NIST AI RMF GOVERN 1.6' },
+      { title: 'Model-vendor residency attestation', control: 'ISO 42001 A.10.3 · EU AI Act Art. 26' },
+    ].map((e, i) => ({ ...e, status: (i === 4 ? 'Needs review' : i < 3 ? 'Accepted' : 'Pushed') as 'Accepted' | 'Pushed' | 'Needs review', minAgo: 20 + i * r.int(60, 400), hash: r.hex(12) }));
+    return items;
+  }, [c, tenantId]);
 
   return (
     <>
       <p className="page-intro">
-        <b>{c.name}</b> · {tenantName(c, tenantId)}: the governance programme for {h.ai.aiSystems} AI systems you build and buy, against the EU AI Act, ISO/IEC 42001 and the NIST AI RMF. Usage and shadow AI are discovered technically by HexaAI from{' '}
-        {aiFeeds.slice(0, 3).map((k) => k.product).join(', ')}{' '}
-        <button className="link" onClick={() => nav('/ai/discovery')}>open AI discovery <ExternalLink size={11} /></button>
+        <b>{c.name}</b> · {tenantName(c, tenantId)}: the AI management system (AIMS) for {h.ai.aiSystems} AI systems you build and buy, run in HexaComply towards ISO/IEC 42001 certification, with EU AI Act and NIST AI RMF obligations mapped once. Discovery, runtime enforcement, AI usage and ROI live in HexaAI Governance, and its runtime evidence flows in here automatically{' '}
+        <button className="link" onClick={() => nav('/ai-governance/overview')}>open HexaAI Governance <ExternalLink size={11} /></button>
       </p>
       {c.id === 'healthcare' && (
         <Callout>
@@ -80,13 +94,35 @@ export default function ComplyAigov() {
         items={[
           { label: 'AI systems', hint: 'governed', value: h.ai.aiSystems, unit: `+1 rejected at intake`, onClick: () => { setCls(null); setRegF(null); }, source: 'HexaComply AI register · HexaAI discovery' },
           { label: 'High risk', hint: 'EU AI Act', value: governed.filter((s) => s.euClass === 'High').length, toneColor: 'var(--sev-high)', onClick: () => setCls('High'), source: 'HexaComply AI register' },
-          { label: 'Unsanctioned', value: unsanctioned.length, delta: { text: `${newShadow} new shadow AI · ${timeRange}`, good: false }, onClick: () => { setCls(null); setRegF('unsanctioned'); }, source: `HexaAI discovery · ${aiFeeds.slice(0, 2).map((k) => k.product).join(', ')}` },
+          { label: 'Runtime evidence', hint: 'from HexaAI', value: runtimeEvidence.length, delta: { text: `${runtimeEvidence.filter((e) => e.status === 'Needs review').length} need review · ${unsanctioned.length} awaiting decision`, good: true }, onClick: () => document.getElementById('aigov-evidence')?.scrollIntoView({ behavior: 'smooth' }), source: 'HexaAI runtime (Nexovern kernel sensor) · pushed to HexaComply' },
           { label: 'Impact assessments', value: `${impactDone}/${impactNeeded}`, bar: (impactDone / Math.max(1, impactNeeded)) * 100, onClick: () => { setCls(null); setRegF('impact'); }, source: 'HexaComply AI register' },
           { label: 'ISO/IEC 42001', hint: 'Annex A', value: `${Math.round((isoImpl / isoTotal) * 100)}%`, unit: `${isoImpl}/${isoTotal}`, bar: (isoImpl / isoTotal) * 100, onClick: () => document.getElementById('aigov-42001')?.scrollIntoView({ behavior: 'smooth' }), source: 'HexaComply · ISO/IEC 42001 pack' },
           { label: 'Policy acknowledged', value: `${ackPct}%`, bar: ackPct, toneColor: scoreTone(ackPct), onClick: () => document.getElementById('aigov-ack')?.scrollIntoView({ behavior: 'smooth' }), source: c.connectors.find((k) => k.category === 'Identity')?.product ?? 'HexaComply' },
           { label: 'Model cards', value: `${governed.filter((s) => s.modelCard === 'Published' || s.modelCard === 'Vendor-supplied').length}/${governed.length}`, onClick: () => { setCls(null); setRegF('card'); }, source: 'HexaComply AI register' },
         ]}
       />
+
+      <div id="aigov-evidence">
+        <Card
+          title="Evidence from HexaAI runtime"
+          count={runtimeEvidence.length}
+          sub="Captured on the execution path by HexaAI (Nexovern kernel sensor) and pushed here as AIMS evidence · click an item for its control"
+          actions={<Btn sm primary color={tone} onClick={() => nav('/ai-governance/compliance')}><Bot /> Open evidence feed in HexaAI</Btn>}
+          flush
+        >
+          <div className="list" style={{ padding: '0 18px 8px' }}>
+            {runtimeEvidence.map((e) => (
+              <button key={e.hash} className="list-row" onClick={() => nav('/ai-governance/compliance')}>
+                <span className="list-main">
+                  <b>{e.title}</b>
+                  <span>{e.control} · sha256 {e.hash}… · {fmtAgo(e.minAgo)}</span>
+                </span>
+                <Badge color={e.status === 'Accepted' ? 'var(--good)' : e.status === 'Pushed' ? 'var(--accent)' : 'var(--sev-medium)'} dot>{e.status}</Badge>
+              </button>
+            ))}
+          </div>
+        </Card>
+      </div>
 
       <div className="grid g-3-2">
         <Card title="EU AI Act risk classification" sub="Click a class to filter the register · obligations follow the class and your role (provider or deployer)">
@@ -208,7 +244,7 @@ export default function ComplyAigov() {
             <Chip on={!cls && !regF} color={tone} onClick={() => { setCls(null); setRegF(null); }}>All</Chip>
             {regF && <Chip on color="var(--sev-high)" onClick={() => setRegF(null)}>{regF === "unsanctioned" ? "Unsanctioned" : regF === "impact" ? "Impact assessment open" : "Model card missing"} ×</Chip>}
             {CLASSES.map((k) => <Chip key={k} on={cls === k} color={CLASS_COLOR[k]} onClick={() => setCls(k)}>{k}</Chip>)}
-            <Btn sm onClick={() => nav('/ai/discovery')}><Bot /> HexaAI discovery</Btn>
+            <Btn sm onClick={() => nav('/ai-governance/inventory')}><Bot /> HexaAI inventory</Btn>
           </div>
         }
       >
@@ -240,7 +276,7 @@ export default function ComplyAigov() {
           footer={
             open.euClass === 'Prohibited' ? <Btn onClick={() => setOpen(null)}>Close</Btn> : (
               <>
-                <Btn onClick={() => nav('/ai/discovery')}><Bot /> Usage in HexaAI</Btn>
+                <Btn onClick={() => nav('/ai-governance/runtime')}><Bot /> Runtime in HexaAI</Btn>
                 <Btn primary color={tone} onClick={() => setAssign(open)}><UserCheck /> {open.source === 'Unsanctioned' ? 'Assign owner & request approval' : 'Record approval decision'}</Btn>
               </>
             )
@@ -268,7 +304,7 @@ export default function ComplyAigov() {
             </div>
           </div>
           {open.euClass === 'Prohibited' && <Callout kind="warn">Rejected at intake under Art. 5(1)(f). HexaAI watches for any deployment of this capability and raises an alert if one appears.</Callout>}
-          {open.source === 'Unsanctioned' && <Callout kind="warn">Discovered by HexaAI from network and SaaS telemetry; not yet submitted for approval. Usage continues until an owner decides to approve, restrict or block.</Callout>}
+          {open.source === 'Unsanctioned' && <Callout kind="warn">Discovered by HexaAI Governance at runtime; not yet submitted for approval. Usage continues until an owner decides to approve, restrict or block.</Callout>}
         </Drawer>
       )}
 
