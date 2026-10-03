@@ -528,7 +528,9 @@ svg text, .chart text { text-rendering: geometricPrecision; }
 .rm-main span { font-size: 11px; color: var(--text-secondary); line-height: 1.35; }
 .rm-main em { font-style: normal; font-size: 10.5px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rm-check { color: var(--accent); margin-top: 6px; }
-.ws-who { display: flex; align-items: center; gap: 9px; padding: 4px 10px 2px; }
+.ws-who { display: flex; align-items: center; gap: 9px; width: 100%; padding: 6px 10px 4px; border: 0; border-radius: 9px; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.ws-who:hover { background: rgba(255,255,255,.04); }
+.ws-who .ws-meta { flex: 1; }
 .ws-av { width: 26px; height: 26px; font-size: 10px; }
 .ws-meta { min-width: 0; }
 .ws-meta b { display: block; font-size: 12px; color: #e2e8f5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

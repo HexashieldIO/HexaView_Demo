@@ -71,19 +71,22 @@ function SideItem({ mod, onNavigate }: { mod: ModuleDef; onNavigate: () => void 
 
 function Workspace({ onNavigate }: { onNavigate: () => void }) {
   const { customer, persona, account } = useApp();
+  const [open, setOpen] = useState(true);
   if (account === 'partner') return null;
   const role = ROLE_BY_ID[persona] ?? ROLE_BY_ID.ciso;
   const p = role.person(customer);
   return (
     <div className="nav-group ws-group">
       <div className="nav-group-label">My workspace</div>
-      <div className="ws-who">
+      <button className="ws-who" onClick={() => setOpen((o) => !o)} aria-expanded={open} title={open ? 'Collapse workspace' : 'Expand workspace'}>
         <span className="ws-av">{initialsOf(p.name)}</span>
         <span className="ws-meta">
           <b>{role.label}</b>
           <span>{p.name}</span>
         </span>
-      </div>
+        <ChevronRight size={14} className={`nav-caret ${open ? 'open' : ''}`} />
+      </button>
+      {open && (
       <div className="nav-sub ws-links">
         {role.workspace.map(([label, to]) => (
           <NavLink key={to} to={to} end onClick={onNavigate} className={({ isActive }) => (isActive ? 'active' : '')}>
@@ -92,6 +95,7 @@ function Workspace({ onNavigate }: { onNavigate: () => void }) {
           </NavLink>
         ))}
       </div>
+      )}
     </div>
   );
 }
@@ -99,10 +103,31 @@ function Workspace({ onNavigate }: { onNavigate: () => void }) {
 function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () => void }) {
   const { customer, setCustomerId, theme, setTheme, account, setAccount } = useApp();
   const [orgOpen, setOrgOpen] = useState(false);
+  // Bumped by the logo: remounts the menu so every submenu collapses, as on a fresh load.
+  const [resetKey, setResetKey] = useState(0);
+  const [pendingReset, setPendingReset] = useState(false);
+  const { pathname } = useLocation();
   const navTo = useNavigate();
+  useEffect(() => {
+    if (pendingReset && pathname === '/') {
+      setResetKey((k) => k + 1);
+      setPendingReset(false);
+    }
+  }, [pendingReset, pathname]);
   return (
     <aside className={`sidebar ${open ? 'open' : ''}`} aria-label="Main navigation">
-      <NavLink to="/" className="brand" aria-label="HexaView home" onClick={onNavigate}>
+      <NavLink
+        to="/"
+        className="brand"
+        aria-label="HexaView home"
+        onClick={(e) => {
+          setOrgOpen(false);
+          setPendingReset(true);
+          (e.currentTarget.closest('.sidebar') as HTMLElement | null)?.scrollTo({ top: 0 });
+          window.scrollTo({ top: 0 });
+          onNavigate();
+        }}
+      >
         <img src="/brand/HexaView_logo_reverse.png" alt="HexaView" className="brand-logo" />
       </NavLink>
 
@@ -140,10 +165,10 @@ function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () => void }
         </div>
       )}
 
-      <Workspace onNavigate={onNavigate} />
+      <Workspace key={`ws-${resetKey}`} onNavigate={onNavigate} />
 
       {NAV_GROUPS.filter((g) => g.id !== 'partner' || account === 'partner').map((g) => (
-        <div className="nav-group" key={g.id}>
+        <div className="nav-group" key={`${g.id}-${resetKey}`}>
           <div className="nav-group-label">{g.label}</div>
           {MODULES.filter((m) => m.group === g.id).map((m) => (
             <SideItem key={m.id} mod={m} onNavigate={onNavigate} />
