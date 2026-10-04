@@ -6,6 +6,35 @@ import { endpointCves, endpointDevices, techName, type EndpointCve } from '../..
 import { SEV_HEX } from '../../components/Chart';
 import type { Severity } from '../../data/types';
 import { useSoc, StatTile, Pills, SegBar, RankList, RecordsDrawer, WriteBackModal, useParamFilter, type WriteBack } from './parts';
+import { forCustomer, type CustomerMap } from '../../data/customerMap';
+
+/** How the remediation rollout respects the customer's own change calendar. */
+const PATCH_RING: CustomerMap<string> = {
+  maritime: 'Servers patched in the next maintenance window',
+  finserv: 'Servers patched in the next maintenance window',
+  media: 'Servers patched in the next maintenance window',
+  healthcare: 'Clinical workstations follow the Epic validation calendar',
+  automotive: 'Plant hosts follow the plant change calendar; HMIs are excluded',
+  insurance: 'Guidewire and mainframe-facing hosts follow the CAB calendar; catastrophe-surge freeze respected',
+  defence: 'CUI enclave hosts patched through the GCC High ring; Building 3 and test-range HMIs are excluded',
+  pharma: 'Validated GxP systems go through GxP change control; plant HMIs are excluded',
+  sghospital: 'Clinical workstations follow the TrakCare release calendar; medical devices only with vendor approval (HSA GL-04)',
+  studio: 'Edit bays patched between productions; ride control HMIs are excluded',
+};
+
+/** Why a KEV-listed flaw is urgent for this customer (its own regulator or framework). */
+const KEV_NOTE: CustomerMap<string> = {
+  maritime: 'the HexaSOC target is remediation within 14 days.',
+  finserv: 'the HexaSOC target is remediation within 14 days.',
+  media: 'the HexaSOC target is remediation within 14 days.',
+  healthcare: 'HPH CPG 1.1 expects known exploited vulnerabilities fixed within 14 days.',
+  automotive: 'NIS2 and TISAX expect exploited flaws to be prioritised; the HexaSOC target is 14 days.',
+  insurance: 'NYDFS 500.7 and the NAIC model law expect timely remediation of exploited flaws; the HexaSOC target is 14 days.',
+  defence: 'NIST 800-171 3.11.3 and CMMC L2 expect flaws remediated in line with risk assessments; the HexaSOC target is 14 days.',
+  pharma: 'NIS2 applies, and on validated systems the fix is fast-tracked through GxP change control; the HexaSOC target is 14 days.',
+  sghospital: 'the MOH Cybersecurity & Data Security Essentials and CSA Cyber Essentials expect critical patches applied promptly; the HexaSOC target is 14 days.',
+  studio: 'TPN and PCI DSS 6.3.3 expect critical fixes within one month; the HexaSOC target is 14 days.',
+};
 
 type SevF = 'all' | Severity;
 type ScoreF = 'all' | '9' | '7' | '4';
@@ -107,7 +136,7 @@ export default function SocEndpoint() {
           footer={
             <>
               <Btn onClick={() => nav('/soc/recommendations')}>Related recommendations <ArrowRight size={14} /></Btn>
-              <Btn primary onClick={() => setWb({ title: `Remediate ${sel.id}`, system: c.connectors.find((k) => k.category === 'ITSM')?.product ?? 'ITSM', target: `${devCount(sel)} devices running ${sel.product}`, changes: [`Create a change in ${c.connectors.find((k) => k.category === 'ITSM')?.product ?? 'ITSM'} with the affected devices and fix: ${sel.remediation}`, `Deploy via ${tools.edrShort} / Intune to a pilot ring first, then all devices`, c.id === 'healthcare' ? 'Clinical workstations follow the Epic validation calendar' : c.id === 'automotive' ? 'Plant hosts follow the plant change calendar; HMIs are excluded' : 'Servers patched in the next maintenance window'], risk: sel.category === 'Server' || sel.category === 'Remote access' ? 'medium' : 'low', done: `Remediation change for ${sel.id} raised` })}><Wrench size={14} /> Raise remediation</Btn>
+              <Btn primary onClick={() => setWb({ title: `Remediate ${sel.id}`, system: c.connectors.find((k) => k.category === 'ITSM')?.product ?? 'ITSM', target: `${devCount(sel)} devices running ${sel.product}`, changes: [`Create a change in ${c.connectors.find((k) => k.category === 'ITSM')?.product ?? 'ITSM'} with the affected devices and fix: ${sel.remediation}`, `Deploy via ${tools.edrShort} / Intune to a pilot ring first, then all devices`, forCustomer(PATCH_RING, c)], risk: sel.category === 'Server' || sel.category === 'Remote access' ? 'medium' : 'low', done: `Remediation change for ${sel.id} raised` })}><Wrench size={14} /> Raise remediation</Btn>
             </>
           }
         >
@@ -125,7 +154,7 @@ export default function SocEndpoint() {
               <div className="section-label">Affected devices · {devCount(sel)}</div>
               <div className="chips">{sel.devices.map((d) => <span key={d} className="src-chip" style={{ cursor: d.startsWith('+') ? 'default' : 'pointer' }} onClick={() => !d.startsWith('+') && nav(`/soc/entities?q=${encodeURIComponent(d)}`)}>{d}</span>)}</div>
             </div>
-            {sel.kev && <Callout kind="warn">On the CISA KEV catalogue: {c.id === 'healthcare' ? 'HPH CPG 1.1 expects known exploited vulnerabilities fixed within 14 days.' : c.id === 'automotive' ? 'NIS2 and TISAX expect exploited flaws to be prioritised; the HexaSOC target is 14 days.' : 'the HexaSOC target is remediation within 14 days.'}</Callout>}
+            {sel.kev && <Callout kind="warn">On the CISA KEV catalogue: {forCustomer(KEV_NOTE, c)}</Callout>}
           </div>
         </Drawer>
       )}

@@ -113,7 +113,7 @@ export const STORIES: Story[] = [
         tip: 'Let the loop run once: closed, then open.',
       },
       {
-        path: '/board',
+        path: '/board/view',
         title: 'The board view',
         body: 'Top risks, financial exposure and the trend, written for a board pack with every statement cited back to evidence.',
         target: { sel: '.board-hero, .card', up: '.card' },

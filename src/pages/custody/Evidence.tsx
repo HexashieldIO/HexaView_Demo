@@ -43,7 +43,7 @@ export default function CustodyEvidence() {
   return (
     <>
       <p className="page-intro">
-        <b>{c.name}</b> · {sc.tenantName}. Every hand-off of {sc.label.toLowerCase()} is hashed (SHA-256), signed by the custody agent that witnessed it and bound to a {c.id === 'maritime' ? 'package ID' : 'forensic watermark'}, so you can prove where an asset has been and who held it.
+        <b>{c.name}</b> · {sc.tenantName}. Every hand-off of {sc.label.toLowerCase()} is hashed (SHA-256), signed by the custody agent that witnessed it and bound to a {c.dataKey === 'maritime' ? 'package ID' : 'forensic watermark'}, so you can prove where an asset has been and who held it.
       </p>
 
       <KpiStrip
@@ -130,7 +130,7 @@ export default function CustodyEvidence() {
                           <span><em>Organisation</em>{l.org}</span>
                           <span><em>User</em>{l.user}</span>
                           <span><em>Machine</em><span className="mono">{l.machine}</span></span>
-                          <span><em>{c.id === 'maritime' ? 'Package' : 'Watermark'}</em><span className="mono">{l.watermark}</span></span>
+                          <span><em>{c.dataKey === 'maritime' ? 'Package' : 'Watermark'}</em><span className="mono">{l.watermark}</span></span>
                         </div>
                         <div className="custody-hash"><b>SHA-256</b> {l.sha256}{prev && prev.sha256 === l.sha256 ? ' · unchanged from previous link' : prev ? ' · derived from previous version' : ''}</div>
                         <div className="custody-hash"><b>Signature</b> {l.signature}</div>

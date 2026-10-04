@@ -1,10 +1,11 @@
 // HexaOT data: sites, assets by Purdue level, zone/conduit flows, alerts,
 // vulnerabilities and guard-railed OT test engagements. Everything is derived
 // from the customer profile and anchored to headlines(c, tenantId).ot.
-import type { CustomerId, CustomerProfile, Severity } from '../types';
+import type { CustomerProfile, Severity } from '../types';
 import { rng } from '../../lib/rng';
 import { headlines } from '../core';
 import { ICS_CVES, CVES, type CveRef } from '../reference';
+import { forCustomer, type CustomerMap } from '../customerMap';
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                             */
@@ -40,7 +41,10 @@ export const LEVEL_HEX: Record<PurdueLevel, string> = { L4: '#8a9bc0', 'L3.5': '
 /* Sites                                                               */
 /* ------------------------------------------------------------------ */
 
-export type SiteKind = 'terminal' | 'vessel' | 'dc' | 'atm' | 'office' | 'broadcast' | 'stage' | 'post' | 'hospital' | 'imaging' | 'lab' | 'plant' | 'cellplant';
+export type SiteKind =
+  | 'terminal' | 'vessel' | 'dc' | 'atm' | 'office' | 'broadcast' | 'stage' | 'post' | 'hospital' | 'imaging' | 'lab' | 'plant' | 'cellplant'
+  | 'printplant' | 'shop' | 'range' | 'api' | 'biologics' | 'aseptic' | 'fillfinish' | 'packaging' | 'specialist' | 'daysurg' | 'labimg'
+  | 'park' | 'waterpark' | 'resort' | 'liveevents';
 export interface OtSite {
   id: string;
   name: string;
@@ -60,7 +64,7 @@ export interface OtSite {
   bundleHours?: number;
 }
 
-const SITES: Record<CustomerId, OtSite[]> = {
+const SITES: CustomerMap<OtSite[]> = {
   maritime: [
     { id: 'rtm', name: 'Maasvlakte Container Terminal', kind: 'terminal', kindLabel: 'Automated terminal · STS, ASC, AGV', tenantId: 'rtm', city: 'Rotterdam', country: 'NL', lat: 51.96, lon: 4.03, weight: 30, source: 'Dragos Platform', sourceConnector: 'c-dragos', prefix: 'RTM' },
     { id: 'ant', name: 'Scheldt Deepwater Terminal', kind: 'terminal', kindLabel: 'Terminal · STS, RTG, reefer', tenantId: 'ant', city: 'Antwerp', country: 'BE', lat: 51.28, lon: 4.3, weight: 20, source: 'HexaOT sensors', sourceConnector: 'c-hexaot', prefix: 'ANT' },
@@ -100,6 +104,41 @@ const SITES: Record<CustomerId, OtSite[]> = {
     { id: 'szg', name: 'Salzgitter cell plant (air-gapped)', kind: 'cellplant', kindLabel: 'Electrode, cell assembly, formation & ageing', tenantId: 'battery', city: 'Salzgitter', country: 'DE', lat: 52.15, lon: 10.33, weight: 14, source: 'HexaOT sensors (offline bundle)', sourceConnector: 'c-hexaot', prefix: 'SZG', airGapped: true, bundleHours: 6 },
     { id: 'pue', name: 'Puebla final assembly', kind: 'plant', kindLabel: 'Body, paint, assembly · AGV intralogistics', tenantId: 'puebla', city: 'Puebla', country: 'MX', lat: 19.04, lon: -98.21, weight: 20, source: 'Armis Centrix', sourceConnector: 'c-armis', prefix: 'PUE' },
   ],
+  // Kingsbridge Mutual: facilities only, all in the Group tenant.
+  insurance: [
+    { id: 'wdc1', name: 'Windsor DC1', kind: 'dc', kindLabel: 'Tier III primary data centre · z/OS, Guidewire, Splunk', tenantId: 'group', city: 'Windsor', country: 'US', lat: 41.85, lon: -72.64, weight: 44, source: 'HexaOT sensors', sourceConnector: 'c-hexaot', prefix: 'WDC' },
+    { id: 'phx2', name: 'Phoenix DC2 (colocation)', kind: 'dc', kindLabel: 'Colocation suite · recovery site', tenantId: 'group', city: 'Phoenix', country: 'US', lat: 33.45, lon: -112.07, weight: 20, source: 'Schneider EcoStruxure BMS', sourceConnector: 'c-facilities', prefix: 'PHX' },
+    { id: 'hpm', name: 'Hartford print & mail plant', kind: 'printplant', kindLabel: 'Policy, billing & claims mail · inserters, production print', tenantId: 'group', city: 'Hartford', country: 'US', lat: 41.76, lon: -72.69, weight: 36, source: 'HexaOT sensors', sourceConnector: 'c-hexaot', prefix: 'HPM' },
+  ],
+  // Sentry Peak: Building 3 shop floor (Huntsville) and the Tucson test range.
+  defence: [
+    { id: 'b3', name: 'Building 3 machine shop', kind: 'shop', kindLabel: 'Precision machining · CNC, CMM, DNC, heat treat', tenantId: 'manufacturing', city: 'Huntsville', country: 'US', lat: 34.73, lon: -86.59, weight: 66, source: 'Armis Centrix for OT/IoT', sourceConnector: 'c-armis', prefix: 'B3' },
+    { id: 'tus', name: 'Tucson test range', kind: 'range', kindLabel: 'Avionics ATE, environmental test, range telemetry', tenantId: 'tucson', city: 'Tucson', country: 'US', lat: 32.22, lon: -110.97, weight: 34, source: 'HexaOT sensors', sourceConnector: 'c-hexaot', prefix: 'TUS' },
+  ],
+  // Rhenara: Valais (Sierre) API, biologics and the air-gapped AF-2 line; Cork (Ringaskiddy) fill-finish and packaging.
+  pharma: [
+    { id: 'vls-api', name: 'Valais API plant', kind: 'api', kindLabel: 'Small-molecule synthesis · PCS 7 DCS, reactors, dryers', tenantId: 'valais', city: 'Sierre', country: 'CH', lat: 46.29, lon: 7.53, weight: 22, source: 'Claroty xDome', sourceConnector: 'c-claroty', prefix: 'VLS' },
+    { id: 'vls-bio', name: 'Valais biologics plant', kind: 'biologics', kindLabel: 'DeltaV DCS · 2,000 L single-use bioreactors, chromatography', tenantId: 'valais', city: 'Sierre', country: 'CH', lat: 46.3, lon: 7.55, weight: 30, source: 'Claroty xDome', sourceConnector: 'c-claroty', prefix: 'VLB' },
+    { id: 'vls-af2', name: 'Valais aseptic line AF-2 (air-gapped)', kind: 'aseptic', kindLabel: 'Annex 1 grade A/B filling isolator & lyophiliser', tenantId: 'valais', city: 'Sierre', country: 'CH', lat: 46.28, lon: 7.52, weight: 9, source: 'HexaOT sensors (offline bundle)', sourceConnector: 'c-hexaot', prefix: 'VAF', airGapped: true, bundleHours: 8 },
+    { id: 'crk-ff', name: 'Cork fill-finish plant', kind: 'fillfinish', kindLabel: 'Aseptic filling isolator, lyophilisers, cleanroom EMS', tenantId: 'cork', city: 'Ringaskiddy', country: 'IE', lat: 51.83, lon: -8.32, weight: 24, source: 'Dragos Platform', sourceConnector: 'c-dragos', prefix: 'CRK' },
+    { id: 'crk-pk', name: 'Cork packaging & serialisation', kind: 'packaging', kindLabel: 'EU FMD / DSCSA serialisation & aggregation lines', tenantId: 'cork', city: 'Ringaskiddy', country: 'IE', lat: 51.82, lon: -8.31, weight: 15, source: 'Dragos Platform', sourceConnector: 'c-dragos', prefix: 'CRP' },
+  ],
+  // Orchid Bay: medical devices are the OT, across four clinical campuses.
+  sghospital: [
+    { id: 'novena', name: 'Orchid Bay Hospital Novena', kind: 'hospital', kindLabel: 'Acute hospital · 420 beds · A&E, ICU, theatres', tenantId: 'obh', city: 'Novena', country: 'SG', lat: 1.32, lon: 103.84, weight: 58, source: 'Claroty xDome for Healthcare', sourceConnector: 'c-claroty', prefix: 'OBH' },
+    { id: 'tanglin', name: 'Orchid Bay Specialist Centre Tanglin', kind: 'specialist', kindLabel: 'Oncology & cardiology · TrueBeam linacs, cath lab', tenantId: 'specialist', city: 'Tanglin', country: 'SG', lat: 1.305, lon: 103.82, weight: 16, source: 'Claroty xDome for Healthcare', sourceConnector: 'c-claroty', prefix: 'SPC' },
+    { id: 'punggol', name: 'Orchid Bay Day Surgery Punggol', kind: 'daysurg', kindLabel: 'Day surgery · 8 theatres, endoscopy, recovery', tenantId: 'daysurg', city: 'Punggol', country: 'SG', lat: 1.405, lon: 103.9, weight: 11, source: 'Armis Centrix for Medical Device Security', sourceConnector: 'c-armis', prefix: 'DSC' },
+    { id: 'sciencepark', name: 'Orchid Bay Lab & Imaging', kind: 'labimg', kindLabel: 'Core lab (Roche cobas), CT, MRI, PACS', tenantId: 'labimg', city: 'Science Park', country: 'SG', lat: 1.29, lon: 103.79, weight: 15, source: 'HexaOT sensors', sourceConnector: 'c-hexaot', prefix: 'LAB' },
+  ],
+  // Starfall: theme-park OT in the Orlando and Osaka resorts only.
+  studio: [
+    { id: 'orl-park', name: 'Starfall Studios Park Orlando', kind: 'park', kindLabel: 'Coasters, dark rides, animatronic shows', tenantId: 'parks', city: 'Orlando', country: 'US', lat: 28.47, lon: -81.47, weight: 30, source: 'Dragos Platform', sourceConnector: 'c-dragos', prefix: 'ORS' },
+    { id: 'orl-lagoon', name: 'Starfall Lagoon water park', kind: 'waterpark', kindLabel: 'Water rides · pump houses, filtration, wave pool', tenantId: 'parks', city: 'Orlando', country: 'US', lat: 28.46, lon: -81.46, weight: 12, source: 'Claroty xDome', sourceConnector: 'c-claroty', prefix: 'ORL' },
+    { id: 'orl-resort', name: 'Orlando resort hotels & back-of-house', kind: 'resort', kindLabel: 'Hotels, central plant, StarPass gates, fire & BMS', tenantId: 'parks', city: 'Orlando', country: 'US', lat: 28.475, lon: -81.465, weight: 17, source: 'Armis Centrix', sourceConnector: 'c-armis', prefix: 'ORH' },
+    { id: 'orl-live', name: 'Orlando night-time spectacular', kind: 'liveevents', kindLabel: 'Lagoon show · ST 2110, media servers, pyrotechnics', tenantId: 'parks', city: 'Orlando', country: 'US', lat: 28.472, lon: -81.468, weight: 9, source: 'HexaOT sensors', sourceConnector: 'c-hexaot', prefix: 'ORE' },
+    { id: 'osa-park', name: 'Starfall Park Osaka', kind: 'park', kindLabel: 'Coasters, dark rides, water ride, parade', tenantId: 'parksasia', city: 'Osaka', country: 'JP', lat: 34.67, lon: 135.43, weight: 22, source: 'Claroty xDome', sourceConnector: 'c-claroty', prefix: 'OSP' },
+    { id: 'osa-resort', name: 'Osaka resort hotels & CityWalk', kind: 'resort', kindLabel: 'Hotels, retail walk, StarPass gates, BMS', tenantId: 'parksasia', city: 'Osaka', country: 'JP', lat: 34.665, lon: 135.435, weight: 10, source: 'Armis Centrix', sourceConnector: 'c-armis', prefix: 'OSH' },
+  ],
 };
 
 /* ------------------------------------------------------------------ */
@@ -122,7 +161,7 @@ export interface AssetType {
   consequenceText: string;
 }
 
-const TYPES: Record<CustomerId, AssetType[]> = {
+const TYPES: CustomerMap<AssetType[]> = {
   maritime: [
     { name: 'TOS interface server (Navis N4)', level: 'L4', kinds: ['terminal'], share: 1.2, vendor: 'Navis', model: 'N4 3.9 app node', abbr: 'TOS', fw: ['3.7', '3.8', '3.9'], protocols: ['OPC UA'], zone: 'Enterprise IT', consequence: 3, consequenceText: 'Berth and yard planning disrupted' },
     { name: 'OT jump host', level: 'L3.5', kinds: ['terminal'], share: 0.6, vendor: 'Microsoft', model: 'Windows Server 2022', abbr: 'JMP', fw: ['21H2', '22H2', '23H2'], protocols: ['OPC UA'], zone: 'OT DMZ', consequence: 4, consequenceText: 'Gateway into crane and AGV control' },
@@ -234,10 +273,135 @@ const TYPES: Record<CustomerId, AssetType[]> = {
     { name: 'Servo drive', level: 'L0', kinds: ['plant', 'cellplant'], share: 26, vendor: 'Siemens', model: 'SINAMICS S210', abbr: 'DRV', fw: ['5.2', '5.2 SP3', '6.1'], protocols: ['PROFINET'], zone: 'Press & body shop', consequence: 3, consequenceText: 'Axis motion' },
     { name: 'Remote I/O & safety I/O', level: 'L0', kinds: ['plant', 'cellplant'], share: 30, vendor: 'Siemens', model: 'ET 200SP', abbr: 'IO', fw: ['4.1', '4.2', '4.5'], protocols: ['PROFINET'], zone: 'Final assembly & EOL', consequence: 3, consequenceText: 'Sensor and actuator integrity' },
   ],
+  insurance: [
+    { name: 'DCIM server', level: 'L4', kinds: ['dc'], share: 0.4, vendor: 'Schneider Electric', model: 'EcoStruxure IT Expert', abbr: 'DCIM', fw: ['2.6', '2.8', '3.0'], protocols: ['SNMP'], zone: 'Corporate IT', consequence: 2, consequenceText: 'Rack, power and cooling capacity view for the mainframe halls' },
+    { name: 'Facilities jump host', level: 'L3.5', kinds: ['dc', 'printplant'], share: 0.4, vendor: 'Microsoft', model: 'Windows Server 2022', abbr: 'JMP', fw: ['21H2', '22H2', '23H2'], protocols: ['RDP'], zone: 'Facilities DMZ', consequence: 4, consequenceText: 'The one path into power, cooling and print control' },
+    { name: 'Passive sensor / collector', level: 'L3.5', kinds: ['dc', 'printplant'], share: 0.3, vendor: 'HexaShield', model: 'Edge 1.9', abbr: 'EDG', fw: ['1.8.7', '1.9.1', '1.9.2'], protocols: [], zone: 'Facilities DMZ', consequence: 1, consequenceText: 'Loss of visibility only (passive)' },
+    { name: 'BMS server (EcoStruxure)', level: 'L3', kinds: ['dc', 'printplant'], share: 0.6, vendor: 'Schneider Electric', model: 'EcoStruxure Building Operation 6', abbr: 'BMS', fw: ['4.0', '5.0', '6.0'], protocols: ['BACnet/IP', 'Modbus/TCP', 'LonWorks'], zone: 'BMS & DCIM', consequence: 4, consequenceText: 'Supervises chillers, CRAH units and the generator plant' },
+    { name: 'Access control server (LenelS2)', level: 'L3', kinds: ['dc', 'printplant'], share: 0.4, vendor: 'LenelS2', model: 'OnGuard 8.2', abbr: 'ACS', fw: ['7.6', '8.0', '8.2'], protocols: ['HTTPS'], zone: 'Physical security', consequence: 3, consequenceText: 'Badge rights to data halls and the mail floor' },
+    { name: 'CCTV NVR', level: 'L3', kinds: ['dc', 'printplant'], share: 1.2, vendor: 'Genetec', model: 'Security Center Omnicast 5.12', abbr: 'NVR', fw: ['5.10', '5.11', '5.12'], protocols: ['SNMP'], zone: 'Physical security', consequence: 2, consequenceText: 'Video evidence for hall and mail-floor access' },
+    { name: 'Print workflow server', level: 'L3', kinds: ['printplant'], share: 0.8, vendor: 'Xerox', model: 'FreeFlow Core 7', abbr: 'PWS', fw: ['6.2', '7.0', '7.2'], protocols: ['IPP / JDF (print)', 'SMB'], zone: 'Print & mail production', consequence: 4, consequenceText: 'Policy, renewal and claims letters with policyholder PII' },
+    { name: 'Mail-piece integrity server', level: 'L3', kinds: ['printplant'], share: 0.5, vendor: 'Pitney Bowes', model: 'Relay Communications Hub', abbr: 'MPI', fw: ['5.4', '6.0', '6.2'], protocols: ['IPP / JDF (print)', 'SMB'], zone: 'Print & mail production', consequence: 4, consequenceText: 'Ensures each letter goes in the right envelope (privacy breach if not)' },
+    { name: 'BMS controller (EcoStruxure)', level: 'L2', kinds: ['dc', 'printplant'], share: 5, vendor: 'Schneider Electric', model: 'SpaceLogic AS-P', abbr: 'ASP', fw: ['4.0', '5.0', '6.0'], protocols: ['BACnet/IP', 'Modbus/TCP'], zone: 'BMS & DCIM', consequence: 4, consequenceText: 'Cooling set-points and alarms for the halls' },
+    { name: 'Power monitoring gateway', level: 'L2', kinds: ['dc'], share: 2, vendor: 'Schneider Electric', model: 'PowerLogic Link150', abbr: 'PMG', fw: ['4.8', '5.1', '5.3'], protocols: ['Modbus/TCP', 'SNMP'], zone: 'Power (UPS, generators)', consequence: 3, consequenceText: 'Power quality and load-transfer visibility' },
+    { name: 'Production printer (Xerox iGen)', level: 'L2', kinds: ['printplant'], share: 3, vendor: 'Xerox', model: 'iGen 5 press', abbr: 'PRN', fw: ['11.4', '12.1', '12.3'], protocols: ['IPP / JDF (print)', 'SNMP'], zone: 'Print & mail production', consequence: 3, consequenceText: 'Renewal and premium notices miss the statutory mailing date' },
+    { name: 'Inserter controller (Pitney Bowes)', level: 'L2', kinds: ['printplant'], share: 3.5, vendor: 'Pitney Bowes', model: 'Rival inserter control', abbr: 'INS', fw: ['3.6', '4.0', '4.2'], protocols: ['Modbus/TCP', 'SMB'], zone: 'Print & mail production', consequence: 4, consequenceText: 'Feeder and match logic (mis-inserts expose policyholder data)' },
+    { name: 'UPS (Vertiv Liebert EXL S1)', level: 'L1', kinds: ['dc', 'printplant'], share: 4, vendor: 'Vertiv', model: 'Liebert EXL S1 1200 kVA', abbr: 'UPS', fw: ['3.2', '3.4', '3.6'], protocols: ['SNMP', 'Modbus/TCP'], zone: 'Power (UPS, generators)', consequence: 5, consequenceText: 'Hall power for the mainframe and claims systems' },
+    { name: 'CRAC unit (Liebert DSE)', level: 'L1', kinds: ['dc'], share: 7, vendor: 'Vertiv', model: 'Liebert DSE 125', abbr: 'CRAC', fw: ['1.8', '2.1', '2.3'], protocols: ['BACnet/IP', 'Modbus/TCP'], zone: 'Cooling (CRAC)', consequence: 5, consequenceText: 'Thermal shutdown of a data hall' },
+    { name: 'Generator controller (Cummins)', level: 'L1', kinds: ['dc'], share: 1.2, vendor: 'Cummins', model: 'PowerCommand 3.3', abbr: 'GEN', fw: ['3.0', '3.2', '3.4'], protocols: ['Modbus/TCP'], zone: 'Power (UPS, generators)', consequence: 5, consequenceText: 'Standby power during a utility outage' },
+    { name: 'Fire suppression panel (Novec 1230)', level: 'L1', kinds: ['dc', 'printplant'], share: 1, vendor: 'Kidde Fire Systems', model: 'ARIES NetLink', abbr: 'FIRE', fw: ['2.6', '2.8', '3.0'], protocols: ['BACnet/IP'], zone: 'Fire & life safety', consequence: 5, consequenceText: 'Life safety and clean-agent release' },
+    { name: 'Physical access controller', level: 'L1', kinds: ['dc', 'printplant'], share: 4, vendor: 'LenelS2', model: 'Mercury LP4502', abbr: 'PAC', fw: ['1.30', '2.0', '2.1'], protocols: ['SNMP'], zone: 'Physical security', consequence: 4, consequenceText: 'Unauthorised entry to halls or the mail floor' },
+    { name: 'Environmental sensors', level: 'L0', kinds: ['dc'], share: 14, vendor: 'Schneider Electric', model: 'NetBotz 750 sensors', abbr: 'ENV', fw: ['5.2', '5.3', '5.4'], protocols: ['SNMP'], zone: 'Cooling (CRAC)', consequence: 2, consequenceText: 'False readings hide a hot aisle' },
+    { name: 'Intelligent PDU', level: 'L0', kinds: ['dc'], share: 11, vendor: 'Vertiv', model: 'Geist rPDU', abbr: 'PDU', fw: ['5.6', '6.0', '6.1'], protocols: ['SNMP', 'Modbus/TCP'], zone: 'Power (UPS, generators)', consequence: 4, consequenceText: 'Outlet switching on mainframe and storage racks' },
+    { name: 'CCTV camera', level: 'L0', kinds: ['dc', 'printplant'], share: 6, vendor: 'Axis Communications', model: 'P3268-LVE', abbr: 'CAM', fw: ['10.12', '11.6', '11.11'], protocols: ['HTTP'], zone: 'Physical security', consequence: 1, consequenceText: 'Blind spot in video coverage' },
+  ],
+  defence: [
+    { name: 'PLM release interface (Teamcenter)', level: 'L4', kinds: ['shop', 'range'], share: 0.4, vendor: 'Siemens', model: 'Teamcenter 14 manufacturing release', abbr: 'PLM', fw: ['13.3', '14.1', '14.3'], protocols: ['HTTPS', 'SMB'], zone: 'Enterprise IT (PLM & ERP)', consequence: 3, consequenceText: 'Released programmes and test procedures stop reaching the floor' },
+    { name: 'OT jump host', level: 'L3.5', kinds: ['shop', 'range'], share: 0.4, vendor: 'Microsoft', model: 'Windows Server 2022 (STIG baseline)', abbr: 'JMP', fw: ['21H2', '22H2', '23H2'], protocols: ['RDP'], zone: 'Shop-floor DMZ', consequence: 4, consequenceText: 'The brokered path into machine and test networks' },
+    { name: 'Passive sensor / collector', level: 'L3.5', kinds: ['shop', 'range'], share: 0.3, vendor: 'HexaShield', model: 'Edge 1.9', abbr: 'EDG', fw: ['1.8.7', '1.9.1', '1.9.2'], protocols: [], zone: 'Shop-floor DMZ', consequence: 1, consequenceText: 'Loss of visibility only (passive)' },
+    { name: 'DNC programme server', level: 'L3', kinds: ['shop'], share: 0.4, vendor: 'CIMCO', model: 'MDM / DNC-Max 8', abbr: 'DNC', fw: ['8.10', '8.12', '8.14'], protocols: ['DNC serial-over-IP', 'SMB'], zone: 'DNC & inspection', consequence: 5, consequenceText: 'Every released CNC programme; tampering yields out-of-tolerance flight parts' },
+    { name: 'CMM inspection workstation', level: 'L3', kinds: ['shop'], share: 0.8, vendor: 'Zeiss', model: 'CALYPSO 2023 on Dell Precision', abbr: 'CMW', fw: ['2021', '2022', '2023'], protocols: ['SMB'], zone: 'DNC & inspection', consequence: 4, consequenceText: 'First-article and inspection results (AS9102)' },
+    { name: 'Process historian (AVEVA)', level: 'L3', kinds: ['shop', 'range'], share: 0.4, vendor: 'AVEVA', model: 'Historian 2023 R2', abbr: 'HIS', fw: ['2020 R2', '2023', '2023 R2'], protocols: ['OPC UA', 'MTConnect'], zone: 'DNC & inspection', consequence: 2, consequenceText: 'Spindle, furnace and chamber history for quality records' },
+    { name: 'Engineering workstation', level: 'L3', kinds: ['shop'], share: 0.8, vendor: 'Rockwell Automation', model: 'Studio 5000 V35 on Dell Precision', abbr: 'EWS', fw: ['V32', 'V34', 'V35'], protocols: ['EtherNet/IP'], zone: 'DNC & inspection', consequence: 5, consequenceText: 'Can download logic to the heat-treat furnace controller' },
+    { name: 'Test data acquisition server', level: 'L3', kinds: ['range'], share: 0.6, vendor: 'NI', model: 'DIAdem / SystemLink 2024', abbr: 'DAQ', fw: ['2023 Q3', '2024 Q1', '2024 Q3'], protocols: ['OPC UA', 'SMB'], zone: 'Test data & ATE', consequence: 4, consequenceText: 'Qualification test data that the prime accepts the hardware on' },
+    { name: 'Avionics ATE bench (NI PXI)', level: 'L2', kinds: ['range'], share: 2.4, vendor: 'NI', model: 'PXIe-1085 with TestStand 2023', abbr: 'ATE', fw: ['2021', '2022 Q4', '2023 Q4'], protocols: ['LXI / VISA', 'SMB'], zone: 'Test data & ATE', consequence: 4, consequenceText: 'Pass or fail of avionics units before delivery' },
+    { name: 'Heat-treat HMI', level: 'L2', kinds: ['shop'], share: 0.8, vendor: 'Rockwell Automation', model: 'FactoryTalk View SE 13', abbr: 'HMI', fw: ['11', '12', '13'], protocols: ['EtherNet/IP'], zone: 'Heat treat', consequence: 4, consequenceText: 'Operator view of furnace and quench state' },
+    { name: 'Building management controller', level: 'L2', kinds: ['shop', 'range'], share: 1.4, vendor: 'Trane', model: 'Tracer SC+', abbr: 'BMS', fw: ['5.4', '5.8', '6.0'], protocols: ['BACnet/IP'], zone: 'Facilities (HVAC, air)', consequence: 3, consequenceText: 'Shop temperature (CMM accuracy) and compressed air' },
+    { name: 'CNC mill (Haas VF-4SS)', level: 'L1', kinds: ['shop'], share: 5, vendor: 'Haas Automation', model: 'VF-4SS (NGC control)', abbr: 'CNC', fw: ['100.21', '100.22', '100.24'], protocols: ['MTConnect', 'DNC serial-over-IP'], zone: 'CNC machining', consequence: 4, consequenceText: 'Spindle and axis motion; part geometry' },
+    { name: 'CNC lathe (DMG Mori NLX 2500)', level: 'L1', kinds: ['shop'], share: 3, vendor: 'DMG Mori', model: 'NLX 2500 (CELOS)', abbr: 'LTH', fw: ['5.1', '5.4', '6.0'], protocols: ['MTConnect', 'OPC UA'], zone: 'CNC machining', consequence: 4, consequenceText: 'Turning operations on guidance housings' },
+    { name: 'Coordinate measuring machine', level: 'L1', kinds: ['shop'], share: 0.8, vendor: 'Zeiss', model: 'CONTURA G2', abbr: 'CMM', fw: ['6.6', '6.8', '7.0'], protocols: ['SMB'], zone: 'DNC & inspection', consequence: 3, consequenceText: 'Dimensional acceptance of machined parts' },
+    { name: 'Heat-treat furnace controller', level: 'L1', kinds: ['shop'], share: 0.8, vendor: 'Rockwell Automation', model: 'ControlLogix 5580', abbr: 'HTF', fw: ['33.11', '34.11', '35.13'], protocols: ['EtherNet/IP'], zone: 'Heat treat', consequence: 5, consequenceText: 'Furnace temperature and quench (fire risk; metallurgy of flight parts)' },
+    { name: 'Air compressor controller', level: 'L1', kinds: ['shop'], share: 0.6, vendor: 'Atlas Copco', model: 'Elektronikon Mk5 Touch', abbr: 'AIR', fw: ['2.1', '2.3', '2.4'], protocols: ['Modbus/TCP'], zone: 'Facilities (HVAC, air)', consequence: 3, consequenceText: 'Shop air for fixtures and tool changers' },
+    { name: 'Environmental chamber (Thermotron)', level: 'L1', kinds: ['range'], share: 1.6, vendor: 'Thermotron', model: 'SE-Series with 8800 controller', abbr: 'CHM', fw: ['4.2', '4.6', '5.0'], protocols: ['Modbus/TCP', 'LXI / VISA'], zone: 'Environmental test', consequence: 4, consequenceText: 'Temperature and altitude profile on flight hardware under test' },
+    { name: 'Vibration shaker controller', level: 'L1', kinds: ['range'], share: 0.6, vendor: 'Data Physics', model: 'SignalStar Vector', abbr: 'SHK', fw: ['12.1', '12.4', '13.0'], protocols: ['LXI / VISA'], zone: 'Environmental test', consequence: 5, consequenceText: 'Drive limits on a shaker that can destroy a test article' },
+    { name: 'Range telemetry receiver', level: 'L1', kinds: ['range'], share: 0.8, vendor: 'Quasonix', model: 'RDMS receiver', abbr: 'TLM', fw: ['3.6', '3.8', '4.0'], protocols: ['IRIG 106 telemetry'], zone: 'Range telemetry', consequence: 3, consequenceText: 'Telemetry from units under range test' },
+    { name: 'Machine I/O & probes', level: 'L0', kinds: ['shop'], share: 10, vendor: 'Rockwell Automation', model: 'POINT I/O / Renishaw probes', abbr: 'IO', fw: ['3.1', '3.3', '3.5'], protocols: ['EtherNet/IP'], zone: 'CNC machining', consequence: 2, consequenceText: 'Probe and coolant signals' },
+    { name: 'Test instrumentation', level: 'L0', kinds: ['range'], share: 5, vendor: 'PCB Piezotronics', model: 'Accelerometers & thermocouple scanners', abbr: 'INS', fw: ['1.4', '1.6', '1.8'], protocols: ['LXI / VISA'], zone: 'Environmental test', consequence: 2, consequenceText: 'Measured loads on the article under test' },
+  ],
+  pharma: [
+    { name: 'ERP / MES interface (SAP S/4HANA)', level: 'L4', kinds: ['api', 'biologics', 'fillfinish', 'packaging'], share: 0.3, vendor: 'SAP', model: 'S/4HANA 2023 · PAS-X integration', abbr: 'ERP', fw: ['2021', '2022', '2023'], protocols: ['HTTPS', 'OPC UA'], zone: 'Enterprise IT (SAP)', consequence: 3, consequenceText: 'Process orders and batch release status stop flowing' },
+    { name: 'OT jump host', level: 'L3.5', kinds: ['api', 'biologics', 'fillfinish', 'packaging'], share: 0.25, vendor: 'Microsoft', model: 'Windows Server 2022', abbr: 'JMP', fw: ['21H2', '22H2', '23H2'], protocols: ['RDP'], zone: 'Plant DMZ', consequence: 4, consequenceText: 'Brokered path into DCS and line networks' },
+    { name: 'Passive sensor / collector', level: 'L3.5', kinds: ['api', 'biologics', 'aseptic', 'fillfinish', 'packaging'], share: 0.15, vendor: 'HexaShield', model: 'Edge 1.9', abbr: 'EDG', fw: ['1.8.7', '1.9.1', '1.9.2'], protocols: [], zone: 'Plant DMZ', consequence: 1, consequenceText: 'Loss of visibility only (passive)' },
+    { name: 'MES server (Werum PAS-X)', level: 'L3', kinds: ['api', 'biologics', 'aseptic', 'fillfinish', 'packaging'], share: 0.4, vendor: 'Körber', model: 'Werum PAS-X 3.3', abbr: 'MES', fw: ['3.2.4', '3.3.0', '3.3.2'], protocols: ['OPC UA', 'HTTPS'], zone: 'MES & batch records', consequence: 4, consequenceText: 'Electronic batch records and Part 11 e-signatures for release' },
+    { name: 'Process historian (AVEVA PI)', level: 'L3', kinds: ['api', 'biologics', 'fillfinish'], share: 0.3, vendor: 'AVEVA', model: 'PI Server 2023', abbr: 'HIS', fw: ['2018 SP3', '2021', '2023'], protocols: ['OPC UA', 'OPC DA (DCOM)'], zone: 'MES & batch records', consequence: 3, consequenceText: 'Batch trends and deviation evidence' },
+    { name: 'DCS engineering station (DeltaV)', level: 'L3', kinds: ['biologics'], share: 0.4, vendor: 'Emerson', model: 'DeltaV ProfessionalPLUS 15', abbr: 'DVE', fw: ['14.3', '14.LTS', '15.LTS'], protocols: ['OPC UA', 'OPC DA (DCOM)'], zone: 'Upstream & downstream (DeltaV)', consequence: 5, consequenceText: 'Can change control modules and phases on running bioreactors' },
+    { name: 'DCS engineering station (PCS 7)', level: 'L3', kinds: ['api'], share: 0.4, vendor: 'Siemens', model: 'SIMATIC PCS 7 ES V9.1', abbr: 'PES', fw: ['V9.0', 'V9.1 SP1', 'V9.1 SP2'], protocols: ['S7comm', 'OPC UA'], zone: 'API synthesis (PCS 7)', consequence: 5, consequenceText: 'Can change reactor control logic and interlocks' },
+    { name: 'Environmental monitoring server (viewLinc)', level: 'L3', kinds: ['biologics', 'aseptic', 'fillfinish'], share: 0.25, vendor: 'Vaisala', model: 'viewLinc 5.1', abbr: 'EMS', fw: ['4.3', '5.0', '5.1'], protocols: ['HTTPS', 'Modbus/TCP'], zone: 'Cleanroom HVAC & EMS', consequence: 4, consequenceText: 'Cleanroom excursion records that QA needs for batch release' },
+    { name: 'LIMS instrument interface (LabWare)', level: 'L3', kinds: ['api', 'biologics', 'fillfinish'], share: 0.3, vendor: 'LabWare', model: 'LIMS 8 instrument gateway', abbr: 'LIM', fw: ['7.2', '8.0', '8.1'], protocols: ['SMB', 'HTTPS'], zone: 'MES & batch records', consequence: 4, consequenceText: 'Release test results and their audit trail' },
+    { name: 'Serialisation site server (L3)', level: 'L3', kinds: ['packaging'], share: 0.3, vendor: 'Antares Vision', model: 'ATSfour site manager', abbr: 'SRS', fw: ['4.1', '4.3', '4.4'], protocols: ['HTTPS', 'OPC UA'], zone: 'Serialisation & packaging', consequence: 4, consequenceText: 'EU FMD and DSCSA serial numbers and aggregation hierarchy' },
+    { name: 'DCS operator station (DeltaV)', level: 'L2', kinds: ['biologics'], share: 1.2, vendor: 'Emerson', model: 'DeltaV Operate', abbr: 'DVO', fw: ['14.3', '14.LTS', '15.LTS'], protocols: ['OPC DA (DCOM)'], zone: 'Upstream & downstream (DeltaV)', consequence: 4, consequenceText: 'Operator view and control of culture and purification' },
+    { name: 'DCS operator station (PCS 7)', level: 'L2', kinds: ['api'], share: 1, vendor: 'Siemens', model: 'SIMATIC PCS 7 OS V9.1', abbr: 'POS', fw: ['V9.0', 'V9.1 SP1', 'V9.1 SP2'], protocols: ['S7comm'], zone: 'API synthesis (PCS 7)', consequence: 4, consequenceText: 'Operator view and control of reactors and dryers' },
+    { name: 'MES terminal (PAS-X)', level: 'L2', kinds: ['api', 'biologics', 'aseptic', 'fillfinish', 'packaging'], share: 2.4, vendor: 'Körber', model: 'PAS-X shop-floor client (Windows 10 LTSC)', abbr: 'MET', fw: ['1809', '21H2', '21H2 CU'], protocols: ['HTTPS', 'SMB'], zone: 'MES & batch records', consequence: 3, consequenceText: 'Operators record batch steps and sign them (Part 11)' },
+    { name: 'Cleanroom HVAC / BMS controller', level: 'L2', kinds: ['api', 'biologics', 'aseptic', 'fillfinish', 'packaging'], share: 2.6, vendor: 'Siemens', model: 'Desigo PXC7', abbr: 'BMS', fw: ['6.0', '7.0', '7.1'], protocols: ['BACnet/IP'], zone: 'Cleanroom HVAC & EMS', consequence: 5, consequenceText: 'Pressure cascade and air changes in grade A/B rooms' },
+    { name: 'Serialisation line controller', level: 'L2', kinds: ['packaging'], share: 2, vendor: 'Antares Vision', model: 'Line controller (L2)', abbr: 'SER', fw: ['3.6', '3.8', '4.0'], protocols: ['OPC UA', 'PROFINET'], zone: 'Serialisation & packaging', consequence: 4, consequenceText: 'Code printing, verification and case aggregation' },
+    { name: 'Bioreactor controller (2,000 L single-use)', level: 'L1', kinds: ['biologics'], share: 1.6, vendor: 'Thermo Fisher Scientific', model: 'HyPerforma DynaDrive 2000 L (DeltaV PK)', abbr: 'BIO', fw: ['1.4', '1.6', '1.7'], protocols: ['PROFINET', 'OPC UA'], zone: 'Upstream & downstream (DeltaV)', consequence: 5, consequenceText: 'Culture conditions on a batch worth millions' },
+    { name: 'Chromatography skid', level: 'L1', kinds: ['biologics'], share: 1.2, vendor: 'Cytiva', model: 'ÄKTA process (UNICORN 7)', abbr: 'CHR', fw: ['7.6', '7.8', '7.9'], protocols: ['OPC UA', 'PROFINET'], zone: 'Upstream & downstream (DeltaV)', consequence: 4, consequenceText: 'Purification yield and product quality' },
+    { name: 'Reactor & dryer controller (PCS 7 AS)', level: 'L1', kinds: ['api'], share: 2, vendor: 'Siemens', model: 'SIMATIC S7-410-5H', abbr: 'REA', fw: ['8.1', '8.2', '10.1'], protocols: ['S7comm', 'PROFINET'], zone: 'API synthesis (PCS 7)', consequence: 5, consequenceText: 'Exothermic reaction control and pressure-relief interlocks' },
+    { name: 'CIP/SIP skid PLC', level: 'L1', kinds: ['api', 'biologics', 'fillfinish'], share: 1.6, vendor: 'Rockwell Automation', model: 'CompactLogix 5380', abbr: 'CIP', fw: ['32.11', '33.12', '35.11'], protocols: ['EtherNet/IP'], zone: 'Clean utilities (CIP/SIP)', consequence: 4, consequenceText: 'Cleaning and sterilisation of product-contact equipment' },
+    { name: 'Aseptic filling isolator PLC', level: 'L1', kinds: ['aseptic', 'fillfinish'], share: 0.8, vendor: 'Syntegon', model: 'Isolator & filling line (S7-1500F)', abbr: 'FIL', fw: ['2.9', '3.0', '3.1'], protocols: ['PROFINET'], zone: 'Aseptic filling', consequence: 5, consequenceText: 'Grade A environment and fill accuracy (sterility assurance)' },
+    { name: 'Lyophiliser PLC', level: 'L1', kinds: ['aseptic', 'fillfinish'], share: 0.6, vendor: 'IMA Life', model: 'LYOMAX (S7-1500 control)', abbr: 'LYO', fw: ['2.8', '2.9', '3.0'], protocols: ['PROFINET', 'S7comm'], zone: 'Fill-finish & lyophilisation', consequence: 5, consequenceText: 'Freeze-drying cycle; an interrupted cycle loses the batch' },
+    { name: 'Autoclave controller', level: 'L1', kinds: ['fillfinish', 'aseptic'], share: 0.4, vendor: 'Getinge', model: 'GSS67 (PACS 3500)', abbr: 'AUT', fw: ['3.2', '3.4', '3.5'], protocols: ['Modbus/TCP'], zone: 'Fill-finish & lyophilisation', consequence: 4, consequenceText: 'Sterilisation cycles for components and garments' },
+    { name: 'Packaging line PLC', level: 'L1', kinds: ['packaging'], share: 2.4, vendor: 'Siemens', model: 'S7-1515', abbr: 'PKG', fw: ['2.8', '2.9', '3.0', '3.1'], protocols: ['S7comm', 'PROFINET'], zone: 'Serialisation & packaging', consequence: 3, consequenceText: 'Cartoner, labeller and case packer motion' },
+    { name: 'Field instruments (pH, DO, temperature)', level: 'L0', kinds: ['api', 'biologics'], share: 14, vendor: 'Endress+Hauser', model: 'Liquiline / iTEMP (PROFINET)', abbr: 'FLD', fw: ['1.4', '1.6', '1.8'], protocols: ['PROFINET'], zone: 'Upstream & downstream (DeltaV)', consequence: 3, consequenceText: 'Measured values that steer the process' },
+    { name: 'Cleanroom environmental sensors', level: 'L0', kinds: ['biologics', 'aseptic', 'fillfinish'], share: 6, vendor: 'Vaisala', model: 'RFL100 / HMP110 probes', abbr: 'ENV', fw: ['1.2', '1.3', '1.4'], protocols: ['Modbus/TCP'], zone: 'Cleanroom HVAC & EMS', consequence: 3, consequenceText: 'Missed excursions in grade A/B rooms' },
+    { name: 'Print-and-verify camera', level: 'L0', kinds: ['packaging'], share: 5, vendor: 'Cognex', model: 'DataMan 470', abbr: 'CAM', fw: ['6.1', '6.3', '6.4'], protocols: ['EtherNet/IP'], zone: 'Serialisation & packaging', consequence: 2, consequenceText: 'Unreadable or duplicate serial codes reach the market' },
+    { name: 'Remote I/O', level: 'L0', kinds: ['api', 'biologics', 'aseptic', 'fillfinish'], share: 6, vendor: 'Siemens', model: 'ET 200SP', abbr: 'IO', fw: ['4.1', '4.2', '4.5'], protocols: ['PROFINET'], zone: 'Clean utilities (CIP/SIP)', consequence: 3, consequenceText: 'Valve and sensor signals' },
+  ],
+  sghospital: [
+    { name: 'HealthShare interface engine', level: 'L4', kinds: ['hospital', 'specialist', 'daysurg', 'labimg'], share: 0.25, vendor: 'InterSystems', model: 'HealthShare HealthConnect 2024.1', abbr: 'HSE', fw: ['2022.1', '2023.1', '2024.1'], protocols: ['HL7 v2', 'FHIR'], zone: 'Clinical IT (TrakCare)', consequence: 3, consequenceText: 'TrakCare orders and results stop reaching devices' },
+    { name: 'Biomed jump host', level: 'L3.5', kinds: ['hospital', 'specialist', 'daysurg', 'labimg'], share: 0.2, vendor: 'Microsoft', model: 'Windows Server 2022', abbr: 'JMP', fw: ['21H2', '22H2', '23H2'], protocols: ['RDP'], zone: 'Medical device DMZ', consequence: 4, consequenceText: 'Gateway into pump, monitor and imaging networks' },
+    { name: 'Passive collector', level: 'L3.5', kinds: ['hospital', 'specialist', 'daysurg', 'labimg'], share: 0.12, vendor: 'HexaShield', model: 'Edge 1.9', abbr: 'EDG', fw: ['1.8.7', '1.9.1', '1.9.2'], protocols: [], zone: 'Medical device DMZ', consequence: 1, consequenceText: 'Loss of visibility only (passive)' },
+    { name: 'Infusion pump server (Alaris)', level: 'L3', kinds: ['hospital', 'specialist', 'daysurg'], share: 0.06, vendor: 'BD', model: 'Alaris Systems Manager 12', abbr: 'ASM', fw: ['4.33', '12.1', '12.3'], protocols: ['Proprietary pump telemetry', 'HL7 v2'], zone: 'Infusion', consequence: 4, consequenceText: 'Drug library and pump programming for every ward' },
+    { name: 'Central monitoring station (PIC iX)', level: 'L3', kinds: ['hospital', 'specialist', 'daysurg'], share: 0.08, vendor: 'Philips', model: 'PIC iX 4.2', abbr: 'PIC', fw: ['C.03', '4.1', '4.2'], protocols: ['HL7 v2', 'IEEE 11073'], zone: 'Patient monitoring', consequence: 5, consequenceText: 'Central alarm watch for ICU, high dependency and recovery' },
+    { name: 'PACS server', level: 'L3', kinds: ['hospital', 'labimg'], share: 0.1, vendor: 'Philips', model: 'Vue PACS 12.2', abbr: 'PACS', fw: ['12.0', '12.1', '12.2'], protocols: ['DICOM', 'HL7 v2'], zone: 'Imaging', consequence: 3, consequenceText: 'Images unavailable to radiologists and A&E' },
+    { name: 'Laboratory information system', level: 'L3', kinds: ['labimg', 'hospital'], share: 0.06, vendor: 'Roche', model: 'cobas infinity laboratory solution', abbr: 'LIS', fw: ['3.02', '3.03', '3.04'], protocols: ['HL7 v2', 'ASTM'], zone: 'Laboratory', consequence: 4, consequenceText: 'Results delayed, or filed to the wrong patient' },
+    { name: 'Oncology information system (ARIA)', level: 'L3', kinds: ['specialist'], share: 0.15, vendor: 'Varian', model: 'ARIA OIS 16.1', abbr: 'ARIA', fw: ['15.6', '16.0', '16.1'], protocols: ['DICOM', 'HL7 v2'], zone: 'Radiation oncology', consequence: 5, consequenceText: 'Treatment plans and delivered-dose records' },
+    { name: 'Nurse call server', level: 'L3', kinds: ['hospital', 'specialist', 'daysurg'], share: 0.08, vendor: 'Ascom', model: 'Telligence / Unite 7', abbr: 'NCS', fw: ['6.6', '7.0', '7.2'], protocols: ['HL7 v2', 'SIP'], zone: 'Nurse call', consequence: 4, consequenceText: 'Patients cannot summon help' },
+    { name: 'MRI console (Windows 7)', level: 'L2', kinds: ['labimg', 'hospital'], share: 0.12, vendor: 'Siemens Healthineers', model: 'MAGNETOM syngo MR VE11 console', abbr: 'MRW', fw: ['VE11C', 'VE11E', 'XA60'], protocols: ['DICOM', 'SMB'], zone: 'Imaging', consequence: 3, consequenceText: 'Scans cancelled; legacy OS waits on the OEM software upgrade' },
+    { name: 'CT console', level: 'L2', kinds: ['hospital', 'labimg'], share: 0.18, vendor: 'GE HealthCare', model: 'Revolution CT console', abbr: 'CTW', fw: ['21MW', '22MW', '24MW'], protocols: ['DICOM'], zone: 'Imaging', consequence: 3, consequenceText: 'Stroke and trauma scans delayed' },
+    { name: 'BMS controller (theatres & isolation)', level: 'L2', kinds: ['hospital', 'specialist', 'daysurg', 'labimg'], share: 1, vendor: 'Honeywell', model: 'WEBs-N4 JACE 8000', abbr: 'BMS', fw: ['4.10', '4.12', '4.14'], protocols: ['BACnet/IP'], zone: 'Building & environment', consequence: 5, consequenceText: 'Theatre air changes and isolation-room pressure' },
+    { name: 'Pneumatic tube controller', level: 'L2', kinds: ['hospital', 'labimg'], share: 0.25, vendor: 'Swisslog', model: 'TransLogic Nexus', abbr: 'PTS', fw: ['7.1', '7.2.4', '7.2.5'], protocols: ['Modbus/TCP'], zone: 'Building & environment', consequence: 3, consequenceText: 'Specimens and drugs stop moving between wards and lab' },
+    { name: 'Nurse call console', level: 'L2', kinds: ['hospital', 'specialist', 'daysurg'], share: 1.6, vendor: 'Ascom', model: 'Telligence station', abbr: 'NCC', fw: ['6.6', '7.0', '7.2'], protocols: ['SIP'], zone: 'Nurse call', consequence: 3, consequenceText: 'Calls and alarms missing at the nurses’ station' },
+    { name: 'Infusion pump (BD Alaris)', level: 'L1', kinds: ['hospital', 'specialist', 'daysurg'], share: 18, vendor: 'BD', model: 'Alaris 8015 PC unit', abbr: 'INF', fw: ['9.19', '12.1.2', '12.3.1'], protocols: ['Proprietary pump telemetry'], zone: 'Infusion', consequence: 5, consequenceText: 'Drug delivery to the patient' },
+    { name: 'Infusion pump (Fresenius Kabi Agilia)', level: 'L1', kinds: ['hospital', 'specialist'], share: 9, vendor: 'Fresenius Kabi', model: 'Agilia VP MC (Vigilant)', abbr: 'AGI', fw: ['3.2', '3.4', '3.6'], protocols: ['Proprietary pump telemetry'], zone: 'Infusion', consequence: 5, consequenceText: 'Drug delivery in oncology and paediatrics' },
+    { name: 'Patient monitor (IntelliVue)', level: 'L1', kinds: ['hospital', 'specialist', 'daysurg'], share: 12, vendor: 'Philips', model: 'IntelliVue MX750', abbr: 'MON', fw: ['M.00', 'N.01', 'P.01'], protocols: ['IEEE 11073', 'HL7 v2'], zone: 'Patient monitoring', consequence: 5, consequenceText: 'Vital-sign alarms at the bedside' },
+    { name: 'Ventilator', level: 'L1', kinds: ['hospital'], share: 1.4, vendor: 'Dräger', model: 'Evita V800', abbr: 'VEN', fw: ['2.4', '2.5', '2.6'], protocols: ['HL7 v2'], zone: 'Critical care', consequence: 5, consequenceText: 'Life support in ICU' },
+    { name: 'Anaesthesia workstation', level: 'L1', kinds: ['hospital', 'daysurg'], share: 0.8, vendor: 'Dräger', model: 'Perseus A500', abbr: 'ANE', fw: ['2.2', '2.4', '2.5'], protocols: ['HL7 v2'], zone: 'Surgical', consequence: 5, consequenceText: 'Anaesthetic delivery in theatre' },
+    { name: 'CT scanner (GE Revolution)', level: 'L1', kinds: ['hospital', 'labimg'], share: 0.2, vendor: 'GE HealthCare', model: 'Revolution Apex', abbr: 'CT', fw: ['21MW', '22MW', '24MW'], protocols: ['DICOM'], zone: 'Imaging', consequence: 4, consequenceText: 'A&E stroke and trauma imaging' },
+    { name: 'MRI scanner (Siemens MAGNETOM)', level: 'L1', kinds: ['hospital', 'labimg'], share: 0.12, vendor: 'Siemens Healthineers', model: 'MAGNETOM Skyra', abbr: 'MRI', fw: ['VE11C', 'VE11E', 'XA60'], protocols: ['DICOM'], zone: 'Imaging', consequence: 4, consequenceText: 'Imaging capacity loss' },
+    { name: 'Linear accelerator (Varian TrueBeam)', level: 'L1', kinds: ['specialist'], share: 0.4, vendor: 'Varian', model: 'TrueBeam 4.1', abbr: 'LIN', fw: ['2.7', '3.0', '4.1'], protocols: ['DICOM'], zone: 'Radiation oncology', consequence: 5, consequenceText: 'Radiation dose delivery' },
+    { name: 'Lab analyser (Roche cobas)', level: 'L1', kinds: ['labimg', 'hospital'], share: 1, vendor: 'Roche', model: 'cobas pro integrated solutions', abbr: 'LAB', fw: ['01-04', '01-06', '02-01'], protocols: ['HL7 v2', 'ASTM'], zone: 'Laboratory', consequence: 3, consequenceText: 'Results delayed or wrong' },
+    { name: 'Medical gas alarm panel', level: 'L1', kinds: ['hospital', 'specialist', 'daysurg'], share: 0.2, vendor: 'Amico', model: 'Alert-3 master alarm', abbr: 'GAS', fw: ['3.1', '3.4', '3.5'], protocols: ['Modbus/TCP', 'BACnet/IP'], zone: 'Building & environment', consequence: 5, consequenceText: 'Oxygen, medical air and vacuum supply alarms' },
+    { name: 'Patient telemetry transmitter', level: 'L0', kinds: ['hospital'], share: 7, vendor: 'Philips', model: 'IntelliVue MX40', abbr: 'TEL', fw: ['B.05', 'B.06', 'C.01'], protocols: ['Proprietary (WMTS)'], zone: 'Patient monitoring', consequence: 4, consequenceText: 'Ambulatory cardiac monitoring on the wards' },
+    { name: 'Cold-chain sensor', level: 'L0', kinds: ['hospital', 'labimg'], share: 2.4, vendor: 'Vaisala', model: 'RFL100 data logger', abbr: 'TMP', fw: ['1.2', '1.3', '1.4'], protocols: ['MQTT'], zone: 'Laboratory', consequence: 2, consequenceText: 'Blood bank, reagent and vaccine temperatures' },
+  ],
+  studio: [
+    { name: 'StarPass ticketing gateway', level: 'L4', kinds: ['park', 'waterpark', 'resort'], share: 0.2, vendor: 'accesso', model: 'Passport gateway (PARKS-TKT-GW)', abbr: 'TKT', fw: ['2024.2', '2025.1', '2025.3'], protocols: ['HTTPS'], zone: 'Park operations (ticketing)', consequence: 3, consequenceText: 'Gate entry and ride reservations stop' },
+    { name: 'Ride & show DMZ jump host', level: 'L3.5', kinds: ['park', 'waterpark', 'resort', 'liveevents'], share: 0.2, vendor: 'Microsoft', model: 'Windows Server 2022', abbr: 'JMP', fw: ['21H2', '22H2', '23H2'], protocols: ['RDP'], zone: 'Ride & show DMZ', consequence: 4, consequenceText: 'Brokered path into ride and show networks' },
+    { name: 'Passive sensor / collector', level: 'L3.5', kinds: ['park', 'waterpark', 'resort', 'liveevents'], share: 0.15, vendor: 'HexaShield', model: 'Edge 1.9', abbr: 'EDG', fw: ['1.8.7', '1.9.1', '1.9.2'], protocols: [], zone: 'Ride & show DMZ', consequence: 1, consequenceText: 'Loss of visibility only (passive)' },
+    { name: 'Ride control engineering workstation', level: 'L3', kinds: ['park', 'waterpark'], share: 0.5, vendor: 'Siemens', model: 'TIA Portal V18 + Safety Advanced', abbr: 'EWS', fw: ['V16', 'V17', 'V18'], protocols: ['S7comm', 'PROFINET / PROFIsafe'], zone: 'Ride control', consequence: 5, consequenceText: 'Can download logic to safety-rated ride controllers' },
+    { name: 'Ride monitoring server', level: 'L3', kinds: ['park'], share: 0.3, vendor: 'Siemens', model: 'WinCC Unified V18', abbr: 'RMS', fw: ['V17', 'V18', 'V19'], protocols: ['OPC UA', 'S7comm'], zone: 'Ride control', consequence: 4, consequenceText: 'Ride availability, fault history and dispatch logs' },
+    { name: 'Show control server', level: 'L3', kinds: ['park', 'liveevents'], share: 0.5, vendor: 'Medialon', model: 'Showmaster Pro', abbr: 'SHW', fw: ['7.6', '7.8', '8.0'], protocols: ['Art-Net / sACN', 'Modbus/TCP'], zone: 'Show control & media', consequence: 4, consequenceText: 'Cue timing for effects close to guests' },
+    { name: 'Media server (projection & LED)', level: 'L3', kinds: ['park', 'liveevents'], share: 1, vendor: 'disguise', model: 'vx 4+', abbr: 'MED', fw: ['r25', 'r26', 'r27'], protocols: ['Art-Net / sACN', 'SMPTE ST 2110'], zone: 'Show control & media', consequence: 3, consequenceText: 'Projection mapping and LED content on attractions' },
+    { name: 'BMS server', level: 'L3', kinds: ['resort', 'park'], share: 0.3, vendor: 'Johnson Controls', model: 'Metasys ADX 13', abbr: 'BMSV', fw: ['11.0', '12.0', '13.0'], protocols: ['BACnet/IP'], zone: 'Building & life safety', consequence: 3, consequenceText: 'Central plant, queue cooling and hotel HVAC' },
+    { name: 'Ride control HMI', level: 'L2', kinds: ['park', 'waterpark'], share: 2.2, vendor: 'Siemens', model: 'SIMATIC Unified Comfort 15"', abbr: 'HMI', fw: ['17.0', '18.0', '19.0'], protocols: ['S7comm', 'PROFINET / PROFIsafe'], zone: 'Ride control', consequence: 4, consequenceText: 'Operator dispatch and e-stop status' },
+    { name: 'Animatronic figure controller', level: 'L2', kinds: ['park'], share: 1.6, vendor: 'Beckhoff', model: 'CX2040 (TwinCAT 3)', abbr: 'ANI', fw: ['3.1.4022', '3.1.4024', '3.1.4026'], protocols: ['EtherCAT', 'Modbus/TCP'], zone: 'Show control & media', consequence: 4, consequenceText: 'Figure motion inside reach envelopes near guests' },
+    { name: 'Park BMS controller', level: 'L2', kinds: ['resort', 'park', 'waterpark'], share: 3, vendor: 'Johnson Controls', model: 'Metasys SNC', abbr: 'BMS', fw: ['11.0', '12.0', '13.0'], protocols: ['BACnet/IP'], zone: 'Building & life safety', consequence: 3, consequenceText: 'Queue-line cooling, hotel plant and lighting' },
+    { name: 'Turnstile & StarPass gate controller', level: 'L2', kinds: ['park', 'waterpark', 'resort'], share: 2.4, vendor: 'Axess', model: 'Smart Gate NG', abbr: 'GATE', fw: ['5.2', '5.4', '5.6'], protocols: ['HTTP', 'Modbus/TCP'], zone: 'Guest entry', consequence: 2, consequenceText: 'Entry throughput and wearable validation' },
+    { name: 'ST 2110 live events router', level: 'L2', kinds: ['liveevents'], share: 0.6, vendor: 'Evertz', model: 'EXE-VSR IP router', abbr: 'RTR', fw: ['1.8', '2.0', '2.2'], protocols: ['SMPTE ST 2110', 'PTP (IEEE 1588)'], zone: 'Live events', consequence: 4, consequenceText: 'Every video and audio path for the night-time show' },
+    { name: 'Ride control PLC (safety-rated)', level: 'L1', kinds: ['park', 'waterpark'], share: 3.4, vendor: 'Intamin', model: 'Ride control cabinet (Siemens S7-1518F)', abbr: 'RCP', fw: ['2.8', '2.9', '3.0', '3.1'], protocols: ['PROFINET / PROFIsafe', 'S7comm'], zone: 'Ride control', consequence: 5, consequenceText: 'Vehicle dispatch, block zones and restraints with guests on board' },
+    { name: 'Water ride pump VFD', level: 'L1', kinds: ['waterpark', 'park'], share: 2, vendor: 'ABB', model: 'ACS880 drive', abbr: 'VFD', fw: ['3.2', '3.4', '3.5'], protocols: ['Modbus/TCP', 'EtherNet/IP'], zone: 'Water rides', consequence: 4, consequenceText: 'Flow on flumes and rapids rides' },
+    { name: 'Fire alarm panel', level: 'L1', kinds: ['resort', 'park', 'waterpark', 'liveevents'], share: 1, vendor: 'Honeywell', model: 'Notifier NFS2-3030', abbr: 'FIRE', fw: ['20.0', '21.0', '22.1'], protocols: ['BACnet/IP'], zone: 'Building & life safety', consequence: 5, consequenceText: 'Evacuation of hotels, queues and show buildings' },
+    { name: 'Pyrotechnic firing system', level: 'L1', kinds: ['liveevents'], share: 0.4, vendor: 'FireOne', model: 'XL7 firing system', abbr: 'PYR', fw: ['7.2', '7.4', '7.5'], protocols: ['Proprietary firing protocol'], zone: 'Live events', consequence: 5, consequenceText: 'Pyrotechnic cues near crowds and performers' },
+    { name: 'Lighting & effects DMX gateway', level: 'L1', kinds: ['liveevents', 'park'], share: 1.6, vendor: 'ETC', model: 'Response Mk2 gateway', abbr: 'DMX', fw: ['3.1', '3.3', '3.4'], protocols: ['Art-Net / sACN'], zone: 'Show control & media', consequence: 3, consequenceText: 'Lighting, haze and water-effect cues' },
+    { name: 'Ride sensors & safety I/O', level: 'L0', kinds: ['park', 'waterpark'], share: 22, vendor: 'Siemens', model: 'ET 200SP F', abbr: 'IO', fw: ['4.1', '4.2', '4.5'], protocols: ['PROFINET / PROFIsafe'], zone: 'Ride control', consequence: 4, consequenceText: 'Proximity, restraint and block sensors' },
+    { name: 'Projection & LED fixtures', level: 'L0', kinds: ['park', 'liveevents'], share: 8, vendor: 'Christie Digital', model: 'Griffyn 4K35-RGB', abbr: 'FIX', fw: ['1.4', '1.6', '2.0'], protocols: ['Art-Net / sACN'], zone: 'Show control & media', consequence: 2, consequenceText: 'Show image on screens and facades' },
+    { name: 'Hotel room & IoT controls', level: 'L0', kinds: ['resort'], share: 14, vendor: 'Honeywell', model: 'INNCOM e7 room controller', abbr: 'IOT', fw: ['3.6', '3.8', '4.0'], protocols: ['BACnet/IP'], zone: 'Building & life safety', consequence: 1, consequenceText: 'Room comfort and occupancy' },
+  ],
 };
 
 export function assetTypes(c: CustomerProfile): AssetType[] {
-  return TYPES[c.id];
+  return forCustomer(TYPES, c);
 }
 
 /* ------------------------------------------------------------------ */
@@ -256,8 +420,8 @@ export interface OtScope {
 export function otScope(c: CustomerProfile, tenantId: string): OtScope {
   const h = headlines(c, tenantId).ot;
   const hasOt = h.otAssets > 0;
-  let sites = SITES[c.id].filter((s) => tenantId === 'all' || s.tenantId === tenantId);
-  if (!sites.length && hasOt) sites = SITES[c.id];
+  let sites = forCustomer(SITES, c).filter((s) => tenantId === 'all' || s.tenantId === tenantId);
+  if (!sites.length && hasOt) sites = forCustomer(SITES, c);
   const counts = distribute(h.otAssets, sites.map((s) => s.weight));
   const siteAssets: Record<string, number> = {};
   sites.forEach((s, i) => (siteAssets[s.id] = counts[i]));
@@ -289,7 +453,7 @@ const VESSEL_NAMES = ['Aurora', 'Borealis', 'Meridian', 'Zephyr', 'Solstice', 'T
 const REGIONS = ['North Sea', 'English Channel', 'Bay of Biscay', 'Western Mediterranean', 'Suez Canal transit', 'Red Sea', 'Arabian Sea', 'Strait of Malacca', 'South China Sea', 'South Atlantic', 'Santos anchorage', 'Rotterdam berth', 'Port Klang berth', 'Indian Ocean', 'Gulf of Aden'];
 
 export function vessels(c: CustomerProfile, fleetAssets: number): Vessel[] {
-  if (c.id !== 'maritime') return [];
+  if (c.dataKey !== 'maritime') return [];
   const r = rng(`ot-vessels-${c.id}`);
   const counts = distribute(fleetAssets, VESSEL_NAMES.map(() => r.float(0.7, 1.3, 2)));
   const outIdx = new Set([5, 12, 18]);
@@ -353,6 +517,9 @@ const ALL_CVES: CveRef[] = [
   { id: 'CVE-2020-16222', product: 'Philips Patient Information Center iX / IntelliVue', title: 'Improper authentication', cvss: 8.7, kev: false, epss: 0.01 },
   { id: 'CVE-2021-37163', product: 'Swisslog TransLogic Nexus panel', title: '"PwnedPiper" hard-coded credentials', cvss: 9.8, kev: false, epss: 0.02 },
   { id: 'CVE-2020-15782', product: 'Siemens SIMATIC S7-1200 / S7-1500', title: 'Memory protection bypass (code execution)', cvss: 8.1, kev: false, epss: 0.03 },
+  // Legacy Windows on imaging consoles and shop-floor stations.
+  { id: 'CVE-2019-0708', product: 'Windows 7 / Server 2008 R2 Remote Desktop', title: '"BlueKeep" pre-authentication RDP RCE', cvss: 9.8, kev: true, epss: 0.94 },
+  { id: 'CVE-2017-0144', product: 'Windows SMBv1 server', title: '"EternalBlue" SMBv1 remote code execution', cvss: 8.1, kev: true, epss: 0.94 },
   ...CVES.filter((v) => ['CVE-2021-44228', 'CVE-2024-6387', 'CVE-2024-38063', 'CVE-2023-48795', 'CVE-2024-21762'].includes(v.id)),
 ];
 export const OT_CVE_BY_ID: Record<string, CveRef> = Object.fromEntries(ALL_CVES.map((v) => [v.id, v]));
@@ -360,7 +527,7 @@ export const OT_CVE_BY_ID: Record<string, CveRef> = Object.fromEntries(ALL_CVES.
 export type PatchState = 'Vendor patch available' | 'Patch needs outage window' | 'No vendor fix' | 'Unpatchable by design (safety case)';
 interface VulnMap { cve: string; type: string; reach: 0 | 1 | 2 | 3; patch: PatchState; path: string; controls: string[] }
 
-const VULN_MAP: Record<CustomerId, VulnMap[]> = {
+const VULN_MAP: CustomerMap<VulnMap[]> = {
   maritime: [
     { cve: 'CVE-2022-38465', type: 'STS crane PLC (Siemens S7-1500)', reach: 3, patch: 'Unpatchable by design (safety case)', path: 'Konecranes remote session → HPS-JUMP-OT01 → crane HMI VLAN → PLC', controls: ['Access protection level 3 set', 'PAM-brokered vendor sessions', 'PLC change monitoring (HexaOT)'] },
     { cve: 'CVE-2022-38465', type: 'Engineering workstation', reach: 2, patch: 'Vendor patch available', path: 'Enterprise IT → OT DMZ → EWS (RDP)', controls: ['EDR on EWS', 'Application allow-listing'] },
@@ -436,6 +603,82 @@ const VULN_MAP: Record<CustomerId, VulnMap[]> = {
     { cve: 'CVE-2020-11896', type: 'Formation rack controller', reach: 0, patch: 'No vendor fix', path: 'Air-gapped plant; no routed path', controls: ['Air gap', 'Signed media kiosk'] },
     { cve: 'CVE-2023-48795', type: 'Dry-room HVAC controller', reach: 0, patch: 'Vendor patch available', path: 'Air-gapped plant; BMS network', controls: ['Air gap'] },
   ],
+  insurance: [
+    { cve: 'CVE-2020-11896', type: 'UPS (Vertiv Liebert EXL S1)', reach: 2, patch: 'Patch needs outage window', path: 'Corporate IT → facilities DMZ → UPS network cards (SNMP/HTTPS)', controls: ['Card firmware pinned', 'Management VLAN ACLs'] },
+    { cve: 'CVE-2021-22779', type: 'BMS controller (EcoStruxure)', reach: 2, patch: 'Vendor patch available', path: 'Corporate IT → BMS server → AS-P controllers (Windsor DC1)', controls: ['Facilities jump host with Okta MFA'] },
+    { cve: 'CVE-2024-6387', type: 'BMS server (EcoStruxure)', reach: 2, patch: 'Vendor patch available', path: 'Corporate IT → facilities DMZ → BMS server (SSH)', controls: ['SSH limited to the jump host'] },
+    { cve: 'CVE-2019-12256', type: 'CRAC unit (Liebert DSE)', reach: 3, patch: 'No vendor fix', path: 'Vertiv remote-diagnostics modem → CRAC controller (hall B)', controls: ['Modem powered only during booked visits (partial)'] },
+    { cve: 'CVE-2023-6448', type: 'Generator controller (Cummins)', reach: 1, patch: 'Vendor patch available', path: 'BMS network → generator Modbus gateway', controls: ['Factory PIN changed at Windsor; Phoenix pending'] },
+    { cve: 'CVE-2019-12256', type: 'Fire suppression panel (Novec 1230)', reach: 0, patch: 'Unpatchable by design (safety case)', path: 'Isolated fire network; supervised by the alarm receiving centre', controls: ['Physically isolated loop', 'Monthly panel inspection'] },
+    { cve: 'CVE-2024-38063', type: 'Print workflow server', reach: 3, patch: 'Vendor patch available', path: 'Claims file servers → print workflow server (SMB job drop, IPv6 enabled)', controls: ['None verified'] },
+    { cve: 'CVE-2017-0144', type: 'Mail-piece integrity server', reach: 2, patch: 'Patch needs outage window', path: 'Corporate IT → mail floor network (SMBv1 kept for inserter file exchange)', controls: ['SMBv1 limited to two inserter hosts'] },
+    { cve: 'CVE-2020-11896', type: 'Inserter controller (Pitney Bowes)', reach: 1, patch: 'No vendor fix', path: 'Mail floor network → inserter controllers', controls: ['Inserter VLAN ACLs'] },
+    { cve: 'CVE-2021-44228', type: 'Access control server (LenelS2)', reach: 2, patch: 'Vendor patch available', path: 'Workday HR feed → access control integration service', controls: ['JNDI lookups disabled by config'] },
+    { cve: 'CVE-2023-48795', type: 'Physical access controller', reach: 1, patch: 'Vendor patch available', path: 'Access control server → controllers', controls: ['Controller VLAN'] },
+    { cve: 'CVE-2020-11896', type: 'Intelligent PDU', reach: 1, patch: 'No vendor fix', path: 'DCIM → PDU management network', controls: ['Outlet switching disabled on mainframe racks'] },
+  ],
+  defence: [
+    { cve: 'CVE-2017-0144', type: 'DNC programme server', reach: 2, patch: 'Patch needs outage window', path: 'Engineering network → shop-floor DMZ → B3-DNC-SRV01 (SMBv1 kept for older controls)', controls: ['SMBv1 limited to the DNC VLAN', 'File-integrity monitoring on released programmes'] },
+    { cve: 'CVE-2019-0708', type: 'CMM inspection workstation', reach: 1, patch: 'Patch needs outage window', path: 'DNC & inspection VLAN (Windows 7 on two CMM stations)', controls: ['RDP blocked at the cell firewall', 'Application allow-listing'] },
+    { cve: 'CVE-2023-3595', type: 'Heat-treat furnace controller', reach: 2, patch: 'Patch needs outage window', path: 'Engineering network → shop-floor DMZ → heat-treat cell (EtherNet/IP)', controls: ['Key switch in RUN', 'PLC change monitoring (HexaOT)'] },
+    { cve: 'CVE-2022-1161', type: 'Heat-treat furnace controller', reach: 1, patch: 'No vendor fix', path: 'Heat-treat cell network only', controls: ['Logic change detection', 'Signed project archive in Teamcenter'] },
+    { cve: 'CVE-2021-22681', type: 'Engineering workstation', reach: 2, patch: 'Vendor patch available', path: 'Engineering network → shop-floor DMZ → EWS', controls: ['Studio 5000 project encryption', 'Delinea-vaulted credentials'] },
+    { cve: 'CVE-2024-6387', type: 'Process historian (AVEVA)', reach: 2, patch: 'Vendor patch available', path: 'GCC High historian replica → shop-floor DMZ (SSH)', controls: ['SSH limited to SPD-JUMP-OT01'] },
+    { cve: 'CVE-2024-38063', type: 'OT jump host', reach: 2, patch: 'Vendor patch available', path: 'Engineering network → shop-floor DMZ (IPv6 enabled)', controls: ['IPv6 disabled on 1 of 2 hosts'] },
+    { cve: 'CVE-2019-12256', type: 'CNC mill (Haas VF-4SS)', reach: 3, patch: 'No vendor fix', path: 'Machine-tool vendor cellular hotspot → CNC control (service visits)', controls: ['Hotspots banned by policy (not enforced)'] },
+    { cve: 'CVE-2020-11896', type: 'Environmental chamber (Thermotron)', reach: 1, patch: 'No vendor fix', path: 'Test range network → chamber controller', controls: ['Chamber VLAN ACLs'] },
+    { cve: 'CVE-2024-38063', type: 'Avionics ATE bench (NI PXI)', reach: 2, patch: 'Patch needs outage window', path: 'Tucson office network → ATE benches (IPv6, shared results folder)', controls: ['Benches re-validated after every patch cycle'] },
+    { cve: 'CVE-2019-12256', type: 'Vibration shaker controller', reach: 0, patch: 'Unpatchable by design (safety case)', path: 'Standalone shaker network; no routed path', controls: ['No routed path', 'OEM service only on site'] },
+    { cve: 'CVE-2023-48795', type: 'Building management controller', reach: 1, patch: 'Vendor patch available', path: 'Facilities network → BMS controllers', controls: ['Facilities VLAN'] },
+  ],
+  pharma: [
+    { cve: 'CVE-2022-29965', type: 'DCS engineering station (DeltaV)', reach: 2, patch: 'Patch needs outage window', path: 'Enterprise IT → plant DMZ → VLS-DELTAV-PROPLUS', controls: ['Emerson Guardian patch baseline', 'DeltaV smart firewall'] },
+    { cve: 'CVE-2022-29965', type: 'DCS operator station (DeltaV)', reach: 1, patch: 'Unpatchable by design (safety case)', path: 'DeltaV control network only', controls: ['Validated state (GAMP 5)', 'GxP change control in ServiceNow'] },
+    { cve: 'CVE-2022-38465', type: 'Reactor & dryer controller (PCS 7 AS)', reach: 1, patch: 'Patch needs outage window', path: 'PCS 7 plant bus from the engineering station', controls: ['Access protection level 3', 'PLC change monitoring (HexaOT)'] },
+    { cve: 'CVE-2022-38465', type: 'DCS engineering station (PCS 7)', reach: 2, patch: 'Vendor patch available', path: 'Enterprise IT → plant DMZ → PCS 7 ES (RDP)', controls: ['CrowdStrike Falcon on ES', 'Application allow-listing'] },
+    { cve: 'CVE-2020-15782', type: 'Lyophiliser PLC', reach: 1, patch: 'Unpatchable by design (safety case)', path: 'Lyophiliser cell network only', controls: ['Access protection level 3', 'Revalidation required for any firmware change'] },
+    { cve: 'CVE-2022-38465', type: 'Aseptic filling isolator PLC', reach: 0, patch: 'Unpatchable by design (safety case)', path: 'Air-gapped AF-2 line; no routed path', controls: ['Air gap with data diode', 'Signed media kiosk'] },
+    { cve: 'CVE-2023-3595', type: 'CIP/SIP skid PLC', reach: 2, patch: 'Patch needs outage window', path: 'Skid OEM remote access → plant DMZ → utilities network', controls: ['BeyondTrust brokered OEM sessions'] },
+    { cve: 'CVE-2021-22681', type: 'CIP/SIP skid PLC', reach: 2, patch: 'Vendor patch available', path: 'Engineering laptops → utilities network', controls: ['Studio 5000 project encryption'] },
+    { cve: 'CVE-2024-6387', type: 'Process historian (AVEVA PI)', reach: 2, patch: 'Vendor patch available', path: 'Enterprise IT → plant DMZ → PI-to-PI replica', controls: ['SSH limited to jump host'] },
+    { cve: 'CVE-2024-38063', type: 'MES server (Werum PAS-X)', reach: 2, patch: 'Patch needs outage window', path: 'Enterprise IT (SAP) → plant DMZ → PAS-X application server', controls: ['IPv6 disabled at Valais; Cork pending', 'Validated patch cycle each quarter'] },
+    { cve: 'CVE-2017-0144', type: 'MES terminal (PAS-X)', reach: 1, patch: 'Vendor patch available', path: 'MES terminal network (SMBv1 still enabled on older images)', controls: ['Terminal VLAN ACLs'] },
+    { cve: 'CVE-2021-44228', type: 'Serialisation site server (L3)', reach: 2, patch: 'Vendor patch available', path: 'SAP serial number pool → L3 site server integration', controls: ['JNDI lookups disabled by config'] },
+    { cve: 'CVE-2019-12256', type: 'Bioreactor controller (2,000 L single-use)', reach: 1, patch: 'No vendor fix', path: 'DeltaV control network → bioreactor package controller', controls: ['DeltaV network isolation'] },
+    { cve: 'CVE-2020-11896', type: 'Chromatography skid', reach: 1, patch: 'No vendor fix', path: 'Downstream network → skid management port', controls: ['Skid VLAN ACLs'] },
+    { cve: 'CVE-2023-48795', type: 'Cleanroom HVAC / BMS controller', reach: 1, patch: 'Vendor patch available', path: 'Facilities network → Desigo controllers', controls: ['BMS jump host'] },
+  ],
+  sghospital: [
+    { cve: 'CVE-2019-10959', type: 'Infusion pump server (Alaris)', reach: 2, patch: 'Vendor patch available', path: 'Clinical IT → medical device DMZ → OBH-ALARIS-SRV', controls: ['Biomed jump host with CyberArk', 'Gateway firmware current on most units'] },
+    { cve: 'CVE-2020-25165', type: 'Infusion pump (BD Alaris)', reach: 1, patch: 'Patch needs outage window', path: 'Infusion SSID → pump network stack', controls: ['Pump SSID isolated (WPA2-Enterprise)', 'Cisco ISE MAC profiling'] },
+    { cve: 'CVE-2020-16222', type: 'Central monitoring station (PIC iX)', reach: 2, patch: 'Vendor patch available', path: 'Clinical network → PIC iX (HL7 export to TrakCare)', controls: ['HL7 listener allow-list'] },
+    { cve: 'CVE-2020-16222', type: 'Patient monitor (IntelliVue)', reach: 1, patch: 'Unpatchable by design (safety case)', path: 'Monitoring VLAN only', controls: ['Monitoring VLAN isolation', 'HSA-registered configuration'] },
+    { cve: 'CVE-2019-0708', type: 'MRI console (Windows 7)', reach: 2, patch: 'Patch needs outage window', path: 'Imaging VLAN → MRI console (RDP used by OEM service)', controls: ['RDP blocked at imaging firewall', 'OEM upgrade to XA60 booked'] },
+    { cve: 'CVE-2017-0144', type: 'MRI console (Windows 7)', reach: 1, patch: 'No vendor fix', path: 'Imaging VLAN (SMBv1 needed for film export)', controls: ['Forescout eyeControl quarantine policy'] },
+    { cve: 'CVE-2024-38063', type: 'CT console', reach: 1, patch: 'Patch needs outage window', path: 'Imaging VLAN (IPv6 enabled by OEM image)', controls: ['IPv6 filtered at imaging firewall'] },
+    { cve: 'CVE-2024-6387', type: 'PACS server', reach: 2, patch: 'Vendor patch available', path: 'Clinical IT → PACS (SSH)', controls: ['SSH limited to biomed jump host'] },
+    { cve: 'CVE-2021-37163', type: 'Pneumatic tube controller', reach: 2, patch: 'Vendor patch available', path: 'Facilities network → tube system head-end → stations', controls: ['Facilities VLAN ACLs'] },
+    { cve: 'CVE-2021-44228', type: 'Nurse call server', reach: 2, patch: 'Vendor patch available', path: 'Clinical IT → nurse call integration service', controls: ['JNDI lookups disabled by config'] },
+    { cve: 'CVE-2020-11896', type: 'Lab analyser (Roche cobas)', reach: 1, patch: 'No vendor fix', path: 'Lab network → analyser service port', controls: ['Lab VLAN ACLs'] },
+    { cve: 'CVE-2024-38063', type: 'Oncology information system (ARIA)', reach: 2, patch: 'Vendor patch available', path: 'Clinical IT → oncology application servers', controls: ['Patched at Tanglin primary; DR node pending'] },
+    { cve: 'CVE-2019-12256', type: 'Linear accelerator (Varian TrueBeam)', reach: 0, patch: 'Unpatchable by design (safety case)', path: 'Treatment-room network only; OEM service via SmartConnect broker', controls: ['No routed path from clinical IT', 'OEM service recorded'] },
+    { cve: 'CVE-2023-48795', type: 'BMS controller (theatres & isolation)', reach: 1, patch: 'Vendor patch available', path: 'Facilities network → BMS head-end → JACE controllers', controls: ['BMS jump host'] },
+  ],
+  studio: [
+    { cve: 'CVE-2022-38465', type: 'Ride control PLC (safety-rated)', reach: 1, patch: 'Unpatchable by design (safety case)', path: 'Ride control network only; ride OEM service via jump host', controls: ['Access protection level 3', 'Ride safety re-certification required for change', 'PLC change monitoring (HexaOT)'] },
+    { cve: 'CVE-2020-15782', type: 'Ride control PLC (safety-rated)', reach: 1, patch: 'Patch needs outage window', path: 'Ride control network from the engineering workstation', controls: ['Key switch in RUN during park hours'] },
+    { cve: 'CVE-2022-38465', type: 'Ride control engineering workstation', reach: 2, patch: 'Vendor patch available', path: 'Corporate IT → ride & show DMZ → EWS (RDP)', controls: ['CrowdStrike Falcon on EWS', 'Application allow-listing'] },
+    { cve: 'CVE-2024-38063', type: 'Media server (projection & LED)', reach: 2, patch: 'Patch needs outage window', path: 'Corporate IT → show control VLAN (IPv6 enabled on media servers)', controls: ['Show VLAN ACLs'] },
+    { cve: 'CVE-2021-44228', type: 'StarPass ticketing gateway', reach: 3, patch: 'Vendor patch available', path: 'Internet (tickets.starfallresorts.com) → ticketing integration', controls: ['Cloudflare WAF virtual patch'] },
+    { cve: 'CVE-2024-6387', type: 'Show control server', reach: 2, patch: 'Vendor patch available', path: 'Corporate IT → ride & show DMZ → show control (SSH)', controls: ['SSH limited to SFE-JUMP-PARKS'] },
+    { cve: 'CVE-2019-12256', type: 'Animatronic figure controller', reach: 1, patch: 'No vendor fix', path: 'Show control network → figure controllers', controls: ['Figure network isolated per attraction'] },
+    { cve: 'CVE-2020-11896', type: 'Water ride pump VFD', reach: 1, patch: 'No vendor fix', path: 'Pump-house network → drive management', controls: ['Pump-house VLAN ACLs'] },
+    { cve: 'CVE-2020-11896', type: 'Turnstile & StarPass gate controller', reach: 2, patch: 'Patch needs outage window', path: 'Corporate IT → guest entry network', controls: ['Gate VLAN per entrance'] },
+    { cve: 'CVE-2024-6387', type: 'BMS server', reach: 2, patch: 'Vendor patch available', path: 'Corporate IT → BMS server (SSH)', controls: ['SSH limited to jump host'] },
+    { cve: 'CVE-2023-48795', type: 'ST 2110 live events router', reach: 1, patch: 'Vendor patch available', path: 'Live events management VLAN', controls: ['TACACS+ with MFA'] },
+    { cve: 'CVE-2019-12256', type: 'Fire alarm panel', reach: 0, patch: 'Unpatchable by design (safety case)', path: 'Isolated fire network; monitored by the resort fire command centre', controls: ['Physically isolated loop'] },
+    { cve: 'CVE-2023-48795', type: 'Pyrotechnic firing system', reach: 0, patch: 'Unpatchable by design (safety case)', path: 'Isolated firing network; armed only by key at the show', controls: ['Physical arming key', 'Two-person firing rule'] },
+  ],
 };
 
 function ip(r: ReturnType<typeof rng>, level: PurdueLevel, siteIdx: number): string {
@@ -462,10 +705,10 @@ function buildAssets(c: CustomerProfile, tenantId: string): OtAsset[] {
   const sc = otScope(c, tenantId);
   if (!sc.hasOt) return [];
   const r = rng(`ot-assets-${c.id}-${tenantId}`);
-  const types = TYPES[c.id];
+  const types = forCustomer(TYPES, c);
   const vulnByType = new Map<string, string[]>();
-  for (const v of VULN_MAP[c.id]) vulnByType.set(v.type, [...(vulnByType.get(v.type) ?? []), v.cve]);
-  const vs = c.id === 'maritime' ? vessels(c, sc.siteAssets.fleet ?? 0) : [];
+  for (const v of forCustomer(VULN_MAP, c)) vulnByType.set(v.type, [...(vulnByType.get(v.type) ?? []), v.cve]);
+  const vs = c.dataKey === 'maritime' ? vessels(c, sc.siteAssets.fleet ?? 0) : [];
   const out: OtAsset[] = [];
   sc.sites.forEach((site, si) => {
     const ts = types.filter((t) => t.kinds.includes(site.kind));
@@ -481,7 +724,7 @@ function buildAssets(c: CustomerProfile, tenantId: string): OtAsset[] {
           const it = c.connectors.find((k) => k.category === 'Vulnerability' || k.category === 'EDR / XDR');
           if (it) sources.push(`${it.vendor} ${it.product}`);
         }
-        if (c.id === 'maritime' && site.kind === 'terminal' && (t.zone === 'Gate & access' || t.zone === 'Crane control') && (site.id === 'rtm' || site.id === 'ant') && r.chance(0.6)) sources.push('Navis N4 (equipment register)');
+        if (c.dataKey === 'maritime' && site.kind === 'terminal' && (t.zone === 'Gate & access' || t.zone === 'Crane control') && (site.id === 'rtm' || site.id === 'ant') && r.chance(0.6)) sources.push('Navis N4 (equipment register)');
         const risk = Math.min(99, Math.round(t.consequence * 9 + behind * 9 + cves.length * 7 + r.int(0, 14)));
         const name = vessel ? `${vessel.code}-${t.abbr}-${String(i + 1).padStart(2, '0')}` : `${site.prefix}-${t.abbr}-${String(i + 1).padStart(3, '0')}`;
         out.push({
@@ -520,7 +763,7 @@ function buildAssets(c: CustomerProfile, tenantId: string): OtAsset[] {
 
 export interface ZoneFlow { from: string; to: string; value: number; unexpected?: boolean; note?: string; kinds: SiteKind[] }
 
-const FLOWS: Record<CustomerId, ZoneFlow[]> = {
+const FLOWS: CustomerMap<ZoneFlow[]> = {
   maritime: [
     { from: 'Enterprise IT', to: 'OT DMZ (L3.5)', value: 420, kinds: ['terminal'] },
     { from: 'Vendor remote access', to: 'OT DMZ (L3.5)', value: 60, kinds: ['terminal'] },
@@ -594,6 +837,79 @@ const FLOWS: Record<CustomerId, ZoneFlow[]> = {
     { from: 'Enterprise IT (SAP, PLM)', to: 'Final assembly & EOL', value: 9, unexpected: true, note: 'End-of-line benches at Puebla fetch vehicle software over SMB from a corporate file share', kinds: ['plant'] },
     { from: 'Engineering laptop (transient)', to: 'Formation & ageing', value: 3, unexpected: true, note: 'Unregistered engineering laptop on the formation rack network at Salzgitter (seen in the 6-hourly bundle)', kinds: ['cellplant'] },
   ],
+  insurance: [
+    { from: 'Corporate IT', to: 'Facilities DMZ (L3.5)', value: 240, kinds: ['dc', 'printplant'] },
+    { from: 'Vendor remote access', to: 'Facilities DMZ (L3.5)', value: 36, kinds: ['dc', 'printplant'] },
+    { from: 'Facilities DMZ (L3.5)', to: 'BMS & DCIM (L3)', value: 200, kinds: ['dc', 'printplant'] },
+    { from: 'BMS & DCIM (L3)', to: 'Power (UPS, generators)', value: 100, kinds: ['dc'] },
+    { from: 'BMS & DCIM (L3)', to: 'Cooling (CRAC)', value: 120, kinds: ['dc'] },
+    { from: 'BMS & DCIM (L3)', to: 'Fire & life safety', value: 18, kinds: ['dc', 'printplant'] },
+    { from: 'BMS & DCIM (L3)', to: 'Physical security', value: 60, kinds: ['dc', 'printplant'] },
+    { from: 'Facilities DMZ (L3.5)', to: 'Print & mail production', value: 150, kinds: ['printplant'] },
+    { from: 'Vendor remote access', to: 'Cooling (CRAC)', value: 8, unexpected: true, note: 'Vertiv remote-diagnostics modem on a Liebert unit in Windsor DC1 hall B, outside the facilities DMZ', kinds: ['dc'] },
+    { from: 'Corporate IT', to: 'Print & mail production', value: 14, unexpected: true, note: 'Claims letters dropped over SMB from a claims file server straight onto the Hartford print workflow server, bypassing the facilities DMZ', kinds: ['printplant'] },
+    { from: 'Corporate IT', to: 'Physical security', value: 10, unexpected: true, note: 'Workday HR feed writes badge changes straight to access controllers at Windsor, skipping the access control server', kinds: ['dc'] },
+  ],
+  defence: [
+    { from: 'Enterprise IT (PLM & ERP)', to: 'Shop-floor DMZ (L3.5)', value: 260, kinds: ['shop', 'range'] },
+    { from: 'Vendor remote access', to: 'Shop-floor DMZ (L3.5)', value: 40, kinds: ['shop', 'range'] },
+    { from: 'Shop-floor DMZ (L3.5)', to: 'DNC & inspection (L3)', value: 220, kinds: ['shop'] },
+    { from: 'DNC & inspection (L3)', to: 'CNC machining', value: 170, kinds: ['shop'] },
+    { from: 'DNC & inspection (L3)', to: 'Heat treat', value: 40, kinds: ['shop'] },
+    { from: 'Shop-floor DMZ (L3.5)', to: 'Facilities (HVAC, air)', value: 30, kinds: ['shop', 'range'] },
+    { from: 'Shop-floor DMZ (L3.5)', to: 'Test data & ATE (L3)', value: 90, kinds: ['range'] },
+    { from: 'Test data & ATE (L3)', to: 'Environmental test', value: 50, kinds: ['range'] },
+    { from: 'Test data & ATE (L3)', to: 'Range telemetry', value: 30, kinds: ['range'] },
+    { from: 'Vendor remote access', to: 'CNC machining', value: 9, unexpected: true, note: "Machine-tool service engineer's laptop reached a VF-4SS control over a cellular hotspot in Building 3, outside the BeyondTrust broker", kinds: ['shop'] },
+    { from: 'Enterprise IT (PLM & ERP)', to: 'CNC machining', value: 6, unexpected: true, note: 'CAM workstation on the engineering network pushing NC programmes straight to a lathe in Building 3, bypassing the DNC server', kinds: ['shop'] },
+    { from: 'Engineering laptop (transient)', to: 'Environmental test', value: 4, unexpected: true, note: "A visiting prime's test engineer laptop joined the Thermotron chamber network at Tucson without passing the media kiosk", kinds: ['range'] },
+  ],
+  pharma: [
+    { from: 'Enterprise IT (SAP)', to: 'Plant DMZ (L3.5)', value: 520, kinds: ['api', 'biologics', 'fillfinish', 'packaging'] },
+    { from: 'Vendor remote access', to: 'Plant DMZ (L3.5)', value: 90, kinds: ['api', 'biologics', 'fillfinish', 'packaging'] },
+    { from: 'Plant DMZ (L3.5)', to: 'MES & batch records (L3)', value: 420, kinds: ['api', 'biologics', 'fillfinish', 'packaging'] },
+    { from: 'MES & batch records (L3)', to: 'API synthesis (PCS 7)', value: 150, kinds: ['api'] },
+    { from: 'MES & batch records (L3)', to: 'Upstream & downstream (DeltaV)', value: 220, kinds: ['biologics'] },
+    { from: 'MES & batch records (L3)', to: 'Clean utilities (CIP/SIP)', value: 70, kinds: ['api', 'biologics', 'fillfinish'] },
+    { from: 'MES & batch records (L3)', to: 'Cleanroom HVAC & EMS', value: 90, kinds: ['biologics', 'fillfinish', 'aseptic'] },
+    { from: 'MES & batch records (L3)', to: 'Fill-finish & lyophilisation', value: 160, kinds: ['fillfinish', 'aseptic'] },
+    { from: 'MES & batch records (L3)', to: 'Aseptic filling', value: 60, kinds: ['aseptic', 'fillfinish'] },
+    { from: 'MES & batch records (L3)', to: 'Serialisation & packaging', value: 130, kinds: ['packaging'] },
+    { from: 'MES & batch records (L3)', to: 'Signed bundle export (8 h)', value: 20, kinds: ['aseptic'] },
+    { from: 'Vendor remote access', to: 'Clean utilities (CIP/SIP)', value: 10, unexpected: true, note: 'Skid OEM remote-support tool straight to a CIP skid PLC at Ringaskiddy, outside the BeyondTrust broker', kinds: ['fillfinish'] },
+    { from: 'Enterprise IT (SAP)', to: 'Serialisation & packaging', value: 8, unexpected: true, note: 'An SAP batch job at Ringaskiddy pushes serial number ranges straight to line controllers, bypassing the L3 site server', kinds: ['packaging'] },
+    { from: 'Enterprise IT (SAP)', to: 'Upstream & downstream (DeltaV)', value: 6, unexpected: true, note: 'An R&D data-science notebook pulls bioreactor tags straight from a DeltaV application station at Sierre, bypassing the PI replica', kinds: ['biologics'] },
+    { from: 'Engineering laptop (transient)', to: 'Aseptic filling', value: 3, unexpected: true, note: 'Requalification contractor laptop on the AF-2 isolator network (seen in the 8-hourly bundle)', kinds: ['aseptic'] },
+  ],
+  sghospital: [
+    { from: 'Clinical IT (TrakCare)', to: 'Medical device DMZ (L3.5)', value: 340, kinds: ['hospital', 'specialist', 'daysurg', 'labimg'] },
+    { from: 'Vendor remote access', to: 'Medical device DMZ (L3.5)', value: 60, kinds: ['hospital', 'specialist', 'labimg'] },
+    { from: 'Medical device DMZ (L3.5)', to: 'Infusion', value: 120, kinds: ['hospital', 'specialist', 'daysurg'] },
+    { from: 'Medical device DMZ (L3.5)', to: 'Patient monitoring', value: 140, kinds: ['hospital', 'specialist', 'daysurg'] },
+    { from: 'Medical device DMZ (L3.5)', to: 'Imaging', value: 120, kinds: ['hospital', 'labimg'] },
+    { from: 'Medical device DMZ (L3.5)', to: 'Laboratory', value: 70, kinds: ['labimg', 'hospital'] },
+    { from: 'Medical device DMZ (L3.5)', to: 'Radiation oncology', value: 30, kinds: ['specialist'] },
+    { from: 'Medical device DMZ (L3.5)', to: 'Nurse call', value: 50, kinds: ['hospital', 'specialist', 'daysurg'] },
+    { from: 'Facilities IT', to: 'Building & environment', value: 70, kinds: ['hospital', 'specialist', 'daysurg', 'labimg'] },
+    { from: 'Vendor remote access', to: 'Imaging', value: 10, unexpected: true, note: 'MRI OEM service session to a Windows 7 MAGNETOM console at Science Park through a vendor VPN box, outside CyberArk Vendor PAM', kinds: ['labimg'] },
+    { from: 'Staff & guest Wi-Fi', to: 'Infusion', value: 8, unexpected: true, note: 'Alaris pumps at Punggol joining the staff SSID after a wireless controller upgrade', kinds: ['daysurg'] },
+    { from: 'Clinical IT (TrakCare)', to: 'Laboratory', value: 7, unexpected: true, note: 'cobas results copied to an unregistered HL7 listener at Science Park, bypassing HealthShare', kinds: ['labimg'] },
+    { from: 'Vendor remote access', to: 'Radiation oncology', value: 4, unexpected: true, note: 'Linac OEM session to a TrueBeam at Tanglin outside the booked service window', kinds: ['specialist'] },
+  ],
+  studio: [
+    { from: 'Corporate IT', to: 'Ride & show DMZ (L3.5)', value: 380, kinds: ['park', 'waterpark', 'resort', 'liveevents'] },
+    { from: 'Vendor remote access', to: 'Ride & show DMZ (L3.5)', value: 70, kinds: ['park', 'waterpark', 'liveevents'] },
+    { from: 'Ride & show DMZ (L3.5)', to: 'Ride control (L1–2)', value: 240, kinds: ['park', 'waterpark'] },
+    { from: 'Ride & show DMZ (L3.5)', to: 'Show control & media', value: 160, kinds: ['park', 'liveevents'] },
+    { from: 'Ride & show DMZ (L3.5)', to: 'Water rides', value: 80, kinds: ['waterpark', 'park'] },
+    { from: 'Ride & show DMZ (L3.5)', to: 'Live events', value: 70, kinds: ['liveevents'] },
+    { from: 'Corporate IT', to: 'Guest entry', value: 110, kinds: ['park', 'waterpark', 'resort'] },
+    { from: 'Facilities IT', to: 'Building & life safety', value: 90, kinds: ['resort', 'park', 'waterpark', 'liveevents'] },
+    { from: 'Vendor remote access', to: 'Ride control (L1–2)', value: 9, unexpected: true, note: "The ride manufacturer's remote diagnostics reached a ride control cabinet at Starfall Park Osaka over a 4G router left in the cabinet", kinds: ['park'] },
+    { from: 'Corporate IT', to: 'Show control & media', value: 12, unexpected: true, note: 'A marketing laptop in Orlando pushing new content to projection media servers over SMB, bypassing the show DMZ', kinds: ['park', 'liveevents'] },
+    { from: 'Staff & guest Wi-Fi', to: 'Guest entry', value: 6, unexpected: true, note: 'StarPass gate controllers at the Osaka hotels answering on the guest Wi-Fi', kinds: ['resort'] },
+    { from: 'Engineering laptop (transient)', to: 'Water rides', value: 4, unexpected: true, note: 'Contractor laptop on the pump-house network at Starfall Lagoon after the filtration upgrade', kinds: ['waterpark'] },
+  ],
 };
 
 export function zoneFlows(c: CustomerProfile, tenantId: string): ZoneFlow[] {
@@ -601,7 +917,7 @@ export function zoneFlows(c: CustomerProfile, tenantId: string): ZoneFlow[] {
   if (!sc.hasOt) return [];
   const kinds = new Set(sc.sites.map((s) => s.kind));
   const share = tenantId === 'all' ? 1 : Math.max(0.25, sc.h.otAssets / headlines(c).ot.otAssets);
-  return FLOWS[c.id].filter((f) => f.kinds.some((k) => kinds.has(k))).map((f) => ({ ...f, value: Math.max(f.unexpected ? 2 : 4, Math.round(f.value * share)) }));
+  return forCustomer(FLOWS, c).filter((f) => f.kinds.some((k) => kinds.has(k))).map((f) => ({ ...f, value: Math.max(f.unexpected ? 2 : 4, Math.round(f.value * share)) }));
 }
 
 /* ------------------------------------------------------------------ */
@@ -610,7 +926,7 @@ export function zoneFlows(c: CustomerProfile, tenantId: string): ZoneFlow[] {
 
 export interface OtAlert { id: string; sev: Severity; title: string; site: string; asset: string; technique: string; ageMin: number; source: string; detail: string }
 
-const ALERT_SEEDS: Record<CustomerId, { sev: Severity; title: string; kind: SiteKind; asset: string; technique: string; detail: string }[]> = {
+const ALERT_SEEDS: CustomerMap<{ sev: Severity; title: string; kind: SiteKind; asset: string; technique: string; detail: string }[]> = {
   maritime: [
     { sev: 'critical', title: 'Program download to STS crane PLC outside change window', kind: 'terminal', asset: 'PLC', technique: 'T0843', detail: 'S7comm download (function 0x1A) from an engineering workstation with no approved ServiceNow change.' },
     { sev: 'high', title: 'Vendor remote session reached crane HMI without PAM broker', kind: 'terminal', asset: 'HMI', technique: 'T0886', detail: 'TeamViewer traffic from Konecranes IP range directly into the crane control zone.' },
@@ -651,6 +967,47 @@ const ALERT_SEEDS: Record<CustomerId, { sev: Severity; title: string; kind: Site
     { sev: 'medium', title: 'Conveyor PLC put into STOP from an engineering station', kind: 'plant', asset: 'CNV', technique: 'T0816', detail: 'CPU STOP command during a shift; maintenance ticket raised 6 minutes later.' },
     { sev: 'medium', title: 'EOL bench pulled vehicle software from a corporate share', kind: 'plant', asset: 'EOL', technique: 'T0886', detail: 'SMB transfer of an ECU flash container from a corporate file server, bypassing the signed software distribution path.' },
   ],
+  insurance: [
+    { sev: 'high', title: 'CRAC supply-air set-point changed from the vendor modem', kind: 'dc', asset: 'CRAC', technique: 'T0836', detail: 'BACnet WriteProperty on a Liebert DSE in Windsor DC1 hall B from the Vertiv remote-diagnostics modem, with no facilities work order and no booked vendor visit.' },
+    { sev: 'high', title: 'UPS network card firmware upload from a corporate subnet', kind: 'dc', asset: 'UPS', technique: 'T0843', detail: 'An HTTP POST to the firmware endpoint of a Liebert EXL S1 card came from a desktop subnet rather than the facilities jump host.' },
+    { sev: 'medium', title: 'Inserter match programme changed outside the production schedule', kind: 'printplant', asset: 'INS', technique: 'T0836', detail: 'The feeder and match settings for the renewal-notice run were edited from a workstation not on the mail-floor allow-list; the integrity check then flagged 212 envelopes for a re-run to avoid policyholder letters going to the wrong address.' },
+    { sev: 'medium', title: 'Unknown laptop on the print production network', kind: 'printplant', asset: 'PRN', technique: 'T0846', detail: 'An unregistered laptop on the Hartford mail floor browsed the iGen presses and the print workflow server.' },
+    { sev: 'medium', title: 'Generator controller polled with the factory PIN', kind: 'dc', asset: 'GEN', technique: 'T0859', detail: 'A Modbus/TCP session to a Cummins PowerCommand controller authenticated with the shipped PIN.' },
+  ],
+  defence: [
+    { sev: 'critical', title: 'Released NC programme on the DNC server overwritten outside change control', kind: 'shop', asset: 'DNC', technique: 'T0843', detail: 'The CNC programme for a guidance housing (TDP-2207) on B3-DNC-SRV01 was replaced by an account outside the CNC programming group; its hash no longer matches the released Teamcenter revision. Parts cut since then are quarantined pending CMM inspection.' },
+    { sev: 'high', title: 'Machine-tool vendor session reached a CNC control directly', kind: 'shop', asset: 'CNC', technique: 'T0886', detail: 'A service laptop connected to a VF-4SS over a cellular hotspot rather than through the BeyondTrust broker; the session was not recorded.' },
+    { sev: 'high', title: 'Heat-treat furnace set-point changed outside a work order', kind: 'shop', asset: 'HTF', technique: 'T0836', detail: 'EtherNet/IP write to the soak temperature of furnace 2 from a station not mapped to the heat-treat cell; no work order and no change to the released process sheet.' },
+    { sev: 'high', title: 'Shaker test profile altered between qualification runs', kind: 'range', asset: 'SHK', technique: 'T0836', detail: 'The random-vibration profile on the Tucson shaker changed between run 3 and run 4 of campaign 26-04, from a station that is not assigned to the range test engineer.' },
+    { sev: 'medium', title: 'Unregistered laptop on the environmental test network', kind: 'range', asset: 'CHM', technique: 'T0846', detail: 'A laptop that never passed the media kiosk joined the Thermotron chamber network and enumerated chamber controllers.' },
+    { sev: 'medium', title: 'ATE bench copying results to an unknown host', kind: 'range', asset: 'ATE', technique: 'T0882', detail: 'Test result files from an avionics ATE bench were sent to a host that is not the DIAdem data server.' },
+    { sev: 'medium', title: 'Factory login accepted on an air compressor controller', kind: 'shop', asset: 'AIR', technique: 'T0859', detail: 'The Elektronikon web interface accepted the shipped service login from the Building 3 facilities network.' },
+  ],
+  pharma: [
+    { sev: 'critical', title: 'Audit trail switched off on a PAS-X terminal during batch execution', kind: 'biologics', asset: 'MET', technique: 'T0872', detail: 'Audit-trail capture on a PAS-X shop-floor client in the Valais biologics suite stopped for 38 minutes while a bioreactor harvest step was being recorded. QA has placed the batch on hold until the gap is explained.' },
+    { sev: 'high', title: 'DeltaV control module downloaded outside GxP change control', kind: 'biologics', asset: 'BIO', technique: 'T0843', detail: 'A control module for bioreactor 3 was downloaded from the ProfessionalPLUS station with no approved change record in ServiceNow and a batch in progress.' },
+    { sev: 'high', title: 'OEM remote session reached a CIP skid PLC outside the broker', kind: 'fillfinish', asset: 'CIP', technique: 'T0886', detail: 'Remote-support traffic from the skid OEM landed on a CompactLogix at Ringaskiddy without passing BeyondTrust.' },
+    { sev: 'high', title: 'Unregistered laptop on the AF-2 isolator network (from 8-hourly bundle)', kind: 'aseptic', asset: 'FIL', technique: 'T0846', detail: 'Seen in the signed bundle imported this morning: an unknown laptop browsed the isolator PLC for 11 minutes during requalification. The line is air-gapped, so this was only visible once the bundle arrived.' },
+    { sev: 'medium', title: 'Lyophiliser shelf-temperature set-point changed without a batch instruction', kind: 'fillfinish', asset: 'LYO', technique: 'T0836', detail: 'Shelf set-point on lyophiliser 2 moved by 4 °C from the operator panel; no matching step in the electronic batch record.' },
+    { sev: 'medium', title: 'Write to a reactor set-point from an unmapped operator station', kind: 'api', asset: 'REA', technique: 'T0855', detail: 'A PCS 7 operator station not assigned to building 4 wrote a jacket temperature set-point on reactor R-402.' },
+    { sev: 'medium', title: 'Serial number batch sent to an unknown host', kind: 'packaging', asset: 'SER', technique: 'T0882', detail: 'A serialisation line controller exported a commissioned serial range to a destination that is not the L3 site server.' },
+  ],
+  sghospital: [
+    { sev: 'critical', title: 'Drug library change pushed to Alaris pumps from an unapproved workstation', kind: 'hospital', asset: 'INF', technique: 'T0843', detail: 'A drug-library package reached 26 pumps on the Novena ICU from a workstation that is not OBH-ALARIS-SRV, with no pharmacy change approval in ServiceNow.' },
+    { sev: 'high', title: 'Windows 7 MRI console probed over SMBv1 by an unknown host', kind: 'labimg', asset: 'MRW', technique: 'T0846', detail: 'An unidentified host on the Science Park imaging VLAN enumerated SMB shares on a MAGNETOM console that cannot yet be upgraded.' },
+    { sev: 'high', title: 'Linac OEM session outside the booked service window', kind: 'specialist', asset: 'LIN', technique: 'T0886', detail: 'A remote service session reached a TrueBeam treatment console at Tanglin on a treatment day, with no booking in the biomedical engineering calendar.' },
+    { sev: 'high', title: 'cobas analyser results sent to an unknown HL7 listener', kind: 'labimg', asset: 'LAB', technique: 'T0882', detail: 'Result messages were copied to a listener that is not the cobas infinity middleware or HealthShare.' },
+    { sev: 'medium', title: 'Theatre air-change set-point changed without a work order', kind: 'daysurg', asset: 'BMS', technique: 'T0836', detail: 'BACnet write to theatre 3 air changes per hour at Punggol from the facilities subnet; nothing in the maintenance system.' },
+    { sev: 'medium', title: 'Factory login accepted on a pneumatic tube station', kind: 'hospital', asset: 'PTS', technique: 'T0859', detail: 'A tube station panel at Novena accepted the shipped maintenance login.' },
+  ],
+  studio: [
+    { sev: 'critical', title: 'Program download to a safety-rated ride controller during park hours', kind: 'park', asset: 'RCP', technique: 'T0843', detail: 'S7comm download to the fail-safe CPU of a coaster with the ride open to guests and no approved work order in the ride maintenance system.' },
+    { sev: 'high', title: 'Ride manufacturer session reached a ride HMI directly', kind: 'park', asset: 'HMI', technique: 'T0886', detail: 'Remote-diagnostics traffic arrived over a 4G router in the ride cabinet rather than through the jump host; the session was not recorded.' },
+    { sev: 'high', title: 'Show cue list changed from an unregistered console', kind: 'park', asset: 'SHW', technique: 'T0855', detail: 'Cue timings for an animatronic finale were edited from a console that is not on the show control register.' },
+    { sev: 'high', title: 'Pump drive speed reference changed outside a work order', kind: 'waterpark', asset: 'VFD', technique: 'T0836', detail: 'A Modbus write raised the speed reference on a flume pump drive at Starfall Lagoon; no work order and the ride was open.' },
+    { sev: 'medium', title: 'Unknown device on the live events ST 2110 network', kind: 'liveevents', asset: 'RTR', technique: 'T0846', detail: 'mDNS and NMOS discovery from an unregistered device on the night-time show network during rehearsal.' },
+    { sev: 'medium', title: 'StarPass gate controller accepting the factory login', kind: 'resort', asset: 'GATE', technique: 'T0859', detail: 'A hotel entrance gate controller accepted the shipped administrator login over HTTP.' },
+  ],
 };
 
 export function otAlerts(c: CustomerProfile, tenantId: string): OtAlert[] {
@@ -658,7 +1015,7 @@ export function otAlerts(c: CustomerProfile, tenantId: string): OtAlert[] {
   if (!sc.hasOt) return [];
   const r = rng(`ot-alerts-${c.id}-${tenantId}`);
   const kinds = new Set(sc.sites.map((s) => s.kind));
-  return ALERT_SEEDS[c.id]
+  return forCustomer(ALERT_SEEDS, c)
     .filter((a) => kinds.has(a.kind))
     .map((a, i) => {
       const site = sc.sites.find((s) => s.kind === a.kind) ?? sc.sites[0];
@@ -714,11 +1071,11 @@ export function otVulns(c: CustomerProfile, tenantId: string): OtVuln[] {
   const sc = otScope(c, tenantId);
   if (!sc.hasOt) return [];
   const r = rng(`ot-vulns-${c.id}-${tenantId}`);
-  const types = TYPES[c.id];
+  const types = forCustomer(TYPES, c);
   const owner = c.people.otLead?.name ?? c.people.ciso.name;
   const groups: Omit<OtVuln, 'instances'>[] = [];
   const weights: number[] = [];
-  for (const m of VULN_MAP[c.id]) {
+  for (const m of forCustomer(VULN_MAP, c)) {
     const t = types.find((x) => x.name === m.type);
     const cve = OT_CVE_BY_ID[m.cve];
     if (!t || !cve) continue;
@@ -826,7 +1183,7 @@ interface EngSeed {
   findings: [string, Severity, string, string][]; // category, sev, plain title, zone
 }
 
-const ENG_SEEDS: Record<CustomerId, EngSeed[]> = {
+const ENG_SEEDS: CustomerMap<EngSeed[]> = {
   maritime: [
     { site: 'rtm', name: 'Maasvlakte STS crane network assessment', objective: 'Confirm crane control zones are isolated from terminal IT and vendor paths', phase: 2, status: 'In progress', scope: 'Passive only', scopeDetail: 'Passive capture on SPAN ports at crane control and DMZ switches; nothing is sent to controllers', zones: ['Crane control', 'OT DMZ', 'Terminal operations'], standards: ['IEC 62443-3-3', 'IEC 62443-2-1'],
       findings: [['proto', 'high', 'Crane PLCs accept programme commands from any host on the crane VLAN', 'Crane control'], ['flat', 'high', 'Crane HMIs and maintenance laptops share one segment across 6 STS cranes', 'Crane control'], ['remote', 'critical', 'A vendor remote-support tool reaches a crane HMI without the PAM broker', 'Crane control'], ['logging', 'medium', 'Crane drive events are not forwarded to the SIEM', 'Crane control']] },
@@ -870,6 +1227,49 @@ const ENG_SEEDS: Record<CustomerId, EngSeed[]> = {
     { site: 'inp', name: 'Ingolstadt paint shop review', objective: 'Review paint robot cells after the controller refresh', phase: 4, status: 'Complete', scope: 'Passive only', scopeDetail: 'Passive capture on the paint-shop network', zones: ['Paint shop'], standards: ['IEC 62443-3-3'],
       findings: [['legacy', 'medium', 'Paint cell PCs run an unsupported operating system build', 'Paint shop'], ['creds', 'low', 'Paint cell HMIs used a shared operator password', 'Paint shop']] },
   ],
+  insurance: [
+    { site: 'wdc1', name: 'Windsor DC1 power and cooling assessment', objective: 'Show that UPS, generator and cooling control cannot be reached from corporate IT or vendor modems', phase: 2, status: 'In progress', scope: 'Passive only', scopeDetail: 'Passive capture on the BMS and power monitoring networks; nothing is written to controllers', zones: ['BMS & DCIM', 'Power (UPS, generators)', 'Cooling (CRAC)'], standards: ['IEC 62443-3-3', 'NYDFS 500.16'],
+      findings: [['remote', 'critical', 'A cooling unit has a vendor diagnostics modem outside the facilities DMZ', 'Cooling (CRAC)'], ['creds', 'high', 'Generator controllers still accept the factory PIN', 'Power (UPS, generators)'], ['proto', 'medium', 'Any host on the BMS network can change cooling set-points', 'BMS & DCIM'], ['flat', 'medium', 'Access controllers share the BMS network', 'Physical security']] },
+    { site: 'hpm', name: 'Hartford print & mail plant segmentation review', objective: 'Keep policyholder mail production separate from the claims office network', phase: 4, status: 'Reporting', scope: 'Passive only', scopeDetail: 'Passive capture on the mail floor and print production VLANs', zones: ['Print & mail production', 'Physical security'], standards: ['IEC 62443-3-3', 'NAIC #668 Sec. 4'],
+      findings: [['flat', 'high', 'Claims file servers can drop jobs straight onto the print workflow server', 'Print & mail production'], ['creds', 'medium', 'Inserter consoles share one operator password', 'Print & mail production'], ['legacy', 'medium', 'The mail-piece integrity server still needs SMBv1 for inserter files', 'Print & mail production'], ['logging', 'low', 'Print workflow job logs are not forwarded to Splunk', 'Print & mail production']] },
+    { site: 'phx2', name: 'Phoenix DC2 colocation facilities scoping', objective: 'Agree with the colocation provider who watches power and cooling for the recovery suite', phase: 0, status: 'Scoping', scope: 'Passive only', scopeDetail: 'Passive only: contract review and interviews with the provider', zones: ['Power (UPS, generators)', 'Cooling (CRAC)'], standards: ['NYDFS 500.11', 'IEC 62443-2-4'], findings: [] },
+  ],
+  defence: [
+    { site: 'b3', name: 'Building 3 machine shop network assessment', objective: 'Prove CNC, DNC and heat-treat networks cannot be reached from engineering IT or vendor paths', phase: 2, status: 'In progress', scope: 'Passive only', scopeDetail: 'Passive capture at the shop-floor DMZ and cell switches; nothing is sent to machine controls', zones: ['CNC machining', 'DNC & inspection', 'Shop-floor DMZ'], standards: ['IEC 62443-3-3', 'NIST SP 800-82r3', 'NIST SP 800-171 3.13.1'],
+      findings: [['remote', 'critical', 'Machine-tool service engineers reach CNC controls over cellular hotspots', 'CNC machining'], ['flat', 'high', 'CAM stations on the engineering network can send programmes straight to machines', 'CNC machining'], ['legacy', 'medium', 'Two CMM stations run an unsupported operating system', 'DNC & inspection'], ['logging', 'low', 'CNC control events are not forwarded to Sentinel', 'CNC machining']] },
+    { site: 'tus', name: 'Tucson test range segmentation validation', objective: 'Confirm the office network cannot reach ATE benches, chambers or the shaker before campaign 26-05', phase: 1, status: 'Awaiting safety approval', scope: 'Approved active (bounded)', scopeDetail: 'Proposed: bounded checks from the office network between test campaigns; chambers, shaker and telemetry passive-only', zones: ['Test data & ATE', 'Environmental test', 'Range telemetry'], standards: ['IEC 62443-3-3', 'NIST SP 800-171 3.13.1'], findings: [] },
+    { site: 'b3', name: 'Building 3 heat-treat cell review', objective: 'Review the furnace controller after the ControlLogix migration', phase: 4, status: 'Complete', scope: 'Passive only', scopeDetail: 'Passive capture on the heat-treat cell network', zones: ['Heat treat'], standards: ['IEC 62443-3-3', 'AS9100D 8.5.1'],
+      findings: [['proto', 'medium', 'The furnace controller accepted set-point writes from any station on the cell network', 'Heat treat'], ['creds', 'low', 'The heat-treat HMI used a shared operator login', 'Heat treat']] },
+  ],
+  pharma: [
+    { site: 'vls-bio', name: 'Valais biologics DCS assessment', objective: 'Show that DeltaV and bioreactor networks cannot be reached from enterprise IT, R&D or OEM paths', phase: 2, status: 'In progress', scope: 'Passive only', scopeDetail: 'Passive capture at the plant DMZ and DeltaV area switches; nothing is sent to controllers', zones: ['Upstream & downstream (DeltaV)', 'MES & batch records', 'Plant DMZ'], standards: ['IEC 62443-3-3', 'GAMP 5 (2nd ed.)', 'EU GMP Annex 11'],
+      findings: [['flat', 'high', 'An R&D notebook can read bioreactor data straight from a DeltaV station', 'Upstream & downstream (DeltaV)'], ['proto', 'medium', 'DeltaV historian collection still uses OPC DA over DCOM', 'MES & batch records'], ['logging', 'medium', 'PAS-X audit-trail gaps are not alerted on in real time', 'MES & batch records'], ['creds', 'low', 'Two operator stations share a service account', 'Upstream & downstream (DeltaV)']] },
+    { site: 'vls-af2', name: 'AF-2 aseptic line offline assessment', objective: 'Validate the air gap and the data-diode bundle export ahead of the Annex 1 inspection', phase: 3, status: 'In progress', scope: 'Approved active (bounded)', scopeDetail: 'Bounded checks on the bundle export path and the line DMZ only, on site (no remote path exists); isolator and lyophiliser passive-only', zones: ['Aseptic filling', 'Fill-finish & lyophilisation', 'Plant DMZ'], standards: ['IEC 62443-3-3', 'EU GMP Annex 1', 'NIS2 Art. 21'],
+      findings: [['media', 'high', 'Requalification laptops connect to the isolator network without passing the media kiosk', 'Aseptic filling'], ['creds', 'medium', 'The isolator HMI uses a shared supervisor login', 'Aseptic filling'], ['logging', 'medium', 'Security events wait up to 8 hours for the signed bundle before the SOC sees them', 'Plant DMZ']] },
+    { site: 'crk-ff', name: 'Cork fill-finish vendor access review', objective: 'Remove OEM access paths that bypass the BeyondTrust broker', phase: 3, status: 'Paused (stop condition)', scope: 'Approved active (bounded)', scopeDetail: 'Bounded checks on OEM access routes only, with the skid OEM engineer and QA on site', zones: ['Clean utilities (CIP/SIP)', 'Fill-finish & lyophilisation'], standards: ['IEC 62443-3-3', 'IEC 62443-2-4'],
+      findings: [['remote', 'critical', 'A CIP skid is reachable by its OEM outside the broker', 'Clean utilities (CIP/SIP)'], ['logging', 'medium', 'Dragos feed gaps during the WAN failover hide utilities traffic', 'Clean utilities (CIP/SIP)']] },
+    { site: 'crk-pk', name: 'Cork serialisation line segmentation', objective: 'Stop SAP from writing to line controllers directly', phase: 1, status: 'Awaiting safety approval', scope: 'Approved active (bounded)', scopeDetail: 'Proposed: bounded checks from the SAP integration network during a packaging changeover; line controllers passive-only', zones: ['Serialisation & packaging'], standards: ['IEC 62443-3-3', 'EU FMD (Delegated Reg. 2016/161)'], findings: [] },
+    { site: 'vls-api', name: 'Valais API plant PCS 7 review', objective: 'Review the PCS 7 V9.1 upgrade before handover to production', phase: 4, status: 'Complete', scope: 'Passive only', scopeDetail: 'Passive capture on the PCS 7 plant and terminal bus', zones: ['API synthesis (PCS 7)'], standards: ['IEC 62443-3-3', 'GAMP 5 (2nd ed.)'],
+      findings: [['legacy', 'medium', 'Two operator stations ran an operating system build past support', 'API synthesis (PCS 7)'], ['creds', 'low', 'Engineering station used a shared project password', 'API synthesis (PCS 7)']] },
+  ],
+  sghospital: [
+    { site: 'novena', name: 'Novena infusion & monitoring network assessment', objective: 'Show that pump and monitor networks cannot be reached from clinical IT, staff Wi-Fi or OEM paths', phase: 2, status: 'In progress', scope: 'Passive only', scopeDetail: 'Passive capture on device-VLAN SPAN ports; nothing is sent to pumps, monitors or ventilators', zones: ['Infusion', 'Patient monitoring', 'Medical device DMZ'], standards: ['IEC 62443-3-3', 'IEC 80001-1', 'MOH CS/DS Essentials'],
+      findings: [['flat', 'high', 'Agilia and Alaris pumps share one wireless network with smart devices on three wards', 'Infusion'], ['proto', 'medium', 'The central monitoring station accepts HL7 connections from any clinical host', 'Patient monitoring'], ['creds', 'medium', 'Pneumatic tube stations accept the shipped maintenance login', 'Building & environment'], ['logging', 'low', 'Pump server events are not forwarded to Sentinel', 'Infusion']] },
+    { site: 'sciencepark', name: 'Science Park legacy imaging console review', objective: 'Contain Windows 7 imaging consoles until the OEM upgrade', phase: 4, status: 'Reporting', scope: 'Passive only', scopeDetail: 'Passive capture on the imaging and lab VLANs', zones: ['Imaging', 'Laboratory'], standards: ['IEC 62443-3-3', 'HSA GL-04'],
+      findings: [['legacy', 'high', 'MRI consoles run Windows 7 and need SMBv1 for film export', 'Imaging'], ['remote', 'high', 'An imaging OEM VPN box bypasses CyberArk Vendor PAM', 'Imaging'], ['logging', 'medium', 'Analyser and LIS events are not retained beyond 7 days', 'Laboratory']] },
+    { site: 'punggol', name: 'Punggol day-surgery device segmentation validation', objective: 'Confirm pumps cannot join the staff SSID after the wireless upgrade', phase: 1, status: 'Awaiting safety approval', scope: 'Approved active (bounded)', scopeDetail: 'Proposed: bounded checks on the device DMZ after the last theatre list, with biomedical engineering on site; no traffic to pumps or monitors', zones: ['Medical device DMZ', 'Infusion'], standards: ['IEC 62443-3-3', 'CSA Cyber Trust'], findings: [] },
+    { site: 'tanglin', name: 'Tanglin radiation oncology scoping', objective: 'Agree scope with the oncology centre for linac and ARIA monitoring', phase: 0, status: 'Scoping', scope: 'Passive only', scopeDetail: 'Passive only: architecture walkthrough with the radiation oncology physicists', zones: ['Radiation oncology'], standards: ['IEC 80001-1', 'HSA GL-04'], findings: [] },
+  ],
+  studio: [
+    { site: 'orl-park', name: 'Starfall Studios Park ride control assessment', objective: 'Prove ride control and safety PLCs cannot be reached from corporate IT or ride OEM paths', phase: 2, status: 'In progress', scope: 'Passive only', scopeDetail: 'Passive capture at the ride & show DMZ and ride cabinet switches; nothing is sent to ride controllers', zones: ['Ride control', 'Ride & show DMZ'], standards: ['IEC 62443-3-3', 'ASTM F2291'],
+      findings: [['proto', 'high', 'Safety PLCs accept programme changes from any engineering station on the ride network', 'Ride control'], ['flat', 'medium', 'Show control and ride HMIs share a network in two attractions', 'Show control & media'], ['remote', 'high', 'A ride OEM diagnostics router sits inside a ride cabinet', 'Ride control'], ['logging', 'low', 'Ride HMI events are not forwarded to Google SecOps', 'Ride control']] },
+    { site: 'osa-park', name: 'Starfall Park Osaka ride network segmentation', objective: 'Validate ride zones before the new coaster opens', phase: 1, status: 'Awaiting safety approval', scope: 'Approved active (bounded)', scopeDetail: 'Proposed: bounded checks from the DMZ after park close; ride controllers passive-only', zones: ['Ride control', 'Ride & show DMZ'], standards: ['IEC 62443-3-3'], findings: [] },
+    { site: 'orl-lagoon', name: 'Starfall Lagoon pump-house review', objective: 'Review water ride drives after the filtration upgrade', phase: 4, status: 'Reporting', scope: 'Passive only', scopeDetail: 'Passive capture on the pump-house network', zones: ['Water rides'], standards: ['IEC 62443-3-3'],
+      findings: [['media', 'medium', 'Contractor laptops connect to the pump-house network unchecked', 'Water rides'], ['creds', 'medium', 'Pump drives use one shared maintenance password', 'Water rides']] },
+    { site: 'orl-live', name: 'Night-time spectacular show control scoping', objective: 'Scope the ST 2110, media and pyrotechnic networks before the holiday show', phase: 0, status: 'Scoping', scope: 'Passive only', scopeDetail: 'Passive only: rig documentation review and sensor placement during rehearsals', zones: ['Live events', 'Show control & media'], standards: ['IEC 62443-3-3', 'NFPA 1123'], findings: [] },
+    { site: 'osa-resort', name: 'Osaka hotels gate and BMS review', objective: 'Separate StarPass gates and hotel BMS from guest Wi-Fi', phase: 4, status: 'Complete', scope: 'Passive only', scopeDetail: 'Passive capture on hotel back-of-house VLANs', zones: ['Guest entry', 'Building & life safety'], standards: ['IEC 62443-3-3', 'PCI DSS 1.3'],
+      findings: [['flat', 'medium', 'Gate controllers answered on the guest Wi-Fi', 'Guest entry'], ['creds', 'low', 'Gate controllers used the shipped administrator login', 'Guest entry']] },
+  ],
 };
 
 const STOP_COMMON = [
@@ -878,22 +1278,46 @@ const STOP_COMMON = [
   'Operations supervisor or safety officer calls stop',
   'Traffic above the agreed rate on any conduit',
 ];
-const STOP_SECTOR: Record<CustomerId, string[]> = {
+const STOP_SECTOR: CustomerMap<string[]> = {
   maritime: ['Vessel leaves berth or cargo operations begin', 'Any crane, AGV or vessel system alarm during the window'],
   finserv: ['Any UPS, generator or cooling alarm in the data hall', 'Live incident declared by the crisis team'],
   media: ['A live event goes on air on the affected plant', 'Any PTP lock loss or multiviewer alarm'],
   healthcare: ['Any patient-care alarm or device alert on the affected unit', 'Census surge or mass-casualty plan activated'],
   automotive: ['Any robot, press or conveyor stop on the affected line', 'Line restart or shift handover begins'],
+  insurance: ['Any UPS, generator or cooling alarm in a data hall', 'A catastrophe claims surge is declared or a statutory mailing run is in progress'],
+  defence: ['Any spindle, furnace or chamber alarm in the affected cell', 'A qualification test run or first-article inspection begins'],
+  pharma: ['Any pressure-cascade, EMS or batch-critical alarm in the affected suite', 'A GMP batch enters an aseptic or sterilisation step'],
+  sghospital: ['Any patient-care alarm or device alert on the affected ward', 'A Code Red or mass-casualty plan is activated, or a linac treatment session begins'],
+  studio: ['Any ride e-stop, block fault or restraint alarm on the affected attraction', 'The park opens to guests or a show performance begins'],
 };
 
-const SITE_PEOPLE: Record<CustomerId, [string, string][]> = {
+const SITE_PEOPLE: CustomerMap<[string, string][]> = {
   maritime: [['Joost van Dam', 'Terminal Director'], ['Capt. Lars Eriksen', 'Head of Fleet Operations'], ['Tomasz Nowak', 'Crane Maintenance Supervisor'], ['Aisha Rahman', 'Terminal IT Manager'], ['Bruno Carvalho', 'Terminal Engineer']],
   finserv: [['Graham Holt', 'Head of DC Facilities'], ['Priya Natarajan', 'Head of Operational Resilience'], ['Laura Fitzgerald', 'Payments Ops Engineer'], ['Owen Price', 'Security Platform Owner']],
   media: [['Marcus Dupree', 'Broadcast Engineering Manager'], ['Ethan Brooks', 'Playout Engineer'], ['Oliver Grant', 'Head of Post'], ['Chloe Park', 'IT Platforms Manager']],
   healthcare: [['Priya Desai', 'Biomedical Engineer'], ['Angela Torres', 'Chief Nursing Officer'], ['Ben Carter', 'Radiology PACS Administrator'], ['Grace Nguyen', 'Charge Nurse, ICU']],
   automotive: [['Andreas Schulz', 'Robotics Maintenance Lead, Ingolstadt'], ['Hana Novak', 'Battery Process Engineer'], ['Lucía Romero', 'MES Engineer, Puebla'], ['Péter Nagy', 'Plant IT Manager, Győr']],
+  insurance: [['Dave Rinaldi', 'Data Centre Facilities Manager, Windsor'], ['Paul Fenwick', 'Print & Mail Plant Manager, Hartford'], ['Grace Whitfield', 'Premium Billing Operations Manager'], ['Kevin Brennan', 'Security Platform Owner']],
+  defence: [['Jamal Henderson', 'CNC Programming Lead, Building 3'], ['Tessa Moreno', 'Test Range Manager, Tucson'], ['Shawn McAllister', 'Vice President, Operations & Manufacturing'], ['Holly Burkett', 'Facility Security Officer']],
+  pharma: [['Marco Gerber', 'MES & Automation Lead, Valais'], ['Dr. Reto Schmid', 'Qualified Person (QP), Valais'], ["Sarah O'Connell", 'Site Head, Cork Fill-Finish'], ['Fabian Imhof', 'Head of Global Manufacturing & Supply']],
+  sghospital: [['Farah Iskandar', 'Biomedical Engineer'], ['Weijie Ho', 'Radiology PACS Administrator'], ['Joel Tay', 'Senior Nurse Manager, ICU'], ['Clara Seah', 'Director of Quality & Patient Safety']],
+  studio: [['Hiroshi Tanaka', 'Ride Systems Engineer, Osaka'], ['Carla Mendes', 'Ride Maintenance Manager, Orlando'], ['Jordan Pike', 'Show Control Lead, Orlando'], ['James Thornton', 'Chairman, Parks & Experiences']],
 };
 const TESTERS = ['Elena Varga', 'Tom Ridley', 'Yusuf Demir', 'Sakura Ito'];
+
+/** When a bounded active test window may run, in the customer's own operating terms. */
+const WINDOW_NOTE: CustomerMap<string> = {
+  maritime: 'at berth, no cargo ops',
+  finserv: 'facilities maintenance window',
+  media: 'no live events',
+  healthcare: 'low-census window, biomed on site',
+  automotive: 'production shutdown',
+  insurance: 'facilities maintenance window, no mailing run',
+  defence: 'shop-floor shutdown, no test runs',
+  pharma: 'campaign changeover, QA on site',
+  sghospital: 'after the last theatre list, biomed on site',
+  studio: 'park closed, ride maintenance shift',
+};
 
 export function otEngagements(c: CustomerProfile, tenantId: string): OtEngagement[] {
   const sc = otScope(c, tenantId);
@@ -901,9 +1325,9 @@ export function otEngagements(c: CustomerProfile, tenantId: string): OtEngagemen
   const r = rng(`ot-eng-${c.id}`);
   const siteIds = new Set(sc.sites.map((s) => s.id));
   const lead = c.people.otLead ?? c.people.ciso;
-  const people = SITE_PEOPLE[c.id];
-  return ENG_SEEDS[c.id].map((e, i): OtEngagement => {
-    const site = SITES[c.id].find((s) => s.id === e.site) ?? SITES[c.id][0];
+  const people = forCustomer(SITE_PEOPLE, c);
+  return forCustomer(ENG_SEEDS, c).map((e, i): OtEngagement => {
+    const site = forCustomer(SITES, c).find((s) => s.id === e.site) ?? forCustomer(SITES, c)[0];
     const passive = e.scope === 'Passive only';
     const gates: GateState[] = OT_PHASES.map((_, k) => {
       if (passive && k === 3) return 'skipped';
@@ -921,7 +1345,7 @@ export function otEngagements(c: CustomerProfile, tenantId: string): OtEngagemen
     ];
     if (!passive) approvers.push({ name: c.people.ciso.name, role: c.people.ciso.role, decision: approved ? 'approved' : 'pending' });
     const winDay = r.int(1, 12);
-    const windowNote = c.id === 'maritime' ? 'at berth, no cargo ops' : c.id === 'finserv' ? 'facilities maintenance window' : c.id === 'healthcare' ? 'low-census window, biomed on site' : c.id === 'automotive' ? 'production shutdown' : 'no live events';
+    const windowNote = forCustomer(WINDOW_NOTE, c);
     return {
       id: `OTPT-${site.prefix}-${r.int(100, 999)}`,
       name: e.name,
@@ -936,8 +1360,9 @@ export function otEngagements(c: CustomerProfile, tenantId: string): OtEngagemen
       safetyCase: { ref: `SC-${site.prefix}-PT-${r.int(10, 99)}`, status: approved ? 'Approved' : e.phase === 1 ? 'In review' : 'Draft' },
       approvers,
       changeWindow: e.status === 'Complete' ? 'Closed' : passive ? `Continuous passive capture · next review in ${winDay} d` : `In ${winDay} d, 01:00–05:00 local (${windowNote})`,
+      // Kestrel's change references carry its own prefix; everyone else (incl. Starfall, templated on media) uses CHG numbers.
       changeRef: c.id === 'media' ? `KPG-CHG-${r.int(1000, 9999)}` : `CHG${r.int(1000000, 9999999)}`,
-      stopConditions: [...STOP_COMMON, ...STOP_SECTOR[c.id]],
+      stopConditions: [...STOP_COMMON, ...forCustomer(STOP_SECTOR, c)],
       humanOnLoop: `${hotl[0]} (${hotl[1]})`,
       lead: `${TESTERS[i % TESTERS.length]} · HexaShield OT`,
       standards: e.standards,
@@ -953,7 +1378,7 @@ export function otTestFindings(c: CustomerProfile, tenantId: string): OtTestFind
   const owner = c.people.otLead?.name ?? c.people.ciso.name;
   const out: OtTestFinding[] = [];
   for (const eng of engs) {
-    const seed = ENG_SEEDS[c.id].find((s) => s.name === eng.name);
+    const seed = forCustomer(ENG_SEEDS, c).find((s) => s.name === eng.name);
     if (!seed) continue;
     const r = rng(`ot-ptf-${eng.id}`);
     seed.findings.forEach(([cat, sev, title, zone], k) => {
@@ -983,6 +1408,10 @@ export interface SectorWords {
   team: string;
   belowLine: string;
   levels: Record<PurdueLevel, { name: string; desc: string }>;
+  /** Hint on the Safety KPI (what failure of a safety-critical asset means). */
+  safetyHint?: string;
+  /** Requirements the risk-acceptance evidence is filed against. */
+  patchEvidence?: string;
 }
 
 const DEFAULT_LEVELS: Record<PurdueLevel, { name: string; desc: string }> = {
@@ -994,11 +1423,12 @@ const DEFAULT_LEVELS: Record<PurdueLevel, { name: string; desc: string }> = {
   L0: { name: 'Process', desc: 'Instruments on the line itself' },
 };
 
-export const SECTOR: Record<CustomerId, SectorWords> = {
+export const SECTOR: CustomerMap<SectorWords> = {
   maritime: {
     sitesHint: 'terminals & fleet', net: 'control network', dev: 'controller', team: 'terminal engineering',
     belowLine: 'Below this line is the control network — assets here move cranes, vehicles and vessels',
     levels: { ...DEFAULT_LEVELS, L4: { name: 'Enterprise & TOS', desc: 'Terminal operating system and corporate IT that reach into the terminal' }, L3: { name: 'Site operations', desc: 'Historians, engineering stations, AGV fleet control, VDR' }, L2: { name: 'Supervisory control', desc: 'Crane HMIs, gate lanes, reefer gateways, bridge and cargo stations' }, L1: { name: 'Basic control', desc: 'Crane PLCs, drives, AGV, RTU and engine controllers' }, L0: { name: 'Process', desc: 'Field I/O, protection relays and navigation sensors' } },
+    patchEvidence: 'IEC 62443-2-3 and IACS UR E26',
   },
   finserv: {
     sitesHint: 'DCs, offices, ATMs', net: 'facilities network', dev: 'controller', team: 'DC facilities',
@@ -1014,11 +1444,46 @@ export const SECTOR: Record<CustomerId, SectorWords> = {
     sitesHint: '5 hospitals, imaging, lab', net: 'device network', dev: 'medical device', team: 'Clinical Engineering (biomed)',
     belowLine: 'Below this line devices are connected to patients — a change here can harm someone',
     levels: { L4: { name: 'Clinical IT', desc: 'Epic and the integration engines that reach into device networks' }, 'L3.5': { name: 'Medical device DMZ', desc: 'Biomed jump hosts and collectors every connection should pass through' }, L3: { name: 'Clinical device servers', desc: 'Pump, monitoring, PACS, lab and nurse-call servers' }, L2: { name: 'Supervisory & building', desc: 'Modality consoles, dispensing cabinets, BMS and nurse-call stations' }, L1: { name: 'Patient-connected devices', desc: 'Infusion pumps, monitors, ventilators, scanners and analysers' }, L0: { name: 'Bedside sensors', desc: 'Telemetry transmitters, smart beds and fridge sensors' } },
+    safetyHint: 'failure can harm a patient',
   },
   automotive: {
     sitesHint: 'plant halls & shops', net: 'line network', dev: 'controller', team: 'plant maintenance',
     belowLine: 'Below this line is the line network — assets here move presses, robots and conveyors',
     levels: { L4: { name: 'Enterprise IT', desc: 'SAP, PLM and MES interfaces that reach into the plants' }, 'L3.5': { name: 'Plant DMZ', desc: 'Jump hosts and collectors every crossing into the line should pass through' }, L3: { name: 'Line operations', desc: 'MES, SCADA, engineering stations and end-of-line benches' }, L2: { name: 'Supervisory control', desc: 'HMIs, torque controllers, vision, paint and dry-room control' }, L1: { name: 'Basic control', desc: 'Safety PLCs, robots, conveyors, AGVs and formation racks' }, L0: { name: 'Process', desc: 'Drives and remote I/O on the line' } },
+  },
+  insurance: {
+    sitesHint: 'data centres & print plant', net: 'facilities network', dev: 'controller', team: 'data centre facilities',
+    belowLine: 'Below this line is the facilities control network — assets here keep the data halls powered and cooled and the policy mail moving',
+    levels: { L4: { name: 'Corporate IT', desc: 'DCIM and corporate systems that reach into facilities' }, 'L3.5': { name: 'Facilities DMZ', desc: 'Jump hosts and collectors every facilities connection should pass through' }, L3: { name: 'Facilities & print operations', desc: 'BMS, access control, video and print workflow servers' }, L2: { name: 'Supervisory', desc: 'BMS controllers, power gateways, presses and inserters' }, L1: { name: 'Basic control', desc: 'UPS, CRAC, generators, fire suppression and door controllers' }, L0: { name: 'Sensors & PDUs', desc: 'Environmental sensors, rack power and cameras' } },
+    patchEvidence: 'IEC 62443-2-3 and NYDFS 500.7 / 500.16',
+  },
+  defence: {
+    sitesHint: 'machine shop & test range', net: 'shop-floor network', dev: 'controller', team: 'manufacturing engineering',
+    belowLine: 'Below this line are the machines and test benches — a change here alters flight hardware or the tests that qualify it',
+    levels: { L4: { name: 'Enterprise IT', desc: 'Teamcenter PLM and engineering systems that reach onto the shop floor' }, 'L3.5': { name: 'Shop-floor DMZ', desc: 'Jump hosts and collectors every crossing into machines and benches should pass through' }, L3: { name: 'Shop & test operations', desc: 'DNC server, CMM stations, historian and test data servers' }, L2: { name: 'Supervisory', desc: 'ATE benches, heat-treat HMI and building controllers' }, L1: { name: 'Machine & test control', desc: 'CNC controls, CMMs, furnace, chambers, shaker and telemetry' }, L0: { name: 'Instrumentation', desc: 'Machine I/O, probes and test instrumentation' } },
+    safetyHint: 'failure risks people or flight hardware',
+    patchEvidence: 'IEC 62443-2-3 and NIST SP 800-171 3.14.1 (flaw remediation)',
+  },
+  pharma: {
+    sitesHint: 'API, biologics & fill-finish', net: 'process control network', dev: 'controller', team: 'automation engineering',
+    belowLine: 'Below this line is the GMP process — a change here can lose a batch or put a medicine out of specification',
+    levels: { L4: { name: 'Enterprise IT', desc: 'SAP S/4HANA and the interfaces that send orders into the plants' }, 'L3.5': { name: 'Plant DMZ', desc: 'Jump hosts, collectors and the AF-2 data diode' }, L3: { name: 'Manufacturing operations', desc: 'PAS-X MES, PI historian, DCS engineering, EMS and LIMS gateways' }, L2: { name: 'Supervisory control', desc: 'DCS operator stations, MES terminals, cleanroom HVAC and serialisation' }, L1: { name: 'Basic control', desc: 'Bioreactors, reactors, isolators, lyophilisers, CIP/SIP skids' }, L0: { name: 'Process', desc: 'Field instruments, cleanroom sensors and remote I/O' } },
+    safetyHint: 'failure risks people or product quality',
+    patchEvidence: 'IEC 62443-2-3 and EU GMP Annex 11 change control',
+  },
+  sghospital: {
+    sitesHint: 'hospital, specialist, day surgery, lab', net: 'device network', dev: 'medical device', team: 'Biomedical Engineering',
+    belowLine: 'Below this line devices are connected to patients — a change here can harm someone',
+    levels: { L4: { name: 'Clinical IT', desc: 'TrakCare and the HealthShare interfaces that reach into device networks' }, 'L3.5': { name: 'Medical device DMZ', desc: 'Biomed jump hosts and collectors every connection should pass through' }, L3: { name: 'Clinical device servers', desc: 'Pump, monitoring, PACS, LIS, oncology and nurse-call servers' }, L2: { name: 'Supervisory & building', desc: 'Imaging consoles, theatre BMS, tube system and nurse-call stations' }, L1: { name: 'Patient-connected devices', desc: 'Pumps, monitors, ventilators, scanners, linacs and analysers' }, L0: { name: 'Bedside sensors', desc: 'Telemetry transmitters and cold-chain sensors' } },
+    safetyHint: 'failure can harm a patient',
+    patchEvidence: 'IEC 62443-2-3 and HSA GL-04 (post-market cybersecurity)',
+  },
+  studio: {
+    sitesHint: 'parks, water park & resorts', net: 'ride & show network', dev: 'controller', team: 'ride & show engineering',
+    belowLine: 'Below this line are rides and shows — a change here moves vehicles and effects with guests nearby',
+    levels: { L4: { name: 'Park IT', desc: 'Ticketing and corporate systems that reach into the parks' }, 'L3.5': { name: 'Ride & show DMZ', desc: 'Jump hosts and collectors every crossing into rides and shows should pass through' }, L3: { name: 'Ride & show operations', desc: 'Ride engineering, ride monitoring, show control and media servers' }, L2: { name: 'Supervisory', desc: 'Ride HMIs, animatronics, gates, BMS and the live events router' }, L1: { name: 'Ride & effects control', desc: 'Safety-rated ride PLCs, pump drives, fire panels and pyro' }, L0: { name: 'Field devices', desc: 'Ride sensors, safety I/O, fixtures and room controls' } },
+    safetyHint: 'failure can injure guests or cast',
+    patchEvidence: 'IEC 62443-2-3 and ASTM F2291 ride change control',
   },
 };
 
@@ -1026,13 +1491,13 @@ export const LEVEL_NUM: Record<PurdueLevel, string> = { L4: '5–4', 'L3.5': '3.
 
 /** Minutes since the last signed bundle arrived from an air-gapped site (0 if none). */
 export function bundleAgeMin(c: CustomerProfile): number {
-  const site = SITES[c.id].find((s) => s.airGapped);
+  const site = forCustomer(SITES, c).find((s) => s.airGapped);
   if (!site) return 0;
   return c.connectors.find((k) => k.id === site.sourceConnector)?.lastSyncMin ?? (site.bundleHours ?? 6) * 60;
 }
 
 export function airGappedSite(c: CustomerProfile): OtSite | undefined {
-  return SITES[c.id].find((s) => s.airGapped);
+  return forCustomer(SITES, c).find((s) => s.airGapped);
 }
 
 export interface OtBundle { id: string; importedMinAgo: number; sizeMb: number; events: number; alerts: number; sha256: string; signer: string; verified: boolean }
@@ -1069,11 +1534,11 @@ export function otSensors(c: CustomerProfile, tenantId: string): OtSensor[] {
   const out: OtSensor[] = [];
   let flagged = false;
   sc.sites.forEach((s, si) => {
-    const zones = [...new Set(TYPES[c.id].filter((t) => t.kinds.includes(s.kind) && t.level !== 'L4' && t.level !== 'L3.5').map((t) => t.zone))];
+    const zones = [...new Set(forCustomer(TYPES, c).filter((t) => t.kinds.includes(s.kind) && t.level !== 'L4' && t.level !== 'L3.5').map((t) => t.zone))];
     const conn = c.connectors.find((k) => k.id === s.sourceConnector);
     for (let i = 0; i < counts[si]; i++) {
       const collector = i > 0 && r.chance(0.3);
-      const model = /Claroty/.test(s.source) ? (collector ? 'Claroty xDome collector' : 'Claroty xDome sensor') : /Armis/.test(s.source) ? (collector ? 'Armis collector' : 'Armis sensor appliance') : s.kind === 'vessel' ? 'HexaOT edge (vessel)' : collector ? 'HexaOT remote collector' : 'HexaOT Sensor S1';
+      const model = /Claroty/.test(s.source) ? (collector ? 'Claroty xDome collector' : 'Claroty xDome sensor') : /Armis/.test(s.source) ? (collector ? 'Armis collector' : 'Armis sensor appliance') : /Dragos/.test(s.source) ? (collector ? 'Dragos SiteStore collector' : 'Dragos sensor') : s.kind === 'vessel' ? 'HexaOT edge (vessel)' : collector ? 'HexaOT remote collector' : 'HexaOT Sensor S1';
       let health: OtSensor['health'] = 'Good';
       let lastSync = r.int(0, 2);
       let note: string | undefined;
@@ -1081,7 +1546,7 @@ export function otSensors(c: CustomerProfile, tenantId: string): OtSensor[] {
       if (s.airGapped) {
         lastSync = bundleAgeMin(c);
         note = `Air-gapped: reports by signed bundle every ${s.bundleHours ?? 6} h`;
-      } else if (conn && conn.status !== 'healthy' && i === 0 && (s.id === 'mar' || c.id !== 'healthcare')) {
+      } else if (conn && conn.status !== 'healthy' && i === 0 && (c.id !== 'healthcare' || s.id === 'mar')) {
         health = 'Attention';
         lastSync = conn.lastSyncMin;
         note = conn.note ?? 'Feed delayed';
@@ -1089,7 +1554,7 @@ export function otSensors(c: CustomerProfile, tenantId: string): OtSensor[] {
         health = 'Attention';
         lastSync = r.int(190, 600);
         note = 'Vessel out of LEO coverage · store and forward';
-      } else if (!flagged && si === Math.min(1, sc.sites.length - 1) && i === counts[si] - 1 && (c.id === 'media' || c.id === 'finserv' || c.id === 'maritime')) {
+      } else if (!flagged && si === Math.min(1, sc.sites.length - 1) && i === counts[si] - 1 && (c.dataKey === 'media' || c.dataKey === 'finserv' || c.dataKey === 'maritime' || c.id === 'defence')) {
         flagged = true;
         health = 'Attention';
         lastSync = r.int(180, 300);
@@ -1127,7 +1592,7 @@ export function trackedAssets(c: CustomerProfile, tenantId: string): TrackedAsse
   const all = otAssets(c, tenantId);
   const r = rng(`ot-tracked-${c.id}-${tenantId}`);
   const totalW = sc.sites.reduce((s, x) => s + x.weight, 0) || 1;
-  const patchOf = new Map(VULN_MAP[c.id].map((v) => [v.type, v.patch] as const));
+  const patchOf = new Map(forCustomer(VULN_MAP, c).map((v) => [v.type, v.patch] as const));
   const out: TrackedAsset[] = [];
   for (const site of sc.sites) {
     const k = Math.max(4, Math.round((36 * site.weight) / totalW));
@@ -1282,7 +1747,7 @@ export function otCrossings(c: CustomerProfile, tenantId: string): OtCrossing[] 
   const ctl = assets.filter((a) => a.level === 'L1' && a.siteId === first.id);
   if (ctl.length) {
     const a = ctl[r.int(0, ctl.length - 1)];
-    out.push({ id: `X-${out.length + 1}`, src: { name: a.name, ip: a.ip, zone: a.zone, level: a.level, role: a.type }, dst: { name: 'Vendor update service', ip: `198.51.100.${r.int(10, 200)}`, zone: 'Public internet', level: 'Internet', role: 'Outside the estate' }, protocol: 'HTTPS', site: first.name, expected: false, note: `A ${SECTOR[c.id].dev} reaching out to its vendor for updates — outbound, blocked at the firewall, still trying`, alerts: r.int(6, 20), lastSeenMin: r.int(30, 400) });
+    out.push({ id: `X-${out.length + 1}`, src: { name: a.name, ip: a.ip, zone: a.zone, level: a.level, role: a.type }, dst: { name: 'Vendor update service', ip: `198.51.100.${r.int(10, 200)}`, zone: 'Public internet', level: 'Internet', role: 'Outside the estate' }, protocol: 'HTTPS', site: first.name, expected: false, note: `A ${forCustomer(SECTOR, c).dev} reaching out to its vendor for updates — outbound, blocked at the firewall, still trying`, alerts: r.int(6, 20), lastSeenMin: r.int(30, 400) });
   }
   return out.sort((a, b) => Number(a.expected) - Number(b.expected) || b.alerts - a.alerts);
 }
@@ -1308,7 +1773,7 @@ const PROTO_META: Record<string, [OtProtocol['kind'], string, boolean]> = {
   'Ember+': ['Broadcast', 'Control of routers, mixers and intercom', false],
   'PTP (IEEE 1588)': ['Broadcast', 'Precision timing for the media fabric', false],
   'Art-Net / sACN': ['Broadcast', 'Lighting control universes', false],
-  'HL7 v2': ['Medical', 'Orders, results and vitals between devices and Epic', false],
+  'HL7 v2': ['Medical', 'Orders, results and vitals between devices and the EHR', false],
   FHIR: ['Medical', 'Modern clinical data API', true],
   DICOM: ['Medical', 'Imaging studies between modalities and PACS', false],
   'IEEE 11073': ['Medical', 'Point-of-care device data (monitors)', false],
@@ -1328,6 +1793,15 @@ const PROTO_META: Record<string, [OtProtocol['kind'], string, boolean]> = {
   NTP: ['General purpose', 'Clock sync across the control network', false],
   Telnet: ['General purpose', 'Legacy console access on older switches', false],
   FTP: ['General purpose', 'Firmware and recipe transfer to panels', false],
+  MTConnect: ['Industrial', 'Machine-tool status and spindle data from CNC controls', false],
+  'DNC serial-over-IP': ['Industrial', 'NC programme transfer between the DNC server and machine controls', false],
+  'LXI / VISA': ['Industrial', 'Instrument control on test benches and chambers', false],
+  'IRIG 106 telemetry': ['Industrial', 'Range telemetry from units under test', false],
+  'OPC DA (DCOM)': ['Industrial', 'Legacy DCS and historian data collection over DCOM', false],
+  'PROFINET / PROFIsafe': ['Industrial', 'Safety-rated I/O between ride controllers and sensors', false],
+  EtherCAT: ['Industrial', 'Motion control for animatronic figures', false],
+  'Proprietary firing protocol': ['Industrial', 'Pyrotechnic cue arming and firing', false],
+  'IPP / JDF (print)': ['General purpose', 'Print job submission and job tickets for production presses', false],
 };
 
 export function otProtocols(c: CustomerProfile, tenantId: string): OtProtocol[] {
@@ -1375,10 +1849,11 @@ const WHY: Record<string, string> = {
   T0832: 'What operators see no longer matches what is happening.',
   T0847: 'Removable media reached a station outside the media procedure.',
   T0888: 'Housekeeping traffic, recorded for context.',
+  T0872: 'The record of what happened on the process was switched off or altered; under GMP the batch cannot be released until the gap is explained.',
 };
 const RELATED: Record<string, string[]> = {
   T0843: ['T0843', 'T0821'], T0821: ['T0821', 'T0843'], T0886: ['T0886', 'T0866'], T0846: ['T0846', 'T0888'], T0859: ['T0859', 'T0866'],
-  T0883: ['T0883'], T0855: ['T0855', 'T0831'], T0836: ['T0836', 'T0831'], T0882: ['T0882'], T0816: ['T0816', 'T0826'], T0832: ['T0832'], T0847: ['T0847'], T0888: [],
+  T0883: ['T0883'], T0855: ['T0855', 'T0831'], T0836: ['T0836', 'T0831'], T0882: ['T0882'], T0816: ['T0816', 'T0826'], T0832: ['T0832'], T0847: ['T0847'], T0888: [], T0872: ['T0872', 'T0836'],
 };
 
 type GenEnd = PurdueLevel | 'vendor' | 'unknown' | 'office';
@@ -1413,6 +1888,7 @@ function humanWhat(tech: string, w: SectorWords, role: string): string {
     case 'T0816': return 'Correlated with the maintenance ticket raised shortly after; kept for the shift report.';
     case 'T0832': return 'The bridge team was informed and cross-checked position with radar and visual fixes.';
     case 'T0847': return 'Media scanned at the kiosk afterwards; crew reminded of the procedure.';
+    case 'T0872': return `Quality assurance has placed the batch on hold; ${team} is reconstructing the gap from the historian and the system event log.`;
     default: return 'No action needed; recorded for context.';
   }
 }
@@ -1424,7 +1900,7 @@ export function otAlertLog(c: CustomerProfile, tenantId: string): OtAlertRow[] {
   if (hit) return hit;
   const sc = otScope(c, tenantId);
   if (!sc.hasOt) return [];
-  const w = SECTOR[c.id];
+  const w = forCustomer(SECTOR, c);
   const assets = otAssets(c, tenantId);
   const r = rng(`ot-alertlog-${c.id}-${tenantId}`);
   const kinds = new Set(sc.sites.map((s) => s.kind));
@@ -1452,7 +1928,7 @@ export function otAlertLog(c: CustomerProfile, tenantId: string): OtAlertRow[] {
     return { name: 'Vendor update service', ip: `198.51.100.${r.int(10, 200)}`, zone: 'Public internet', level: 'Internet', role: 'Outside the estate' };
   };
   // Sector seeds first (the alerts the story is about).
-  ALERT_SEEDS[c.id].filter((s) => kinds.has(s.kind)).forEach((s, i) => {
+  forCustomer(ALERT_SEEDS, c).filter((s) => kinds.has(s.kind)).forEach((s, i) => {
     const site = sc.sites.find((x) => x.kind === s.kind) ?? sc.sites[0];
     const si = sc.sites.indexOf(site);
     const dstA = assets.find((a) => a.siteId === site.id && a.name.includes(`-${s.asset}-`)) ?? anyIn(site.id, ['L1', 'L2']);
@@ -1531,12 +2007,13 @@ export function otWatching(c: CustomerProfile, tenantId: string): WatchItem[] {
   if (!sc.hasOt) return [];
   const assets = otAssets(c, tenantId);
   const flows = zoneFlows(c, tenantId);
-  const w = SECTOR[c.id];
+  const w = forCustomer(SECTOR, c);
   const r = rng(`ot-watch-${c.id}-${tenantId}`);
   const writers = assets.filter((a) => a.level === 'L1').length;
   const ews = assets.filter((a) => /Engineering workstation|jump host/i.test(a.type)).length;
   const vendor = flows.filter((f) => /Vendor/.test(f.from)).reduce((s, f) => s + f.value, 0);
-  const hc = c.id === 'healthcare';
+  // Patient-connected wording follows the sector words (pharma is templated on healthcare but has no patients on the wire).
+  const hc = w.dev === 'medical device';
   return [
     { id: 'unid', title: 'Assets we cannot identify', desc: 'Talking on the network, but their traffic alone does not say what they are. Each one is a gap in the inventory.', n: Math.max(3, Math.round(assets.length * 0.011)), level: 'Attention', to: '/ot/network?zone=Unzoned' },
     { id: 'inet', title: `Attempted connections from the ${w.net} to the internet`, desc: 'All blocked at the site firewall. Every one is a device configured to reach out, which is worth turning off at the source.', n: r.int(6, 22), level: 'Attention', to: '/ot/network?expected=no' },

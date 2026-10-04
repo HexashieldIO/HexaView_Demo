@@ -52,7 +52,7 @@ function save(key: string, v: string) {
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [customerId, setCustomerIdRaw] = useState<CustomerId>(() => load('customer', 'maritime', ['maritime', 'finserv', 'media', 'healthcare', 'automotive'] as const));
+  const [customerId, setCustomerIdRaw] = useState<CustomerId>(() => load<CustomerId>('customer', 'maritime', Object.keys(CUSTOMERS) as CustomerId[]));
   const [tenantId, setTenantId] = useState('all');
   const [persona, setPersonaRaw] = useState<Persona>(() => load('persona', 'master', ['master', 'executive', 'ciso', 'finance', 'socmanager', 'analyst', 'threat', 'grc', 'risk', 'privacy', 'ot', 'cloud', 'admin'] as const));
   const [timeRange, setTimeRange] = useState<TimeRange>('24h');

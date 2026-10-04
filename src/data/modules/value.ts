@@ -1,9 +1,10 @@
-import type { CustomerId, CustomerProfile, ServiceId } from '../types';
+import type { CustomerProfile, ServiceId } from '../types';
 import { rng } from '../../lib/rng';
 import { NOW } from '../../lib/format';
 import { headlines } from '../core';
 import { tenantShare, scopedTenants } from '../customers';
 import { toolScores } from './ops';
+import { forCustomer, type CustomerMap } from '../customerMap';
 
 /* =====================================================================
    Value & Outcomes: what HexaView and HexaShield services delivered against
@@ -43,11 +44,17 @@ export interface ValueAssumptions {
   marketPremiumPct: number;
 }
 
-const HOURLY: Record<CustomerId, number> = { maritime: 92, finserv: 84, media: 96, healthcare: 88, automotive: 86 };
-const MARKET: Record<CustomerId, number> = { maritime: 3, finserv: 1, media: 9, healthcare: 11, automotive: 4 };
+const HOURLY: CustomerMap<number> = {
+  maritime: 92, finserv: 84, media: 96, healthcare: 88, automotive: 86,
+  insurance: 88, defence: 97, pharma: 132, sghospital: 94, studio: 104,
+};
+const MARKET: CustomerMap<number> = {
+  maritime: 3, finserv: 1, media: 9, healthcare: 11, automotive: 4,
+  insurance: 2, defence: 9, pharma: 4, sghospital: 12, studio: 8,
+};
 
 export function defaultAssumptions(c: CustomerProfile): ValueAssumptions {
-  return { hourly: HOURLY[c.id], minPerAlert: 2, minPerAgentAction: 3, hoursPerQuestionnaire: 14, hoursPerEvidence: 1.5, realisation: 45, marketPremiumPct: MARKET[c.id] };
+  return { hourly: forCustomer(HOURLY, c), minPerAlert: 2, minPerAgentAction: 3, hoursPerQuestionnaire: 14, hoursPerEvidence: 1.5, realisation: 45, marketPremiumPct: forCustomer(MARKET, c) };
 }
 
 export const ASSUMPTION_META: { key: keyof ValueAssumptions; label: string; unit: string; step: number; min: number; max: number; money?: boolean; hint: string }[] = [
@@ -61,7 +68,10 @@ export const ASSUMPTION_META: { key: keyof ValueAssumptions; label: string; unit
 ];
 
 /* Annual contract cost (HexaView licence + HexaShield services), customer currency. */
-const CONTRACT: Record<CustomerId, number> = { maritime: 1_840_000, finserv: 3_350_000, media: 1_120_000, healthcare: 2_580_000, automotive: 6_150_000 };
+const CONTRACT: CustomerMap<number> = {
+  maritime: 1_840_000, finserv: 3_350_000, media: 1_120_000, healthcare: 2_580_000, automotive: 6_150_000,
+  insurance: 1_560_000, defence: 690_000, pharma: 5_400_000, sghospital: 1_180_000, studio: 7_900_000,
+};
 const COST_SPLIT: { label: string; cap: CapKey; w: number }[] = [
   { label: 'HexaView platform licence', cap: 'view', w: 0.22 },
   { label: 'HexaSOC 24/7 MDR & IR retainer', cap: 'soc', w: 0.34 },
@@ -85,12 +95,41 @@ interface SectorK {
   atoCost: number;
   exposureDayCost: number;
 }
-const K: Record<CustomerId, SectorK> = {
+const K: CustomerMap<SectorK> = {
   maritime: { elReduction: 0.34, incidentsPerOpen: 29, questionnaires: 48, otDowntimeHours: 41, otHourCost: 24_000, custodyEvents: 6, custodyEventValue: 38_000, atoCost: 72_000, exposureDayCost: 420 },
   finserv: { elReduction: 0.31, incidentsPerOpen: 33, questionnaires: 164, otDowntimeHours: 6, otHourCost: 210_000, custodyEvents: 14, custodyEventValue: 64_000, atoCost: 118_000, exposureDayCost: 610 },
   media: { elReduction: 0.37, incidentsPerOpen: 27, questionnaires: 71, otDowntimeHours: 9, otHourCost: 85_000, custodyEvents: 23, custodyEventValue: 96_000, atoCost: 54_000, exposureDayCost: 380 },
   healthcare: { elReduction: 0.33, incidentsPerOpen: 30, questionnaires: 58, otDowntimeHours: 28, otHourCost: 36_000, custodyEvents: 5, custodyEventValue: 52_000, atoCost: 96_000, exposureDayCost: 470 },
   automotive: { elReduction: 0.32, incidentsPerOpen: 31, questionnaires: 132, otDowntimeHours: 19, otHourCost: 138_000, custodyEvents: 17, custodyEventValue: 88_000, atoCost: 101_000, exposureDayCost: 560 },
+  // Data-centre and print-plant downtime is cheap next to claims and quote-and-bind outages; ATO on agent and policyholder portals is costly.
+  insurance: { elReduction: 0.32, incidentsPerOpen: 32, questionnaires: 96, otDowntimeHours: 7, otHourCost: 64_000, custodyEvents: 9, custodyEventValue: 71_000, atoCost: 104_000, exposureDayCost: 540 },
+  // Building 3 line stops delay prime deliveries; each contained CUI/ITAR custody event avoids a DFARS 7012 report and a DDTC disclosure.
+  defence: { elReduction: 0.3, incidentsPerOpen: 28, questionnaires: 74, otDowntimeHours: 22, otHourCost: 38_000, custodyEvents: 12, custodyEventValue: 118_000, atoCost: 86_000, exposureDayCost: 470 },
+  // Valais and Cork batch losses dominate; trial data and dossier custody events carry high value at risk (CHF).
+  pharma: { elReduction: 0.33, incidentsPerOpen: 31, questionnaires: 142, otDowntimeHours: 16, otHourCost: 210_000, custodyEvents: 19, custodyEventValue: 164_000, atoCost: 112_000, exposureDayCost: 620 },
+  // Medical-device and theatre BMS downtime diverts patients; patient record and imaging custody events avoid PDPC and MOH notifications (SGD).
+  sghospital: { elReduction: 0.31, incidentsPerOpen: 29, questionnaires: 46, otDowntimeHours: 24, otHourCost: 31_000, custodyEvents: 6, custodyEventValue: 58_000, atoCost: 74_000, exposureDayCost: 410 },
+  // Ride and show downtime at Orlando and Osaka is expensive; pre-release leak events carry box-office value at risk.
+  studio: { elReduction: 0.37, incidentsPerOpen: 27, questionnaires: 118, otDowntimeHours: 14, otHourCost: 120_000, custodyEvents: 31, custodyEventValue: 142_000, atoCost: 61_000, exposureDayCost: 450 },
+};
+
+/** Share of the CRQ loss reduction credited to HexaCustody: higher where custody is the crown jewel. */
+const CUSTODY_LOSS_SHARE: CustomerMap<number> = {
+  maritime: 0.08, finserv: 0.08, media: 0.12, healthcare: 0.08, automotive: 0.08,
+  insurance: 0.08, defence: 0.11, pharma: 0.12, sghospital: 0.09, studio: 0.13,
+};
+/** What HexaCustody's contained events protected, in the customer's own terms. */
+const CUSTODY_VALUE_LABEL: CustomerMap<string> = {
+  maritime: 'Sensitive data custody enforced',
+  finserv: 'Sensitive data custody enforced',
+  media: 'Pre-release leaks prevented',
+  healthcare: 'Sensitive data custody enforced',
+  automotive: 'Design IP and OTA lineage protected',
+  insurance: 'Claims files and policyholder data custody enforced',
+  defence: 'CUI and ITAR technical data custody enforced',
+  pharma: 'Trial data, dossiers and process IP protected',
+  sghospital: 'Patient record and imaging custody enforced',
+  studio: 'Pre-release leaks prevented',
 };
 
 export interface ValueLine {
@@ -168,7 +207,7 @@ function quarterLabels(n: number): string[] {
   return out;
 }
 
-const STORIES: Record<CustomerId, Omit<Story, 'value'>[]> = {
+const STORIES: CustomerMap<Omit<Story, 'value'>[]> = {
   maritime: [
     { id: 'st-1', title: 'Ransomware precursor contained in 14 min at Maasvlakte', body: 'Cobalt Strike beacon on RTM-GATE-SRV02 isolated by HexaSOC before encryption; gate kept running.', cap: 'soc', metric: '14 min to contain', daysAgo: 23, tenantId: 'rtm', to: '/soc/ir', source: 'HexaSOC case · Defender XDR' },
     { id: 'st-2', title: 'Port Klang TOS restored in 31 h against a 72 h estimate', body: 'MI-2026-031 run from the HexaView war room: immutable restore, conduit closed in 17 min, cranes never stopped.', cap: 'view', metric: '41 h of berth time saved', daysAgo: 1, tenantId: 'pkl', to: '/ops/warroom', source: 'War room MI-2026-031 · Veeam' },
@@ -209,18 +248,63 @@ const STORIES: Record<CustomerId, Omit<Story, 'value'>[]> = {
     { id: 'st-5', title: 'Ransomware precursor contained in 14 min at Győr', body: 'Rubrik anomaly and Defender XDR beacon correlated; plant IT isolated before MES encryption.', cap: 'soc', metric: '14 min to contain', daysAgo: 33, tenantId: 'gyor', to: '/soc/ir', source: 'HexaSOC · Rubrik · Defender XDR' },
     { id: 'st-6', title: 'Design IP exfiltration attempt blocked on pre-launch models', body: 'HexaCustody flagged a bulk export of CAD data to a personal cloud; access revoked.', cap: 'custody', metric: 'Pre-launch IP protected', daysAgo: 71, tenantId: 'group', to: '/custody/telemetry', source: 'HexaCustody · Zscaler' },
   ],
+  insurance: [
+    { id: 'st-1', title: 'Help-desk MFA reset fraud stopped before ClaimCenter access', body: 'Scattered Spider-style caller posing as a Charlotte adjuster; the new device was revoked in Okta and Entra ID in one approved action.', cap: 'soc', metric: '9 min to contain', daysAgo: 18, tenantId: 'claims', to: '/soc/ir', source: 'HexaSOC · Okta · Entra ID' },
+    { id: 'st-2', title: 'Fake body-shop disbursement of $1.4M held before release', body: 'Abnormal flagged a compromised repair-vendor mailbox changing bank details; the One Inc payment was held and SIU opened a case.', cap: 'soc', metric: '$1.4M disbursement held', daysAgo: 33, tenantId: 'claims', to: '/soc/ir', source: 'HexaSOC · Abnormal · One Inc' },
+    { id: 'st-3', title: '131 exposed agent and employee credentials reset', body: 'Stealer-log hits from independent agency PCs matched to federated AgentHub accounts; sessions cleared and passwords reset within a day.', cap: 'int', metric: '131 accounts protected', daysAgo: 10, tenantId: 'all', to: '/int/exposure', source: 'HexaInt · Okta · Entra ID' },
+    { id: 'st-4', title: 'NYDFS 500.17 certification evidence assembled in 6 days', body: 'Controls, the CISO report to the Board (500.4) and remediation status cited to live evidence for the April certification.', cap: 'comply', metric: '5 weeks faster', daysAgo: 62, tenantId: 'all', to: '/comply/caas', source: 'HexaComply · NYDFS 500 pack' },
+    { id: 'st-5', title: 'Critical MFT flaw on KMI-MFT-01 closed ahead of a Cl0p campaign', body: 'HexaStrike finding patched, retested and turned into a Splunk ES detection in 5 days; reinsurer and TPA feeds kept running.', cap: 'strike', metric: 'Fixed in 5 days', daysAgo: 41, tenantId: 'group', to: '/strike/pentest', source: 'HexaStrike · Splunk ES' },
+    { id: 'st-6', title: 'Premium down 5% at renewal against a rising market', body: 'Insurer evidence pack built from attested controls for Marsh FINPRO; underwriters credited phishing-resistant MFA, EDR and tested Guidewire restores.', cap: 'view', metric: '7 pts below market', daysAgo: 300, tenantId: 'all', to: '/insurance/policy', source: 'Insurer evidence pack · Marsh FINPRO' },
+  ],
+  defence: [
+    { id: 'st-1', title: 'Living-off-the-land activity on the enclave edge contained in 12 min', body: 'Volt Typhoon-style tradecraft correlated across Defender XDR (GCC High) and Corelight; host isolated and the DIBNet report drafted inside the 72-hour window.', cap: 'soc', metric: '12 min to contain', daysAgo: 24, tenantId: 'programs', to: '/soc/ir', source: 'HexaSOC · Defender XDR · Corelight' },
+    { id: 'st-2', title: 'Out-of-window machine-tool vendor session blocked in Building 3', body: 'BeyondTrust session terminated before a programme download to the DNC server; the Haas cell stayed in production.', cap: 'ot', metric: 'Line stop avoided', daysAgo: 46, tenantId: 'manufacturing', to: '/ot/alerts', source: 'HexaOT · Armis · BeyondTrust' },
+    { id: 'st-3', title: 'TDP-2207 opened outside an authorised enclave, revoked in 4 min', body: 'HexaCustody saw the ITAR guidance-housing package opened on an unmanaged sub-tier workstation; access revoked and the Empowered Official notified.', cap: 'custody', metric: 'ITAR disclosure avoided', daysAgo: 15, tenantId: 'programs', to: '/custody/revocation', source: 'HexaCustody · PreVeil' },
+    { id: 'st-4', title: 'SPRS score raised from 88 to 104 ahead of the C3PAO assessment', body: 'POA&M items closed with cited evidence; SSP v4.2 control narratives linked to live loops for Redstone Cyber Assessors.', cap: 'comply', metric: '+16 SPRS points', daysAgo: 58, tenantId: 'all', to: '/comply/caas', source: 'HexaComply · CMMC L2 SSP & POA&M' },
+    { id: 'st-5', title: '38 exposed engineer and supplier-portal credentials reset', body: 'Stealer-log hits included Exostar accounts used for prime collaboration; FIPS YubiKeys re-enrolled the same day.', cap: 'int', metric: '38 accounts protected', daysAgo: 12, tenantId: 'all', to: '/int/exposure', source: 'HexaInt · Entra ID (GCC High)' },
+    { id: 'st-6', title: 'Export-controlled drawings kept out of an unsanctioned chatbot', body: 'Purview DSPM for AI caught CUI-labelled content pasted into ChatGPT; Zscaler block applied and engineers moved to the Azure Government pilot.', cap: 'ai', metric: '0 CUI disclosed', daysAgo: 37, tenantId: 'engineering', to: '/ai/agents', source: 'HexaAI · Purview DSPM for AI · Zscaler' },
+  ],
+  pharma: [
+    { id: 'st-1', title: 'RHN-4471 unblinding keys pulled back from a CRO mis-share', body: 'HexaCustody flagged RTSM randomisation lists sent to an unauthorised CRO mailbox; revoked in 6 minutes and blinding preserved.', cap: 'custody', metric: 'Trial integrity preserved', daysAgo: 19, tenantId: 'clinops', to: '/custody/revocation', source: 'HexaCustody · Medidata RTSM' },
+    { id: 'st-2', title: 'Ransomware precursor contained in 11 min at Valais', body: 'Beacon on a PAS-X MES terminal isolated by HexaSOC before electronic batch records were touched; batch release continued.', cap: 'soc', metric: '11 min to contain', daysAgo: 27, tenantId: 'valais', to: '/soc/ir', source: 'HexaSOC · CrowdStrike Falcon' },
+    { id: 'st-3', title: 'Unapproved DeltaV download caught on the bioreactor suite', body: 'Engineering-workstation change outside change control flagged by HexaOT; the QP held the 2,000 L batch until the recipe was verified.', cap: 'ot', metric: '1 biologics batch saved', daysAgo: 52, tenantId: 'valais', to: '/ot/alerts', source: 'HexaOT · DeltaV Event Chronicle' },
+    { id: 'st-4', title: 'Annex 11 and Part 11 inspection evidence assembled in 5 days', body: 'Audit trails, e-signature controls and periodic reviews cited to live evidence for the Swissmedic GMP inspection.', cap: 'comply', metric: '4 weeks faster', daysAgo: 74, tenantId: 'all', to: '/comply/caas', source: 'HexaComply · GxP Annex 11 pack' },
+    { id: 'st-5', title: '272 exposed researcher and CRO-portal credentials reset', body: 'Stealer-log hits across Basel, Cambridge MA and Dublin matched to Entra ID and Okta accounts and reset before use.', cap: 'int', metric: '272 accounts protected', daysAgo: 9, tenantId: 'all', to: '/int/exposure', source: 'HexaInt · Entra ID · Okta' },
+    { id: 'st-6', title: 'Trial data kept out of unsanctioned ChatGPT in clinical ops', body: 'Prompt DLP coached and blocked pastes of patient-level data; users moved to the sanctioned Copilot with GxP guardrails.', cap: 'ai', metric: '0 trial records exposed', daysAgo: 31, tenantId: 'clinops', to: '/ai/agents', source: 'HexaAI · prompt DLP' },
+  ],
+  sghospital: [
+    { id: 'st-1', title: 'Ransomware precursor contained in 13 min on a radiology workstation', body: 'LockBit-style beacon isolated by HexaSOC at Science Park; PACS and TrakCare unaffected and no diversion of A&E.', cap: 'soc', metric: '13 min to contain', daysAgo: 22, tenantId: 'labimg', to: '/soc/ir', source: 'HexaSOC · CrowdStrike Falcon' },
+    { id: 'st-2', title: 'Infusion pump server path from the guest network closed', body: 'HexaOT found a reachable route to the BD Alaris server; Biomedical Engineering re-segmented the VLAN within the week.', cap: 'ot', metric: 'Patient-safety risk closed', daysAgo: 49, tenantId: 'obh', to: '/ot/assets', source: 'HexaOT · Claroty xDome' },
+    { id: 'st-3', title: 'HIA cybersecurity requirements evidence ready six weeks early', body: 'HIA CS/DS and NEHR readiness controls cited to live evidence for the MOH licence review.', cap: 'comply', metric: '6 weeks faster', daysAgo: 66, tenantId: 'all', to: '/comply/caas', source: 'HexaComply · HIA & NEHR pack' },
+    { id: 'st-4', title: '68 exposed clinician credentials reset', body: 'Stealer-log hits for doctors, nurses and research staff reset before TrakCare or remote access use.', cap: 'int', metric: '68 accounts protected', daysAgo: 11, tenantId: 'all', to: '/int/exposure', source: 'HexaInt · Entra ID' },
+    { id: 'st-5', title: 'Second-opinion imaging studies pulled back from an unauthorised viewer', body: 'HexaCustody saw an overseas share opened beyond the named radiologist; access revoked and the PDPA assessment closed with no notification.', cap: 'custody', metric: 'PDPC notification avoided', daysAgo: 38, tenantId: 'labimg', to: '/custody/revocation', source: 'HexaCustody · PACS' },
+    { id: 'st-6', title: 'Premium rise held to 5% against a 12% market', body: 'Attested controls and modelled loss shared with Chubb via Marsh Singapore.', cap: 'view', metric: '7 pts below market', daysAgo: 220, tenantId: 'all', to: '/insurance/policy', source: 'Insurer evidence pack · Marsh Singapore' },
+  ],
+  studio: [
+    { id: 'st-1', title: 'Crown of Ash awards screener leak traced in 11 min', body: 'NexGuard forensic watermark matched an Indee screener link; every link for the title revoked before wider spread.', cap: 'custody', metric: 'Awards campaign protected', daysAgo: 14, tenantId: 'studios', to: '/custody/revocation', source: 'HexaCustody · NexGuard · Indee' },
+    { id: 'st-2', title: 'Lodestar VFX plates pulled back from a breached vendor', body: 'Vendor breach intake at Northlight Pixel to revocation in 38 minutes; 214 plates and turnovers secured.', cap: 'custody', metric: '214 assets secured', daysAgo: 47, tenantId: 'post', to: '/custody/vendors', source: 'HexaCustody vendor chain' },
+    { id: 'st-3', title: 'Help-desk social engineering stopped before Starfall+ admin access', body: 'Scattered Spider-style caller blocked at the MFA reset; the rogue device was revoked and AWS console sessions cleared.', cap: 'soc', metric: '8 min to contain', daysAgo: 21, tenantId: 'play', to: '/soc/ir', source: 'HexaSOC · Google SecOps' },
+    { id: 'st-4', title: 'Unscheduled show-control change caught before Orlando park opening', body: 'Dragos alert correlated with a missing work order; the attraction held until the ride and show logic was verified.', cap: 'ot', metric: 'Ride availability protected', daysAgo: 56, tenantId: 'parks', to: '/ot/alerts', source: 'HexaOT · Dragos' },
+    { id: 'st-5', title: '46 lookalike domains taken down before The Hollow Coast S3 launch', body: 'Phishing kits targeting Starfall+ subscribers and StarPass guests removed before launch marketing.', cap: 'int', metric: '46 takedowns', daysAgo: 25, tenantId: 'play', to: '/int/darkweb', source: 'HexaInt brand protection' },
+    { id: 'st-6', title: 'TPN and MPA evidence for 14 VFX and dubbing vendors in 4 days', body: 'Site, application and vendor evidence cited from live controls and custody proofs for the TPN+ re-assessment.', cap: 'comply', metric: '3 weeks faster', daysAgo: 72, tenantId: 'all', to: '/comply/caas', source: 'HexaComply · TPN pack' },
+  ],
 };
-const STORY_VALUE: Record<CustomerId, number[]> = {
+const STORY_VALUE: CustomerMap<number[]> = {
   maritime: [1_900_000, 2_400_000, 310_000, 650_000, 87_000, 140_000],
   finserv: [2_800_000, 1_100_000, 260_000, 900_000, 1_700_000, 410_000],
   media: [3_200_000, 480_000, 1_400_000, 120_000, 520_000, 160_000],
   healthcare: [2_600_000, 940_000, 380_000, 690_000, 210_000, 640_000],
   automotive: [4_100_000, 2_300_000, 1_600_000, 330_000, 3_800_000, 2_700_000],
+  insurance: [2_100_000, 1_400_000, 340_000, 260_000, 1_900_000, 185_500],
+  defence: [2_600_000, 1_200_000, 3_400_000, 480_000, 140_000, 900_000],
+  pharma: [6_800_000, 2_900_000, 3_800_000, 420_000, 610_000, 1_100_000],
+  sghospital: [1_900_000, 1_200_000, 380_000, 210_000, 640_000, 42_700],
+  studio: [12_000_000, 4_800_000, 2_600_000, 1_900_000, 620_000, 540_000],
 };
 
 export function valueModel(c: CustomerProfile, tenantId: string, a: ValueAssumptions): ValueModel {
   const h = headlines(c, tenantId);
-  const k = K[c.id];
+  const k = forCustomer(K, c);
   const share = tenantShare(c, tenantId);
   const r = rng(`value-${c.id}`);
   const rate = a.hourly;
@@ -228,7 +312,7 @@ export function valueModel(c: CustomerProfile, tenantId: string, a: ValueAssumpt
   const svcState = (s: ServiceId | null) => (s ? c.services[s] : 'active');
 
   /* ---------- cost ---------- */
-  const contract = CONTRACT[c.id] * share;
+  const contract = forCustomer(CONTRACT, c) * share;
   const costLines = COST_SPLIT.map((x) => ({ label: x.label, cap: x.cap, value: Math.round(contract * x.w), trial: svcState(VCAP_BY_ID[x.cap].service) === 'trial' }));
   const cost = costLines.reduce((s, x) => s + x.value, 0);
 
@@ -236,7 +320,7 @@ export function valueModel(c: CustomerProfile, tenantId: string, a: ValueAssumpt
   const elNow = h.insurance.expectedLossM * 1e6 * share;
   const elBefore = elNow / (1 - k.elReduction);
   const lossAvoided = elBefore - elNow;
-  const lossShare: Record<CapKey, number> = { soc: 0.38, int: 0.12, strike: 0.16, ot: 0.14, comply: 0.04, custody: c.id === 'media' ? 0.12 : 0.08, ai: 0.04, view: 0.04 };
+  const lossShare: Record<CapKey, number> = { soc: 0.38, int: 0.12, strike: 0.16, ot: 0.14, comply: 0.04, custody: forCustomer(CUSTODY_LOSS_SHARE, c), ai: 0.04, view: 0.04 };
   const lsum = Object.values(lossShare).reduce((s, v) => s + v, 0);
 
   /* ---------- hours ---------- */
@@ -295,7 +379,7 @@ export function valueModel(c: CustomerProfile, tenantId: string, a: ValueAssumpt
     { key: 'comply-audit', cap: 'comply', label: 'External audit and assessor days avoided', value: auditsSupported * 11 * auditDayRate, formula: `${auditsSupported} audits × 11 assessor and preparation days × day rate`, source: 'HexaComply audit packs · cited evidence', to: '/comply/caas' },
     { key: 'comply-tprm', cap: 'comply', label: 'Supplier assessments automated', value: vendorsAssessed * 5 * rate * real, hours: vendorsAssessed * 5, formula: `${vendorsAssessed} suppliers × 5 h × ${a.realisation}% × loaded rate`, source: 'HexaComply third-party risk', to: '/comply/tprm' },
     { key: 'comply-q', cap: 'comply', label: 'Questionnaires accelerated', value: qHours * rate * real, hours: qHours, formula: `${questionnaires} questionnaires × ${a.hoursPerQuestionnaire} h × 72% saved`, source: 'Trust Centre answer library', to: '/trust/questionnaires' },
-    { key: 'custody', cap: 'custody', label: c.id === 'media' ? 'Pre-release leaks prevented' : c.id === 'automotive' ? 'Design IP and OTA lineage protected' : 'Sensitive data custody enforced', value: custodyVal, formula: `${k.custodyEvents} contained events × value at risk${svcState('custody') === 'trial' ? ' × 40% (trial)' : ''}`, source: 'HexaCustody revocations and anomalies', to: '/custody/revocation' },
+    { key: 'custody', cap: 'custody', label: forCustomer(CUSTODY_VALUE_LABEL, c), value: custodyVal, formula: `${k.custodyEvents} contained events × value at risk${svcState('custody') === 'trial' ? ' × 40% (trial)' : ''}`, source: 'HexaCustody revocations and anomalies', to: '/custody/revocation' },
     { key: 'custody-loss', cap: 'custody', label: 'Data exfiltration risk reduced', value: L('custody'), formula: 'Share of CRQ loss reduction', source: 'Risk quantification (FAIR)', to: '/insurance/quantification' },
     { key: 'view-premium', cap: 'view', label: 'Insurance premium below market', value: premiumSaving, formula: `Premium × (market ${a.marketPremiumPct > 0 ? '+' : ''}${a.marketPremiumPct}% − ours ${premiumDeltaPct > 0 ? '+' : ''}${premiumDeltaPct}%)`, source: `Policy & renewal · ${c.insurance.broker}`, to: '/insurance/policy' },
     { key: 'view-tools', cap: 'view', label: 'Tool spend rationalised', value: toolSaving, formula: `${toolCount} tools to consolidate or replace (scorecard)`, source: 'Tool scorecard · contract register', to: '/ops/scorecard?reco=Consolidate,Replace' },
@@ -331,8 +415,8 @@ export function valueModel(c: CustomerProfile, tenantId: string, a: ValueAssumpt
 
   /* ---------- outcome stories ---------- */
   const tIds = scopedTenants(c, tenantId).map((t) => t.id);
-  const stories = STORIES[c.id]
-    .map((s, i) => ({ ...s, value: STORY_VALUE[c.id][i] }))
+  const stories = forCustomer(STORIES, c)
+    .map((s, i) => ({ ...s, value: forCustomer(STORY_VALUE, c)[i] }))
     .filter((s) => tenantId === 'all' || s.tenantId === 'all' || tIds.includes(s.tenantId));
 
   const net = total - cost;

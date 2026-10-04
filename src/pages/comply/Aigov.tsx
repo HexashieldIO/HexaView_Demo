@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties } from 'react';
+import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Bot, ExternalLink, UserCheck, CheckCircle2, Circle } from 'lucide-react';
 import { useApp, rangeDays, rangeLabel } from '../../state/AppContext';
@@ -14,6 +14,20 @@ import { fmtAgo, fmtNum, scoreTone } from '../../lib/format';
 import { rng } from '../../lib/rng';
 import { WriteBackModal, Field } from './parts';
 import './comply.css';
+import { forCustomer, type CustomerMap } from '../../data/customerMap';
+
+const AI_REGIME_NOTE: CustomerMap<ReactNode> = {
+  maritime: null,
+  finserv: null,
+  media: null,
+  healthcare: <><b>US health system.</b> The EU AI Act classes below are used as the risk taxonomy; the binding regimes are FDA software-as-a-medical-device rules, ONC HTI-1 transparency for predictive decision support in Epic, HIPAA for PHI in prompts, and state laws such as the Colorado AI Act.</>,
+  automotive: <><b>Vehicle AI.</b> In-car AI also falls under UNECE R155 (threat analysis for the vehicle type) and ISO/SAE 21434 TARA; manufacturing AI that acts as a machine safety component falls under the Machinery Regulation 2023/1230.</>,
+  insurance: <><b>US insurer.</b> The EU AI Act classes are used as the risk taxonomy; the binding expectations are the NAIC model bulletin on insurers' use of AI, NYDFS guidance on AI in underwriting and pricing, and state unfair-discrimination rules such as Colorado SB21-169.</>,
+  defence: <><b>Defence AI.</b> No CUI or ITAR data may reach a commercial AI service: Azure OpenAI runs only inside Azure Government, GitHub Copilot is blocked in the enclave, and DoD responsible-AI principles apply to anything delivered to a prime.</>,
+  pharma: <><b>Pharma AI.</b> The EU AI Act applies directly in the EU entities; AI used in GxP processes must also be validated under GAMP 5 and Annex 11, and trial data in prompts is special-category data under GDPR and revDSG.</>,
+  sghospital: <><b>Singapore hospital.</b> The EU AI Act classes are used as the risk taxonomy; the binding expectations are the MOH AI in Healthcare guidelines, HSA rules for AI in medical devices, and PDPA for patient data in prompts.</>,
+  studio: <><b>Studio AI.</b> Generative tools are governed by guild agreements on AI and digital replicas, the talent consent register, and state likeness laws; EU AI Act transparency applies to content released in the EU.</>,
+};
 
 const tone = MODULE_BY_ID.comply.tone;
 const CLASS_COLOR: Record<EuAiClass, string> = { Prohibited: 'var(--sev-critical)', High: 'var(--sev-high)', Limited: 'var(--sev-medium)', Minimal: 'var(--good)' };
@@ -78,16 +92,7 @@ export default function ComplyAigov() {
         <b>{c.name}</b> · {tenantName(c, tenantId)}: the AI management system (AIMS) for {h.ai.aiSystems} AI systems you build and buy, run in HexaComply towards ISO/IEC 42001 certification, with EU AI Act and NIST AI RMF obligations mapped once. Discovery, runtime enforcement, AI usage and ROI live in HexaAI Governance, and its runtime evidence flows in here automatically{' '}
         <button className="link" onClick={() => nav('/ai-governance/overview')}>open HexaAI Governance <ExternalLink size={11} /></button>
       </p>
-      {c.id === 'healthcare' && (
-        <Callout>
-          <b>US health system.</b> The EU AI Act classes below are used as the risk taxonomy; the binding regimes are FDA software-as-a-medical-device rules, ONC HTI-1 transparency for predictive decision support in Epic, HIPAA for PHI in prompts, and state laws such as the Colorado AI Act.
-        </Callout>
-      )}
-      {c.id === 'automotive' && (
-        <Callout>
-          <b>Vehicle AI.</b> In-car AI also falls under UNECE R155 (threat analysis for the vehicle type) and ISO/SAE 21434 TARA; manufacturing AI that acts as a machine safety component falls under the Machinery Regulation 2023/1230.
-        </Callout>
-      )}
+      {forCustomer(AI_REGIME_NOTE, c) && <Callout>{forCustomer(AI_REGIME_NOTE, c)}</Callout>}
 
       <KpiStrip
         toneColor={tone}

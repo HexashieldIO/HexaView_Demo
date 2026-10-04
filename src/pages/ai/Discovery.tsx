@@ -17,6 +17,7 @@ import { dayLabels, fmtCompact, fmtNum, hourLabels, scoreTone } from '../../lib/
 import { ChartLegend, SvgColumns } from '../reports/parts';
 import { AI_TONE, AI_STATUS_COLOR, AiStatusBadge, ApprovalModal } from './parts';
 import './ai.css';
+import { forCustomer } from '../../data/customerMap';
 
 type StatusFilter = 'all' | 'shadow' | 'sanctioned';
 interface AppList { title: string; sub: string; apps: AiApp[]; metric: 'users' | 'prompts' | 'dlp' }
@@ -49,7 +50,7 @@ export default function Discovery() {
   const dlp = apps.reduce((s, a) => s + a.dlpEvents, 0);
   const trend = dlpTrend(c, tenantId, days, dlp);
   const labels = days === 1 ? hourLabels(24) : dayLabels(trend.n);
-  const classes = AI_DATA_CLASSES[c.id];
+  const classes = forCustomer(AI_DATA_CLASSES, c);
   const byClass = classes.map((k) => ({ name: k.name, sensitive: k.sensitive, prompts: Math.round(external.reduce((s, a) => s + a.prompts * (a.dataClasses.find((x) => x.name === k.name)?.share ?? 0), 0)) }));
   const identity = c.connectors.filter((k) => k.category === 'Identity').slice(0, 2);
   const srcs = [...new Map([cp.connector, ...identity].map((k) => [k.id, { name: k.product, status: k.status }])).values()];

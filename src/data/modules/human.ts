@@ -2,14 +2,15 @@
 // Phishing simulations, training, risky users, policy acknowledgement and the
 // security champions network. Pure, seeded per customer and tenant. Employee
 // names are generated from generic pools; nobody is a real person.
-import type { Connector, CustomerId, CustomerProfile, Health } from '../types';
+import type { Connector, CustomerProfile, Health } from '../types';
 import { rng, type Rng } from '../../lib/rng';
 import { scopedTenants, tenantShare } from '../customers';
 import { incidents } from './soc';
+import { forCustomer, tenantFor, type CustomerMap } from '../customerMap';
 
 /* ---------------- Platform ---------------- */
 export interface AwarenessPlatform { name: string; status: Health; lastSyncMin: number; stale: boolean; note?: string }
-const PLATFORM: Record<CustomerId, string> = {
+const PLATFORM: CustomerMap<string> = {
   maritime: 'Proofpoint Security Awareness',
   finserv: 'Proofpoint Security Awareness (ZenGuide)',
   media: 'KnowBe4 Security Awareness',
@@ -19,7 +20,7 @@ const PLATFORM: Record<CustomerId, string> = {
 export function awarenessPlatform(c: CustomerProfile): AwarenessPlatform {
   const k: Connector | undefined = c.connectors.find((x) => x.vendor === 'KnowBe4');
   if (k) return { name: `${k.vendor} ${k.product}`, status: k.status, lastSyncMin: k.lastSyncMin, stale: k.lastSyncMin > k.intervalMin * 2 || k.status !== 'healthy', note: k.note };
-  return { name: PLATFORM[c.id], status: 'healthy', lastSyncMin: 38, stale: false };
+  return { name: forCustomer(PLATFORM, c), status: 'healthy', lastSyncMin: 38, stale: false };
 }
 export function emailGateway(c: CustomerProfile): string {
   const k = c.connectors.find((x) => x.category === 'Email' && x.vendor !== 'KnowBe4');
@@ -31,7 +32,7 @@ export function identitySource(c: CustomerProfile): string {
 
 /* ---------------- Departments ---------------- */
 export interface Dept { id: string; name: string; share: number; risk: number; tenants?: string[] }
-const DEPTS: Record<CustomerId, Dept[]> = {
+const DEPTS: CustomerMap<Dept[]> = {
   maritime: [
     { id: 'ops', name: 'Terminal Operations', share: 0.3, risk: 1.2, tenants: ['rtm', 'ant', 'pkl', 'sts'] },
     { id: 'crew', name: 'Ship crew', share: 0.12, risk: 1.4, tenants: ['fleet'] },
@@ -86,20 +87,21 @@ const DEPTS: Record<CustomerId, Dept[]> = {
 export function departments(c: CustomerProfile, tenantId: string): (Dept & { headcount: number })[] {
   const ts = scopedTenants(c, tenantId).map((t) => t.id);
   const people = scopedTenants(c, tenantId).reduce((s, t) => s + t.people, 0);
-  const list = DEPTS[c.id].filter((d) => !d.tenants || d.tenants.some((t) => ts.includes(t)));
+  // Template departments name template tenants; map them onto this customer's tenants.
+  const list = forCustomer(DEPTS, c).filter((d) => !d.tenants || d.tenants.some((t) => ts.includes(tenantFor(c, t).id)));
   const tot = list.reduce((s, d) => s + d.share, 0);
   return list.map((d) => ({ ...d, headcount: Math.max(6, Math.round((d.share / tot) * people)) }));
 }
 
 /* ---------------- Names ---------------- */
-const FIRST: Record<CustomerId, string[]> = {
+const FIRST: CustomerMap<string[]> = {
   maritime: ['Daan', 'Sanne', 'Lucas', 'Eva', 'Thijs', 'Noor', 'Ruben', 'Fleur', 'Wout', 'Ines', 'Hafiz', 'Nurul', 'Thiago', 'Larissa', 'Mateus', 'Jens', 'Kim', 'Ravi', 'Marek', 'Joana'],
   finserv: ['Oliver', 'Amelia', 'Harry', 'Isla', 'Jack', 'Sophie', 'Arjun', 'Chloe', 'Callum', 'Megan', 'Ravi', 'Hannah', 'Liam', 'Zara', 'Mei', 'Kieran', 'Lucie', 'Tom', 'Aisha', 'Ben'],
   media: ['Jordan', 'Taylor', 'Morgan', 'Casey', 'Riley', 'Avery', 'Logan', 'Maya', 'Diego', 'Kendall', 'Jasmine', 'Owen', 'Lena', 'Marcus', 'Sofia', 'Eli', 'Nina', 'Theo', 'Imani', 'Cole'],
   healthcare: ['Ashley', 'Brian', 'Crystal', 'Derek', 'Erin', 'Frank', 'Gina', 'Hector', 'Jenna', 'Keith', 'Latoya', 'Matt', 'Nicole', 'Omar', 'Paula', 'Ryan', 'Tasha', 'Victor', 'Wendy', 'Kyle'],
   automotive: ['Lukas', 'Lea', 'Jonas', 'Mia', 'Felix', 'Hannah', 'Maximilian', 'Laura', 'Bence', 'Réka', 'Dávid', 'Luis', 'Fernanda', 'Jorge', 'Katharina', 'Tim', 'Julia', 'Niklas', 'Zsófia', 'Paul'],
 };
-const LAST: Record<CustomerId, string[]> = {
+const LAST: CustomerMap<string[]> = {
   maritime: ['Jansen', 'de Jong', 'Visser', 'Peeters', 'Hendriks', 'Dekker', 'Claes', 'Goossens', 'Ismail', 'Tan', 'Souza', 'Ferreira', 'Kowalski', 'Bos', 'Vermeulen', 'Lim', 'Santos', 'Meijer'],
   finserv: ['Smith', 'Jones', 'Taylor', 'Brown', 'Patel', 'Walsh', 'Evans', 'Hughes', 'Khan', 'Murray', 'Clarke', 'Wright', 'Ng', 'Robinson', 'Dupont', 'Muller', 'Lee', 'Campbell'],
   media: ['Rivera', 'Kim', 'Bennett', 'Foster', 'Hayes', 'Coleman', 'Ortega', 'Perry', 'Russo', 'Hughes', 'Price', 'Sanders', 'Webb', 'Diaz', 'Long', 'Ford', 'Grant', 'Cruz'],
@@ -107,9 +109,9 @@ const LAST: Record<CustomerId, string[]> = {
   automotive: ['Müller', 'Schmidt', 'Schneider', 'Fischer', 'Wagner', 'Becker', 'Schulz', 'Hoffmann', 'Nagy', 'Tóth', 'Horváth', 'García', 'López', 'Hernández', 'Koch', 'Richter', 'Klein', 'Wolf'],
 };
 function personName(c: CustomerProfile, r: Rng): string {
-  return `${r.pick(FIRST[c.id])} ${r.pick(LAST[c.id])}`;
+  return `${r.pick(forCustomer(FIRST, c))} ${r.pick(forCustomer(LAST, c))}`;
 }
-const ROLES: Record<CustomerId, Record<string, string[]>> = {
+const ROLES: CustomerMap<Record<string, string[]>> = {
   maritime: { ops: ['Crane operator', 'Shift supervisor', 'Yard planner', 'Gate clerk'], crew: ['Second officer', 'Chief officer', 'ETO', 'Third engineer'], eng: ['Crane technician', 'Electrical engineer', 'Reefer technician'], fin: ['Accounts payable clerk', 'Procurement officer', 'Treasury analyst'], com: ['Customer service agent', 'Key account manager', 'Booking agent'], customs: ['Customs broker', 'Documentation clerk'], it: ['Service desk analyst', 'Network engineer', 'Domain admin'], hr: ['HR advisor', 'Executive assistant', 'Legal counsel'] },
   finserv: { retail: ['Branch adviser', 'Mortgage adviser', 'Branch manager'], contact: ['Contact centre agent', 'Team leader', 'Fraud line agent'], pay: ['Payments operator', 'SWIFT operator', 'Reconciliation analyst'], markets: ['FX trader', 'Sales trader', 'Middle office analyst'], wealth: ['Relationship manager', 'Client service associate'], fin: ['Treasury analyst', 'Accounts payable lead'], tech: ['Platform engineer', 'Help-desk analyst', 'Cloud admin'], hr: ['Executive assistant', 'HR business partner', 'Paralegal'] },
   media: { prod: ['Production coordinator', 'Line producer', 'Location manager'], post: ['Editor', 'VFX compositor', 'Colourist'], mkt: ['Publicist', 'Social media manager', 'Marketing coordinator'], dist: ['Licensing manager', 'Delivery coordinator'], eng: ['Backend engineer', 'SRE', 'Data engineer'], live: ['Broadcast engineer', 'Playout operator', 'Producer'], fin: ['Production accountant', 'Payroll specialist'], talent: ['Talent coordinator', 'Executive assistant', 'Business affairs'] },
@@ -138,7 +140,7 @@ export interface HumanOverview {
   scoreSeries: number[];
   headcount: number;
 }
-const BASE: Record<CustomerId, { click: number; report: number; submit: number; completion: number; risky: number }> = {
+const BASE: CustomerMap<{ click: number; report: number; submit: number; completion: number; risky: number }> = {
   maritime: { click: 8.4, report: 31, submit: 2.9, completion: 86, risky: 0.009 },
   finserv: { click: 4.1, report: 58, submit: 1.1, completion: 96, risky: 0.006 },
   media: { click: 10.2, report: 24, submit: 3.8, completion: 74, risky: 0.014 },
@@ -149,7 +151,7 @@ const MONTHS = ['Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', '
 
 export function humanOverview(c: CustomerProfile, tenantId: string): HumanOverview {
   const r = rng(`hr-ov-${c.id}-${tenantId}`);
-  const b = BASE[c.id];
+  const b = forCustomer(BASE, c);
   const t = scopedTenants(c, tenantId);
   const headcount = t.reduce((s, x) => s + x.people, 0);
   const adj = tenantId === 'all' ? 1 : r.float(0.8, 1.25, 2);
@@ -200,7 +202,7 @@ export interface Campaign {
   cues: string[];
   local?: boolean;
 }
-export const THEMES: Record<CustomerId, { theme: string; channel: Channel; d: 1 | 2 | 3 | 4 | 5; cues: string[] }[]> = {
+export const THEMES: CustomerMap<{ theme: string; channel: Channel; d: 1 | 2 | 3 | 4 | 5; cues: string[] }[]> = {
   maritime: [
     { theme: 'Bill of lading amendment (attachment)', channel: 'Email', d: 3, cues: ['Lookalike carrier domain', 'Unexpected attachment', 'Urgent cut-off'] },
     { theme: 'Port state control inspection notice', channel: 'Email', d: 4, cues: ['Authority impersonation', 'Login to “PSC portal”'] },
@@ -252,7 +254,7 @@ export function campaigns(c: CustomerProfile, tenantId: string): Campaign[] {
   const r = rng(`hr-camp-${c.id}-${tenantId}`);
   const ov = humanOverview(c, tenantId);
   const depts = departments(c, tenantId);
-  const themes = THEMES[c.id];
+  const themes = forCustomer(THEMES, c);
   const n = 11;
   const out: Campaign[] = [];
   for (let i = 0; i < n; i++) {
@@ -309,7 +311,7 @@ const CORE: CourseTpl[] = [
   { title: 'Payment fraud and CEO fraud', kind: 'Role-based', audience: 'Finance & assistants', minutes: 20, mandatory: true, refs: ['ISO 27001 A.6.3'] },
   { title: 'Verify before you act: call-back rule', kind: 'Micro', audience: 'Assigned after a simulation click', minutes: 4, mandatory: false, refs: ['Coaching'] },
 ];
-const SECTOR: Record<CustomerId, CourseTpl[]> = {
+const SECTOR: CustomerMap<CourseTpl[]> = {
   maritime: [
     { title: 'Ship crew cyber hygiene: USB and removable media', kind: 'Sector', audience: 'Ship crew', minutes: 20, mandatory: true, refs: ['IMO MSC.428(98)', 'IACS UR E26'], depts: ['crew', 'eng'] },
     { title: 'ECDIS and bridge systems: chart updates safely', kind: 'Sector', audience: 'Deck officers', minutes: 25, mandatory: true, refs: ['IMO MSC-FAL.1/Circ.3', 'IACS UR E27'], depts: ['crew'] },
@@ -342,14 +344,14 @@ const SECTOR: Record<CustomerId, CourseTpl[]> = {
   ],
 };
 const ROLE_DEPTS: Record<string, (c: CustomerProfile) => string[]> = {
-  'IT & admins': (c) => DEPTS[c.id].filter((d) => /IT|Technology|Engineering$/.test(d.name)).map((d) => d.id),
-  'Finance & assistants': (c) => DEPTS[c.id].filter((d) => /Finance|Payments|Revenue|Executive|Procurement/.test(d.name)).map((d) => d.id),
+  'IT & admins': (c) => forCustomer(DEPTS, c).filter((d) => /IT|Technology|Engineering$/.test(d.name)).map((d) => d.id),
+  'Finance & assistants': (c) => forCustomer(DEPTS, c).filter((d) => /Finance|Payments|Revenue|Executive|Procurement/.test(d.name)).map((d) => d.id),
 };
 export function courses(c: CustomerProfile, tenantId: string): Course[] {
   const r = rng(`hr-courses-${c.id}-${tenantId}`);
   const ov = humanOverview(c, tenantId);
   const depts = departments(c, tenantId);
-  const all = [...CORE.slice(0, 2), ...SECTOR[c.id], ...CORE.slice(2)];
+  const all = [...CORE.slice(0, 2), ...forCustomer(SECTOR, c), ...CORE.slice(2)];
   return all.map((t, i) => {
     const targets = t.depts ?? (ROLE_DEPTS[t.audience]?.(c) ?? null);
     const ds = targets ? depts.filter((d) => targets.includes(d.id)) : depts;
@@ -382,7 +384,7 @@ export function overdueLearners(c: CustomerProfile, tenantId: string, cs: Course
     const dIds = Object.keys(course.byDept);
     const d = depts.find((x) => x.id === r.pick(dIds)) ?? r.pick(depts);
     const tId = d.tenants ? r.pick(d.tenants.filter((t) => ts.some((x) => x.id === t)).concat(ts.length === 1 ? [ts[0].id] : [])) ?? ts[0].id : r.pick(ts).id;
-    out.push({ id: `L-${i + 1}`, name: personName(c, r), deptId: d.id, role: r.pick(ROLES[c.id][d.id] ?? ['Staff']), tenantId: tId ?? ts[0].id, courseId: course.id, daysOverdue: r.int(1, 75), reminders: r.int(0, 4), manager: personName(c, r) });
+    out.push({ id: `L-${i + 1}`, name: personName(c, r), deptId: d.id, role: r.pick(forCustomer(ROLES, c)[d.id] ?? ['Staff']), tenantId: tId ?? ts[0].id, courseId: course.id, daysOverdue: r.int(1, 75), reminders: r.int(0, 4), manager: personName(c, r) });
   }
   return out.sort((a, b) => b.daysOverdue - a.daysOverdue);
 }
@@ -450,7 +452,7 @@ export function riskyUsers(c: CustomerProfile, tenantId: string): RiskyUser[] {
     if (clicks >= 4) actions.push('Manager conversation');
     const tId = d.tenants ? (d.tenants.filter((t) => ts.some((x) => x.id === t))[0] ?? ts[0].id) : r.pick(ts).id;
     out.push({
-      id: `HU-${String(i + 1).padStart(3, '0')}`, name, deptId: d.id, role: r.pick(ROLES[c.id][d.id] ?? ['Staff']), tenantId: d.tenants && d.tenants.length > 1 ? r.pick(d.tenants.filter((t) => ts.some((x) => x.id === t))) ?? tId : tId,
+      id: `HU-${String(i + 1).padStart(3, '0')}`, name, deptId: d.id, role: r.pick(forCustomer(ROLES, c)[d.id] ?? ['Staff']), tenantId: d.tenants && d.tenants.length > 1 ? r.pick(d.tenants.filter((t) => ts.some((x) => x.id === t))) ?? tId : tId,
       score, clicks12m: clicks, submits12m: submits, reports12m: reports, lastClickDays: r.int(2, 200), training, overdueCourses: training === 'Overdue' ? r.int(1, 3) : 0,
       mfa, privileged: priv, stealerHit: stealer, incidents: myInc, drivers, actions,
     });
@@ -460,7 +462,7 @@ export function riskyUsers(c: CustomerProfile, tenantId: string): RiskyUser[] {
 
 /* ---------------- Culture & policy ---------------- */
 export interface Policy { id: string; name: string; version: string; publishedDays: number; audience: string; acknowledged: number; required: number; refs: string[] }
-const SECTOR_POLICIES: Record<CustomerId, [string, string, string[]][]> = {
+const SECTOR_POLICIES: CustomerMap<[string, string, string[]][]> = {
   maritime: [['Shipboard removable media & USB', 'Ship crew', ['IMO MSC.428(98)', 'IACS UR E26']], ['OT remote access & vendor laptops', 'Terminal & engineering', ['IEC 62443-2-1']]],
   finserv: [['Information barriers & market abuse', 'Markets & wealth', ['FCA SYSC 10']], ['Payment authorisation & call-back', 'Payments & finance', ['DORA Art. 9', 'PCI DSS 12']]],
   media: [['Pre-release content handling', 'Production, post & marketing', ['TPN', 'MPA CSBP']], ['Set photography & personal devices', 'Production & talent', ['MPA CSBP PS-14.0']]],
@@ -477,7 +479,7 @@ export function policies(c: CustomerProfile, tenantId: string): Policy[] {
     ['Remote & hybrid working', 'All staff', ['ISO 27001 A.6.7']],
     ['Clean desk & screen', 'All staff', ['ISO 27001 A.7.7']],
     ['Privileged access standard', 'IT & admins', ['ISO 27001 A.8.2']],
-    ...SECTOR_POLICIES[c.id],
+    ...forCustomer(SECTOR_POLICIES, c),
   ];
   return base.map(([name, audience, refs], i) => {
     const required = audience === 'All staff' || audience === 'All workforce' ? hc : Math.round(hc * r.float(0.04, 0.35, 2));
@@ -498,7 +500,7 @@ export function champions(c: CustomerProfile, tenantId: string): Champion[] {
     for (let i = 0; i < n; i++) {
       const pts = r.int(40, 980);
       const tId = d.tenants ? (r.pick(d.tenants.filter((t) => ts.some((x) => x.id === t))) ?? ts[0].id) : r.pick(ts).id;
-      out.push({ id: `CH-${out.length + 1}`, name: personName(c, r), deptId: d.id, role: r.pick(ROLES[c.id][d.id] ?? ['Staff']), tenantId: tId, sinceMonths: r.int(1, 30), reports90d: r.int(1, 24), sessions: r.int(0, 9), points: pts, tier: pts > 650 ? 'Gold' : pts > 300 ? 'Silver' : 'Bronze' });
+      out.push({ id: `CH-${out.length + 1}`, name: personName(c, r), deptId: d.id, role: r.pick(forCustomer(ROLES, c)[d.id] ?? ['Staff']), tenantId: tId, sinceMonths: r.int(1, 30), reports90d: r.int(1, 24), sessions: r.int(0, 9), points: pts, tier: pts > 650 ? 'Gold' : pts > 300 ? 'Silver' : 'Bronze' });
     }
   }
   return out.sort((a, b) => b.points - a.points);
@@ -516,3 +518,170 @@ export function cultureSurvey(c: CustomerProfile, tenantId: string): { dims: Cul
   const responses = Math.round(ov.headcount * r.float(0.28, 0.52, 2));
   return { dims, responses, rate: Math.round((responses / ov.headcount) * 100) };
 }
+
+/* =====================================================================
+   Second-wave customers: their own entries in the tables above.
+   ===================================================================== */
+Object.assign(PLATFORM, { insurance: 'KnowBe4 Security Awareness Training', defence: 'KnowBe4 Security Awareness Training', pharma: 'KnowBe4 Security Awareness', sghospital: 'KnowBe4 Security Awareness Training & PhishER', studio: 'KnowBe4 Security Awareness' });
+
+DEPTS.insurance = [
+  { id: 'uw', name: 'Underwriting', share: 0.14, risk: 1.05, tenants: ['personal', 'commercial', 'specialty'] },
+  { id: 'claims', name: 'Claims & Adjusting', share: 0.22, risk: 1.3, tenants: ['claims'] },
+  { id: 'siu', name: 'Special Investigations (SIU)', share: 0.03, risk: 0.9, tenants: ['claims'] },
+  { id: 'agency', name: 'Agency & Broker Relations', share: 0.08, risk: 1.25, tenants: ['personal', 'commercial', 'specialty'] },
+  { id: 'service', name: 'Policy Service & Contact Centre', share: 0.16, risk: 1.35, tenants: ['personal', 'life', 'claims'] },
+  { id: 'bill', name: 'Billing & Payments', share: 0.06, risk: 1.1, tenants: ['personal', 'group'] },
+  { id: 'act', name: 'Actuarial & Finance', share: 0.08, risk: 1.0, tenants: ['group', 'life'] },
+  { id: 'tech', name: 'Technology', share: 0.15, risk: 0.7, tenants: ['group'] },
+  { id: 'hr', name: 'HR, Legal & Executive', share: 0.08, risk: 0.9, tenants: ['group'] },
+];
+DEPTS.defence = [
+  { id: 'prog', name: 'Programs & Capture', share: 0.16, risk: 1.15, tenants: ['programs'] },
+  { id: 'eng', name: 'Engineering (avionics & guidance)', share: 0.22, risk: 0.95, tenants: ['engineering'] },
+  { id: 'sw', name: 'Flight Software', share: 0.06, risk: 0.8, tenants: ['engineering'] },
+  { id: 'mfg', name: 'Manufacturing & Quality (Building 3)', share: 0.3, risk: 1.25, tenants: ['manufacturing'] },
+  { id: 'test', name: 'Test & Range Operations', share: 0.07, risk: 1.1, tenants: ['tucson'] },
+  { id: 'contracts', name: 'Contracts, Procurement & Trade Compliance', share: 0.06, risk: 1.2, tenants: ['corporate', 'programs'] },
+  { id: 'fin', name: 'Finance', share: 0.05, risk: 1.05, tenants: ['corporate'] },
+  { id: 'it', name: 'IT & Security', share: 0.05, risk: 0.6, tenants: ['programs', 'corporate'] },
+  { id: 'hr', name: 'HR, Legal & Executive', share: 0.03, risk: 0.9, tenants: ['corporate'] },
+];
+DEPTS.pharma = [
+  { id: 'rnd', name: 'Research & Discovery', share: 0.2, risk: 1.0, tenants: ['rnd'] },
+  { id: 'clin', name: 'Clinical Operations', share: 0.1, risk: 1.15, tenants: ['clinops'] },
+  { id: 'pv', name: 'Pharmacovigilance & Medical Affairs', share: 0.04, risk: 1.05, tenants: ['clinops', 'commercial'] },
+  { id: 'mfg', name: 'Manufacturing (Valais, Cork)', share: 0.22, risk: 1.2, tenants: ['valais', 'cork'] },
+  { id: 'qa', name: 'Quality (QA / QC)', share: 0.08, risk: 0.95, tenants: ['valais', 'cork', 'corporate'] },
+  { id: 'supply', name: 'Supply Chain & Procurement', share: 0.06, risk: 1.2, tenants: ['cork', 'corporate'] },
+  { id: 'comm', name: 'Commercial & Field Force', share: 0.2, risk: 1.35, tenants: ['commercial'] },
+  { id: 'tech', name: 'Technology', share: 0.05, risk: 0.7, tenants: ['corporate'] },
+  { id: 'fin', name: 'Finance, Legal & Executive', share: 0.05, risk: 1.0, tenants: ['corporate'] },
+];
+DEPTS.sghospital = [
+  { id: 'nursing', name: 'Nursing', share: 0.36, risk: 1.25, tenants: ['obh', 'specialist', 'daysurg'] },
+  { id: 'doctors', name: 'Doctors & Specialists', share: 0.14, risk: 1.3, tenants: ['obh', 'specialist', 'daysurg'] },
+  { id: 'allied', name: 'Allied Health & Pharmacy', share: 0.1, risk: 1.05, tenants: ['obh', 'specialist'] },
+  { id: 'diag', name: 'Laboratory & Imaging', share: 0.1, risk: 1.0, tenants: ['labimg'] },
+  { id: 'billing', name: 'Patient Billing & Insurer Claims', share: 0.07, risk: 1.2, tenants: ['corp'] },
+  { id: 'intl', name: 'International Patient Services', share: 0.03, risk: 1.35, tenants: ['specialist', 'obh'] },
+  { id: 'it', name: 'IT & Biomedical Engineering', share: 0.07, risk: 0.65, tenants: ['obh', 'corp', 'labimg'] },
+  { id: 'admin', name: 'Administration, HR & Executive', share: 0.13, risk: 1.0, tenants: ['corp', 'obh'] },
+];
+DEPTS.studio = [
+  { id: 'prod', name: 'Production', share: 0.08, risk: 1.3, tenants: ['studios'] },
+  { id: 'post', name: 'Post & VFX', share: 0.05, risk: 1.15, tenants: ['post'] },
+  { id: 'mkt', name: 'Marketing & Publicity', share: 0.04, risk: 1.35, tenants: ['studios', 'play', 'corp'] },
+  { id: 'eng', name: 'Starfall+ Engineering', share: 0.05, risk: 0.65, tenants: ['play'] },
+  { id: 'parksops', name: 'Park Operations (Orlando)', share: 0.34, risk: 1.2, tenants: ['parks'] },
+  { id: 'parksjp', name: 'Resort Operations (Osaka)', share: 0.15, risk: 1.15, tenants: ['parksasia'] },
+  { id: 'ride', name: 'Ride & Show Engineering', share: 0.03, risk: 0.9, tenants: ['parks', 'parksasia'] },
+  { id: 'retail', name: 'Consumer Products & Retail', share: 0.18, risk: 1.1, tenants: ['corp'] },
+  { id: 'fin', name: 'Finance', share: 0.03, risk: 1.0, tenants: ['corp'] },
+  { id: 'talent', name: 'Talent, Legal & Executive', share: 0.02, risk: 1.25, tenants: ['studios', 'corp'] },
+];
+
+FIRST.insurance = ['Kevin', 'Laura', 'Anil', 'Megan', 'Patrick', 'Diane', 'Jorge', 'Kristen', 'Sean', 'Priya', 'Tyler', 'Colleen', 'Andre', 'Rachel', 'Marcus', 'Heather', 'Luis', 'Amanda', 'Greg', 'Tanya'];
+FIRST.defence = ['Wade', 'Tammy', 'Dale', 'Crystal', 'Russell', 'Brandy', 'Curtis', 'Lori', 'Jared', 'Misty', 'Brent', 'Shana', 'Cody', 'Rhonda', 'Travis', 'Jolene', 'Darnell', 'Kayla', 'Hector', 'April'];
+FIRST.pharma = ['Matthias', 'Céline', 'Niamh', 'Reto', 'Aoife', 'Dominik', 'Chiara', 'Ciarán', 'Sandrine', 'Florian', 'Lea', 'Yannick', 'Siobhán', 'Fabio', 'Nadine', 'Conor', 'Mirjam', 'Luca', 'Orla', 'Beat'];
+FIRST.sghospital = ['Wei Ling', 'Hafiz', 'Siew Mei', 'Arjun', 'Nurul', 'Kelvin', 'Pei Shan', 'Ravi', 'Farhana', 'Desmond', 'Hui Min', 'Imran', 'Shu Fen', 'Vignesh', 'Aisyah', 'Bryan', 'Jia Hui', 'Suresh', 'Zarina', 'Jonathan'];
+FIRST.studio = ['Kenji', 'Avery', 'Sienna', 'Marco', 'Harper', 'Dev', 'Lucía', 'Theo', 'Naomi', 'Ivy', 'Yuki', 'Malik', 'Carmen', 'Reese', 'Hana', 'Elijah', 'Paloma', 'Quinn', 'Sora', 'Bianca'];
+LAST.insurance = ['Sullivan', 'Mehta', 'Russo', 'Callahan', 'Dixon', 'Iyer', 'Martinez', 'Kowalczyk', 'Brennan', 'Thompson', 'Ferraro', 'Nguyen', 'Doyle', 'Shah', 'Morrison', 'Petrov', 'Lynch', 'Carter'];
+LAST.defence = ['Whitaker', 'Holloway', 'Bishop', 'Crawford', 'Daniels', 'Garrison', 'Lambert', 'Pruitt', 'Tate', 'Odom', 'Hendricks', 'Bowman', 'Sutton', 'McCoy', 'Rutledge', 'Varner', 'Pope', 'Ingram'];
+LAST.pharma = ['Keller', 'Baumann', 'Rochat', 'Murphy', 'Gallagher', 'Fischer', 'Dubois', 'Steiner', 'Moser', 'Byrne', 'Zimmermann', 'Favre', 'Kelly', 'Huber', 'Ryan', 'Bianchi', 'Gerber', 'Walsh'];
+LAST.sghospital = ['Tan', 'Lim', 'Ng', 'Goh', 'Rahman', 'Kumar', 'Chua', 'Ismail', 'Wong', 'Pillai', 'Teo', 'Lee', 'Nair', 'Yeo', 'Hassan', 'Koh', 'Ong', 'Raj'];
+LAST.studio = ['Caldwell', 'Ortega', 'Nakamura', 'Fitzgerald', 'Reyes', 'Hollis', 'Park', 'Delgado', 'Sato', 'Whitmore', 'Bloom', 'Okafor', 'Vega', 'Tanaka', 'Marsh', 'Ito', 'Castillo', 'Greene'];
+
+ROLES.insurance = { uw: ['Personal lines underwriter', 'Commercial underwriter', 'E&S underwriter'], claims: ['Field adjuster', 'Desk adjuster', 'Claims supervisor', 'Total-loss specialist'], siu: ['SIU investigator', 'Fraud analyst'], agency: ['Agency manager', 'Broker relations specialist'], service: ['Contact centre agent', 'Policy service rep', 'Team leader'], bill: ['Billing specialist', 'Disbursements clerk'], act: ['Actuarial analyst', 'Reserving actuary', 'Financial analyst'], tech: ['Guidewire developer', 'Mainframe systems programmer', 'Help-desk analyst', 'Cloud admin'], hr: ['Executive assistant', 'HR business partner', 'Paralegal'] };
+ROLES.defence = { prog: ['Program manager', 'Capture manager', 'Proposal coordinator'], eng: ['Systems engineer', 'RF engineer', 'Mechanical engineer'], sw: ['Embedded software engineer', 'Verification engineer'], mfg: ['CNC machinist', 'CMM inspector', 'Quality engineer', 'Production supervisor'], test: ['Test engineer', 'Range technician'], contracts: ['Subcontracts administrator', 'Buyer', 'Export compliance specialist'], fin: ['Cost accountant', 'Accounts payable clerk'], it: ['Enclave administrator', 'Service desk analyst', 'Network engineer'], hr: ['Security clearance coordinator', 'Executive assistant', 'HR generalist'] };
+ROLES.pharma = { rnd: ['Medicinal chemist', 'Research scientist', 'Data scientist'], clin: ['Clinical study manager', 'Clinical data manager', 'CRA'], pv: ['PV scientist', 'Medical information specialist'], mfg: ['Process operator', 'Shift supervisor', 'Automation engineer'], qa: ['QA specialist', 'QC analyst', 'Qualified Person'], supply: ['Buyer', 'Cold-chain planner', 'Serialisation specialist'], comm: ['Medical sales representative', 'Key account manager', 'Patient services coordinator'], tech: ['SAP analyst', 'Service desk analyst', 'Cloud engineer'], fin: ['Controller', 'Accounts payable clerk', 'Executive assistant'] };
+ROLES.sghospital = { nursing: ['Staff nurse', 'Senior staff nurse', 'Nurse manager', 'ICU nurse'], doctors: ['Resident physician', 'Consultant', 'Registrar'], allied: ['Pharmacist', 'Physiotherapist', 'Dietitian'], diag: ['Medical technologist', 'Radiographer', 'PACS administrator'], billing: ['Billing executive', 'Insurer claims officer', 'Patient service associate'], intl: ['International patient coordinator', 'Interpreter'], it: ['TrakCare analyst', 'Biomedical engineer', 'Service desk analyst'], admin: ['Ward clerk', 'HR executive', 'Executive assistant'] };
+ROLES.studio = { prod: ['Production coordinator', 'Line producer', 'Location manager'], post: ['Editor', 'VFX compositor', 'Colourist'], mkt: ['Publicist', 'Social media manager', 'Awards and screeners coordinator'], eng: ['Backend engineer', 'Streaming SRE', 'Data engineer'], parksops: ['Ride attendant', 'Guest services host', 'Attraction supervisor'], parksjp: ['Guest services host', 'Attraction supervisor', 'Merchandise lead'], ride: ['Ride systems engineer', 'Show control technician'], retail: ['E-commerce manager', 'Licensing manager', 'Store manager'], fin: ['Production accountant', 'Payroll specialist'], talent: ['Talent coordinator', 'Business affairs', 'Executive assistant'] };
+
+BASE.insurance = { click: 5.6, report: 47, submit: 1.6, completion: 92, risky: 0.008 };
+BASE.defence = { click: 4.4, report: 52, submit: 1.2, completion: 97, risky: 0.009 };
+BASE.pharma = { click: 6.8, report: 38, submit: 2.2, completion: 88, risky: 0.006 };
+BASE.sghospital = { click: 8.7, report: 27, submit: 3.1, completion: 81, risky: 0.012 };
+BASE.studio = { click: 9.6, report: 26, submit: 3.4, completion: 78, risky: 0.0018 };
+
+THEMES.insurance = [
+  { theme: 'Claimant payee change request', channel: 'Email', d: 5, cues: ['Spoofed claimant domain', 'Bank-detail change', 'Urgency after a total loss'] },
+  { theme: 'Help-desk MFA reset call (adjuster)', channel: 'Voice', d: 5, cues: ['Caller asks for a code', 'Knows the adjuster name and region'] },
+  { theme: 'Broker submission with macro attachment', channel: 'Email', d: 4, cues: ['Lookalike broker domain', 'Macro-enabled spreadsheet'] },
+  { theme: 'NYDFS certification portal login', channel: 'Email', d: 4, cues: ['Regulator impersonation', 'Credential page'] },
+  { theme: 'Catastrophe surge: temporary adjuster onboarding', channel: 'Email', d: 3, cues: ['Free-mail sender', 'Personal data request'] },
+  { theme: 'Repair estimate shared via file link', channel: 'Email', d: 3, cues: ['File-share brand abuse', 'Credential page'] },
+  { theme: 'Agent commission statement via SMS', channel: 'SMS', d: 2, cues: ['Short link', 'Payment lure'] },
+];
+THEMES.defence = [
+  { theme: 'Prime contracting officer RFQ (look-alike domain)', channel: 'Email', d: 5, cues: ['Lookalike prime domain', 'CUI lure', 'Credential page'] },
+  { theme: 'Exostar certificate renewal', channel: 'Email', d: 4, cues: ['Supplier portal impersonation', 'Credential page'] },
+  { theme: 'Conference invitation from a foreign delegation', channel: 'Email', d: 4, cues: ['Unsolicited foreign contact', 'Attachment'] },
+  { theme: 'Recruiter offer for cleared engineers', channel: 'Teams / chat', d: 4, cues: ['External tenant', 'Interest in programme detail'] },
+  { theme: 'SPRS score update needed', channel: 'Email', d: 3, cues: ['Government impersonation', 'Urgent deadline'] },
+  { theme: 'Costpoint timesheet correction', channel: 'Email', d: 2, cues: ['Payroll lure', 'Generic greeting'] },
+  { theme: 'Machine-tool service QR on the shop floor', channel: 'QR code', d: 3, cues: ['QR code to a login page', 'Vendor impersonation'] },
+];
+THEMES.pharma = [
+  { theme: 'CRO monitoring visit report (shared link)', channel: 'Email', d: 4, cues: ['Lookalike CRO domain', 'External share link'] },
+  { theme: 'Veeva Vault document awaiting e-signature', channel: 'Email', d: 4, cues: ['Part 11 signature lure', 'Credential page'] },
+  { theme: 'Swissmedic inspection pre-read', channel: 'Email', d: 4, cues: ['Regulator impersonation', 'Attachment'] },
+  { theme: 'Licensing milestone invoice with new bank details', channel: 'Email', d: 5, cues: ['Bank-detail change', 'Reply-to mismatch'] },
+  { theme: 'Cleanroom gowning e-learning via QR', channel: 'QR code', d: 2, cues: ['QR code to a login page'] },
+  { theme: 'Help-desk call: MFA re-enrolment', channel: 'Voice', d: 5, cues: ['Caller asks for a code', 'Authority and urgency'] },
+  { theme: 'Conference poster review (Teams)', channel: 'Teams / chat', d: 3, cues: ['External tenant', 'Unexpected file'] },
+];
+THEMES.sghospital = [
+  { theme: 'TrakCare password expiry', channel: 'Email', d: 3, cues: ['Lookalike SSO page', 'Generic greeting'] },
+  { theme: 'MOH circular on new infection-control rules', channel: 'Email', d: 4, cues: ['Authority impersonation', 'Attachment'] },
+  { theme: 'Insurer pre-authorisation portal login', channel: 'Email', d: 4, cues: ['Lookalike insurer domain', 'Credential page'] },
+  { theme: 'SingPass verification for payroll', channel: 'SMS', d: 3, cues: ['Short link', 'Government brand abuse'] },
+  { theme: 'Overseas patient records request', channel: 'Email', d: 4, cues: ['Medical-tourism lure', 'Personal-data request'] },
+  { theme: 'Roster swap via QR (nurses station)', channel: 'QR code', d: 2, cues: ['QR code to a login page'] },
+  { theme: 'Service-desk call: account unlock', channel: 'Voice', d: 5, cues: ['Caller asks for a code', 'Authority and urgency'] },
+];
+THEMES.studio = [
+  { theme: 'Awards-season screener link', channel: 'Email', d: 4, cues: ['Lookalike screener platform', 'Login to watch'] },
+  { theme: 'Crown of Ash script revision shared', channel: 'Email', d: 3, cues: ['File-share brand abuse', 'Credential page'] },
+  { theme: 'Talent agency contract for signature', channel: 'Email', d: 4, cues: ['E-signature brand abuse', 'Unknown agency'] },
+  { theme: 'Okta help-desk call: MFA reset', channel: 'Voice', d: 5, cues: ['Caller asks for a code', 'Knows the manager name'] },
+  { theme: 'Cast-member discount via QR (backstage)', channel: 'QR code', d: 2, cues: ['QR code to a login page'] },
+  { theme: 'Payroll change for park staff', channel: 'SMS', d: 3, cues: ['Short link', 'Payroll lure'] },
+  { theme: 'Dailies review on a new portal', channel: 'Email', d: 3, cues: ['New portal', 'Credential page'] },
+];
+
+SECTOR.insurance = [
+  { title: 'Claims disbursement fraud and payee changes', kind: 'Sector', audience: 'Claims, billing & SIU', minutes: 20, mandatory: true, refs: ['NYDFS 500.14(a)(3)', 'NAIC #668 4D(2)(j)'], depts: ['claims', 'bill', 'siu', 'service'] },
+  { title: 'Help-desk social engineering (Scattered Spider pattern)', kind: 'Sector', audience: 'Technology & contact centre', minutes: 20, mandatory: true, refs: ['NYDFS 500.14', 'NIST CSF PR.AT-01'], depts: ['tech', 'service'] },
+  { title: 'Handling policyholder NPI', kind: 'Sector', audience: 'All staff with NPI access', minutes: 15, mandatory: true, refs: ['NYDFS 500.15', 'GLBA 314.4(e)'] },
+  { title: 'Agent and broker portal security', kind: 'Sector', audience: 'Agency & underwriting', minutes: 12, mandatory: false, refs: ['NAIC #668 4D(2)(f)'], depts: ['agency', 'uw'] },
+];
+SECTOR.defence = [
+  { title: 'CUI marking and handling', kind: 'Sector', audience: 'All staff', minutes: 25, mandatory: true, refs: ['CMMC AT.L2-3.2.1', 'DoDI 5200.48'] },
+  { title: 'Insider threat awareness', kind: 'Sector', audience: 'All staff', minutes: 20, mandatory: true, refs: ['CMMC AT.L2-3.2.3', 'NISPOM'] },
+  { title: 'ITAR technical data and US-person rules', kind: 'Sector', audience: 'Engineering, programs & manufacturing', minutes: 30, mandatory: true, refs: ['ITAR 22 CFR 120-130', 'EAR'], depts: ['eng', 'sw', 'prog', 'mfg', 'contracts'] },
+  { title: 'Shop floor: DNC, USB and vendor laptops', kind: 'Sector', audience: 'Manufacturing & test', minutes: 15, mandatory: true, refs: ['CMMC MP.L2-3.8.7', 'MA.L2-3.7.5'], depts: ['mfg', 'test'] },
+];
+SECTOR.pharma = [
+  { title: 'Data integrity (ALCOA+) in GxP systems', kind: 'Sector', audience: 'Manufacturing, QA & labs', minutes: 25, mandatory: true, refs: ['EU GMP Annex 11', '21 CFR Part 11'], depts: ['mfg', 'qa', 'rnd'] },
+  { title: 'Trial data, unblinding and partner access', kind: 'Sector', audience: 'Clinical & pharmacovigilance', minutes: 20, mandatory: true, refs: ['ICH E6(R3)', 'GDPR Art. 9'], depts: ['clin', 'pv'] },
+  { title: 'Protecting discovery IP', kind: 'Sector', audience: 'Research', minutes: 18, mandatory: true, refs: ['ISO 27001 A.5.12', 'NIS2 Art. 21(2)(g)'], depts: ['rnd'] },
+  { title: 'Generative AI with patient and trial data', kind: 'Sector', audience: 'All staff', minutes: 12, mandatory: true, refs: ['EU AI Act Art. 4', 'GDPR / revDSG'] },
+];
+SECTOR.sghospital = [
+  { title: 'Health Information Act: patient data essentials', kind: 'Sector', audience: 'All workforce', minutes: 20, mandatory: true, refs: ['HIA CS/DS Essentials', 'PDPA s24'] },
+  { title: 'Clinical phishing: TrakCare, insurer and MOH lures', kind: 'Sector', audience: 'Clinical staff', minutes: 15, mandatory: true, refs: ['HIA CS/DS Essentials', 'Cyber Essentials (People)'], depts: ['nursing', 'doctors', 'allied', 'diag'] },
+  { title: 'Overseas transfers for medical-tourism patients', kind: 'Sector', audience: 'International services & doctors', minutes: 12, mandatory: true, refs: ['PDPA s26'], depts: ['intl', 'doctors', 'billing'] },
+  { title: 'Medical devices and shared workstations', kind: 'Sector', audience: 'Clinical & biomedical', minutes: 10, mandatory: true, refs: ['HSA GL-04', 'JCI MOI.2'], depts: ['nursing', 'diag', 'it'] },
+];
+SECTOR.studio = [
+  { title: 'Pre-release content: leaks and screeners', kind: 'Sector', audience: 'Production, post & marketing', minutes: 20, mandatory: true, refs: ['TPN', 'MPA CSBP MS-1.0'], depts: ['prod', 'post', 'mkt', 'talent'] },
+  { title: 'Working on set: devices, photos and NDAs', kind: 'Sector', audience: 'Production & talent', minutes: 15, mandatory: true, refs: ['MPA CSBP PS-14.0'], depts: ['prod', 'talent'] },
+  { title: 'Park guest data and payment cards', kind: 'Sector', audience: 'Park & resort operations', minutes: 12, mandatory: true, refs: ['PCI DSS 12.6', 'CCPA / CPRA'], depts: ['parksops', 'parksjp', 'retail'] },
+  { title: 'Ride and show control: vendor access', kind: 'Sector', audience: 'Ride & show engineering', minutes: 15, mandatory: true, refs: ['IEC 62443-2-1'], depts: ['ride'] },
+];
+
+SECTOR_POLICIES.insurance = [['NPI handling & encryption', 'All staff', ['NYDFS 500.15', 'GLBA 314.4(c)(3)']], ['Claims payee change & call-back', 'Claims & billing', ['NYDFS 500.14', 'NAIC #668']]];
+SECTOR_POLICIES.defence = [['CUI handling & marking', 'All staff', ['CMMC AC.L2-3.1.3', 'DoDI 5200.48']], ['Technology control plan (ITAR)', 'Engineering, programs & manufacturing', ['ITAR 22 CFR 120-130']]];
+SECTOR_POLICIES.pharma = [['Data integrity (ALCOA+) policy', 'Manufacturing, QA & labs', ['EU GMP Annex 11', '21 CFR Part 11']], ['Clinical data & unblinding', 'Clinical operations', ['ICH E6(R3)', 'GDPR Art. 9']]];
+SECTOR_POLICIES.sghospital = [['Patient data protection (HIA / PDPA) attestation', 'All workforce', ['HIA CS/DS Essentials', 'PDPA s24']], ['Medical device & shared workstation use', 'Clinical staff', ['HSA GL-04', 'JCI MOI.2']]];
+SECTOR_POLICIES.studio = [['Pre-release content handling', 'Production, post & marketing', ['TPN', 'MPA CSBP']], ['Ride & show control access', 'Ride & show engineering', ['IEC 62443-2-1']]];

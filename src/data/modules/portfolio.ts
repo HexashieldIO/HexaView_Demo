@@ -8,8 +8,9 @@ import type { CustomerId } from '../types';
 import { CUSTOMER_LIST } from '../customers';
 import { headlines, resilienceIndex, riTrend, riDrivers } from '../core';
 import { rng } from '../../lib/rng';
+import { forCustomer, type CustomerMap } from '../customerMap';
 
-export const FX_TO_USD = { USD: 1, GBP: 1.27, EUR: 1.08 } as const;
+export const FX_TO_USD = { USD: 1, GBP: 1.27, EUR: 1.08, CHF: 1.13, SGD: 0.74 } as const;
 
 /* =====================================================================
    Portfolio companies
@@ -53,12 +54,17 @@ export interface PortfolioCo {
   day?: number;
 }
 
-const DEMO_META: Record<CustomerId, { ownership: PortfolioCo['ownership']; holdingMonths: number; multiple: number; owner: string }> = {
-  maritime: { ownership: 'Platform', holdingMonths: 38, multiple: 1.7, owner: 'Grace Okafor' },
-  finserv: { ownership: 'Minority', holdingMonths: 22, multiple: 2.3, owner: 'Grace Okafor' },
-  media: { ownership: 'Majority', holdingMonths: 29, multiple: 2.1, owner: 'Daniel Moretti' },
-  healthcare: { ownership: 'Platform', holdingMonths: 17, multiple: 1.4, owner: 'Grace Okafor' },
-  automotive: { ownership: 'Minority', holdingMonths: 44, multiple: 0.62, owner: 'Daniel Moretti' },
+const DEMO_META: CustomerMap<{ ownership: PortfolioCo['ownership']; holdingMonths: number; multiple: number; owner: string; country: string }> = {
+  maritime: { ownership: 'Platform', holdingMonths: 38, multiple: 1.7, owner: 'Grace Okafor', country: 'NL' },
+  finserv: { ownership: 'Minority', holdingMonths: 22, multiple: 2.3, owner: 'Grace Okafor', country: 'GB' },
+  media: { ownership: 'Majority', holdingMonths: 29, multiple: 2.1, owner: 'Daniel Moretti', country: 'US' },
+  healthcare: { ownership: 'Platform', holdingMonths: 17, multiple: 1.4, owner: 'Grace Okafor', country: 'US' },
+  automotive: { ownership: 'Minority', holdingMonths: 44, multiple: 0.62, owner: 'Daniel Moretti', country: 'DE' },
+  insurance: { ownership: 'Minority', holdingMonths: 26, multiple: 1.1, owner: 'Grace Okafor', country: 'US' },
+  defence: { ownership: 'Platform', holdingMonths: 34, multiple: 2.6, owner: 'Daniel Moretti', country: 'US' },
+  pharma: { ownership: 'Minority', holdingMonths: 15, multiple: 3.4, owner: 'Grace Okafor', country: 'CH' },
+  sghospital: { ownership: 'Majority', holdingMonths: 9, multiple: 2.4, owner: 'Grace Okafor', country: 'SG' },
+  studio: { ownership: 'Minority', holdingMonths: 21, multiple: 1.9, owner: 'Daniel Moretti', country: 'US' },
 };
 
 const EXTRA: { name: string; short: string; colour: string; sector: string; country: string; ownership: PortfolioCo['ownership']; revenueM: number; employees: number; multiple: number; topRisk: string; frameworks: string[]; ri: number; status: PfStatus; ot: boolean; day?: number; holdingMonths: number }[] = [
@@ -103,13 +109,13 @@ export function portfolio(): PortfolioCo[] {
     const h = headlines(c);
     const ri = resilienceIndex(c).value;
     const trend = riTrend(c);
-    const m = DEMO_META[c.id];
+    const m = forCustomer(DEMO_META, c);
     const fx = FX_TO_USD[c.currency];
     const rev = c.revenueM * fx;
     const crit = h.soc.critical + h.strike.criticalFindings;
     const status: PfStatus = ri < 68 || crit >= 4 ? 'critical' : ri < 76 ? 'watch' : 'healthy';
     return {
-      id: c.id, demoId: c.id, name: c.name, short: c.short, initials: c.initials, colour: c.colour, sector: c.sector, country: c.hq.split(', ').slice(-1)[0],
+      id: c.id, demoId: c.id, name: c.name, short: c.short, initials: c.initials, colour: c.colour, sector: c.sector, country: m.country,
       ownership: m.ownership, holdingMonths: m.holdingMonths, revenueM: Math.round(rev), evM: Math.round(rev * m.multiple), insuredLimitM: Math.round(c.insurance.limitM * fx),
       employees: c.employees, ri, trend, delta: trend[11] - trend[8], topRisk: riDrivers(c)[0].text, insurability: h.insurance.insurability,
       openCritical: crit, expectedLossM: Math.round(h.insurance.expectedLossM * fx * 10) / 10,

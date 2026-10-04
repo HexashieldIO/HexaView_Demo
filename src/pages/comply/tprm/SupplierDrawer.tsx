@@ -40,7 +40,10 @@ export function SupplierDrawer({ s, onClose }: { s: TpSupplier; onClose: () => v
   if (v.baa) rows.push(['Business Associate Agreement', v.baa]);
   if (v.tisax) rows.push(['TISAX label', v.tisax]);
   if (v.tpn) rows.push(['TPN status', v.tpn]);
-  if (v.otRemote) rows.push([c.id === 'healthcare' ? 'Remote device access' : 'Remote OT access', `Brokered via ${pam ?? 'PAM jump host'} · read-only in HexaView`]);
+  if (v.cmmc) rows.push(['CMMC / SPRS', v.cmmc]);
+  if (v.qa) rows.push(['GxP quality agreement', v.qa]);
+  if (v.xfer) rows.push(['Patient data location (PDPA s26)', v.xfer]);
+  if (v.otRemote) rows.push([v.dataAccess.includes('Medical device') ? 'Remote device access' : 'Remote OT access', `Brokered via ${pam ?? 'PAM jump host'} · read-only in HexaView`]);
   const gapsByDomain = TP_DOMAINS.flatMap((d) => s.gaps.filter((g) => g.domain === d));
   const defaultSet: QSetId = v.tier === 1 ? 'critical' : s.state === 'Pending docs' ? 'initial' : 'annual';
   const [setId, setSetId] = useState<QSetId>(defaultSet);
@@ -102,7 +105,7 @@ export function SupplierDrawer({ s, onClose }: { s: TpSupplier; onClose: () => v
         </div>
       </div>
 
-      {v.otRemote && <Callout kind="warn">{c.id === 'healthcare' ? 'Medical devices' : 'OT'} are read-only in HexaView by policy. Sessions from this vendor are brokered and recorded in {pam ?? 'the PAM jump host'}; changes go through the site change process, never from here.</Callout>}
+      {v.otRemote && <Callout kind="warn">{v.dataAccess.includes('Medical device') ? 'Medical devices' : 'OT'} are read-only in HexaView by policy. Sessions from this vendor are brokered and recorded in {pam ?? 'the PAM jump host'}; changes go through the site change process, never from here.</Callout>}
 
       <div>
         <div className="tp-label">On the register</div>

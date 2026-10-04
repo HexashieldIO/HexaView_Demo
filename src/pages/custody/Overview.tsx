@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Ban, FileLock2, Gauge, Link2, Zap, FolderLock, ArrowRightLeft, HardDrive, Cloud } from 'lucide-react';
 import { useApp, rangeDays, rangeLabel } from '../../state/AppContext';
-import { custodyScope, custodyFlows, custodyAnomalies, custodyEvents, accelStats, type CustodyAnomaly, type CustodyFlow } from '../../data/modules/custody';
+import { custodyScope, custodyFlows, custodyAnomalies, custodyEvents, accelStats, CUSTODY_NOTE, type CustodyAnomaly, type CustodyFlow } from '../../data/modules/custody';
+import { forCustomer } from '../../data/customerMap';
 import { KpiStrip, Card, Badge, SevBadge, KV, IcoBox, Legend, MiniStat, Sources, Btn, Callout, SEV_ORDER } from '../../components/ui';
 import { Chart, PALETTE } from '../../components/Chart';
 import { FlowMap, type FlowColumn, type FlowLink } from '../../components/FlowMap';
@@ -19,6 +20,7 @@ export default function CustodyOverview() {
   const nav = useNavigate();
   const days = rangeDays(timeRange);
   const sc = useMemo(() => custodyScope(c, tenantId), [c, tenantId]);
+  const note = forCustomer(CUSTODY_NOTE, c);
   const flows = useMemo(() => custodyFlows(c, tenantId, days), [c, tenantId, days]);
   const anomalies = useMemo(() => custodyAnomalies(c, tenantId), [c, tenantId]);
   const events = useMemo(() => custodyEvents(c, tenantId, days), [c, tenantId, days]);
@@ -155,9 +157,7 @@ export default function CustodyOverview() {
           <div className="chips">
             {sc.items.slice(0, 6).map((x, i) => <button key={x} className="chip" onClick={() => nav(`/custody/lineage?asset=${i}`)}>{x}</button>)}
           </div>
-          {c.id === 'maritime' && <div style={{ marginTop: 12 }}><Callout kind="info" color={CUSTODY_TONE}>Vessel software is hash-verified against the OEM signature before install, giving the software-integrity evidence IACS UR E27 asks for.</Callout></div>}
-          {c.id === 'automotive' && <div style={{ marginTop: 12 }}><Callout kind="info" color={CUSTODY_TONE}>OTA packages are hash-verified against the signed build at every hop, giving the software-integrity evidence UNECE R156 asks for.</Callout></div>}
-          {c.id === 'healthcare' && <div style={{ marginTop: 12 }}><Callout kind="info" color={CUSTODY_TONE}>ePHI never leaves the customer data planes: custody events carry hashes and watermarks, not content.</Callout></div>}
+          {note && <div style={{ marginTop: 12 }}><Callout kind="info" color={CUSTODY_TONE}>{note}</Callout></div>}
         </Card>
       </div>
 

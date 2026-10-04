@@ -1,12 +1,13 @@
 // HexaSOC (Managed SOC / MDR) data generation. Pure, seeded functions so every
 // customer and tenant gets stable, sector-specific data that agrees with the
 // headline numbers in core.ts.
-import type { Connector, CustomerId, CustomerProfile, Health, Severity } from '../types';
+import type { Connector, CustomerProfile, Health, Severity } from '../types';
 import { rng } from '../../lib/rng';
 import { headlines } from '../core';
 import { scopedConnectors, scopedTenants, tenantShare, scale } from '../customers';
 import { TACTICS, TECHNIQUES, ICS_TECHNIQUES, ATLAS_TECHNIQUES, TECHNIQUE_BY_ID, type Technique } from '../reference';
 import { FULL_TECHNIQUES, FULL_BY_ID, parentId, type FullTechnique } from '../attackFull';
+import { forCustomer, type CustomerMap } from '../customerMap';
 
 /* =====================================================================
    Tools
@@ -22,6 +23,16 @@ const SHORT: Record<string, string> = {
   'c-qradar': 'QRadar', 'c-upstream': 'Upstream vSOC', 'c-armis': 'Armis Centrix', 'c-claroty': 'Claroty xDome', 'c-imprivata': 'Imprivata OneSign',
   'c-fairwarning': 'FairWarning', 'c-mimecast': 'Mimecast', 'c-beyondtrust': 'BeyondTrust PRA', 'c-insightvm': 'InsightVM', 'c-sap': 'SAP ETD',
   'c-epic': 'Epic Clarity', 'c-cohesity': 'Cohesity', 'c-rubrik': 'Rubrik', 'c-ghas': 'GitHub Advanced Security', 'c-scorecard': 'SecurityScorecard',
+  // Connectors that only the second-wave customers have.
+  'c-auth0': 'Auth0 (policyholder portal)', 'c-abnormal': 'Abnormal Security', 'c-vectra': 'Vectra AI', 'c-guidewire': 'Guidewire Cloud', 'c-duckcreek': 'Duck Creek',
+  'c-island': 'Island Browser', 'c-varonis': 'Varonis', 'c-purview': 'Purview DLP', 'c-csidentity': 'Falcon Identity', 'c-entra-comm': 'Entra ID (commercial)',
+  'c-mdo': 'Defender for Office 365', 'c-preveil': 'PreVeil', 'c-corelight': 'Corelight', 'c-ise': 'Cisco ISE', 'c-delinea': 'Delinea Secret Server',
+  'c-tenablesc': 'Tenable SC', 'c-teamcenter': 'Teamcenter', 'c-exostar': 'Exostar MAG', 'c-costpoint': 'Costpoint', 'c-yubico': 'YubiEnterprise',
+  'c-trakcare': 'TrakCare', 'c-nehr': 'NEHR gateway', 'c-defenderxdr': 'Defender XDR', 'c-forescout': 'Forescout', 'c-ciscoise': 'Cisco ISE',
+  'c-fortigate': 'FortiGate', 'c-saviynt': 'Saviynt', 'c-deltav': 'DeltaV Event Chronicle', 'c-pcs7': 'PCS 7 (WinCC audit)', 'c-pasx': 'PAS-X MES',
+  'c-labware': 'LabWare LIMS', 'c-viewlinc': 'viewLinc EMS', 'c-rave': 'Medidata Rave', 'c-veeva-qms': 'Veeva QMS', 'c-veeva-etmf': 'Veeva eTMF',
+  'c-argus': 'Argus Safety', 'c-pi': 'PI System', 'c-m365': 'Defender for Office 365', 'c-akamai': 'Akamai App & API Protector', 'c-panorama': 'Panorama (resorts)',
+  'c-aspera': 'Aspera', 'c-frameio': 'Frame.io', 'c-nexguard': 'NexGuard', 'c-signiant': 'Signiant', 'c-irdeto': 'Irdeto',
 };
 export function toolShort(k: Connector): string {
   return SHORT[k.id] ?? k.product;
@@ -131,7 +142,7 @@ interface IncTpl {
   actor?: number;
 }
 
-const INC_TPL: Record<CustomerId, IncTpl[]> = {
+const INC_TPL: CustomerMap<IncTpl[]> = {
   maritime: [
     { title: 'Unauthorised program download to STS crane PLC ({ot})', sev: ['critical', 'high'], tech: ['T0843', 'T0821'], src: ['c-dragos', 'c-hexaot', 'c-sentinel'], tenants: ['rtm', 'ant'], ot: true, playbook: 'OT: unauthorised controller change', actor: 0 },
     { title: 'Shadow copy deletion on HPS-SAP-PRD (ransomware precursor)', sev: ['critical', 'high'], tech: ['T1490', 'T1486'], src: ['c-defender', 'c-sentinel'], tenants: ['hq'], host: 'HPS-SAP-PRD', playbook: 'Ransomware: pre-encryption', actor: 2 },
@@ -232,14 +243,120 @@ const INC_TPL: Record<CustomerId, IncTpl[]> = {
     { title: 'AGV fleet controller receiving Modbus writes from an office VLAN', sev: ['medium', 'low'], tech: ['T0855', 'T0836'], src: ['c-armis', 'c-qradar'], tenants: ['gyor', 'puebla'], ot: true, playbook: 'OT: unauthorised command' },
     { title: 'Impossible travel: {user} signed in from Shenzhen and Munich within 2 h', sev: ['low', 'medium'], tech: ['T1078'], src: ['c-entra', 'c-qradar'], tenants: ['group', 'retail'], playbook: 'Identity: suspicious sign-in' },
   ],
+  insurance: [
+    { title: 'Help-desk MFA reset for a ClaimCenter supervisor, then payee edits on 14 open claims', sev: ['critical', 'high'], tech: ['T1078', 'T1098', 'T1621'], src: ['c-okta', 'c-servicenow', 'c-guidewire', 'c-splunk'], tenants: ['claims', 'personal'], personal: true, playbook: 'Identity: help-desk social engineering', actor: 0 },
+    { title: 'Cl0p-style exploitation of the MFT server KMI-MFT-01 (mft.kingsbridgemutual.com)', sev: ['critical', 'high'], tech: ['T1190', 'T1505.003', 'T1560.001'], src: ['c-crowdstrike', 'c-paloalto', 'c-splunk'], tenants: ['group', 'claims'], host: 'KMI-MFT-01', personal: true, playbook: 'Web: MFT exploitation', actor: 3 },
+    { title: 'ALPHV precursors on KMI-SQL-ACT01 (actuarial reserving): Cobalt Strike beacon and vssadmin delete', sev: ['critical', 'high'], tech: ['T1071.001', 'T1490', 'T1486'], src: ['c-crowdstrike', 'c-vectra', 'c-splunk'], tenants: ['group'], host: 'KMI-SQL-ACT01', playbook: 'Ransomware: pre-encryption', actor: 1 },
+    { title: 'Claims disbursement payee bank details changed after a lookalike email to claims finance', sev: ['high', 'medium'], tech: ['T1657', 'T1566.002'], src: ['c-abnormal', 'c-proofpoint', 'c-splunk'], tenants: ['claims', 'group'], personal: true, playbook: 'BEC: claims payment fraud' },
+    { title: 'Credential stuffing against my.kingsbridgemutual.com policyholder sign-in (Auth0)', sev: ['high', 'medium'], tech: ['T1110.004', 'T1078'], src: ['c-auth0', 'c-cloudflare', 'c-splunk'], tenants: ['personal', 'life'], personal: true, playbook: 'Identity: credential stuffing' },
+    { title: 'AgentHub session tokens replayed from a new ASN on agents.kingsbridgemutual.com', sev: ['high', 'medium'], tech: ['T1539', 'T1550.001'], src: ['c-okta', 'c-cloudflare', 'c-splunk'], tenants: ['commercial', 'personal', 'specialty'], playbook: 'Identity: session hijack', actor: 0 },
+    { title: 'RACF SPECIAL attribute granted on KMI-ZOS-PRD1 outside the CICS change window', sev: ['high', 'medium'], tech: ['T1098'], src: ['c-mainframe', 'c-servicenow', 'c-splunk'], tenants: ['personal', 'commercial', 'life'], host: 'KMI-ZOS-PRD1', playbook: 'Mainframe: privileged change' },
+    { title: 'Bulk export of policyholder NPI from PolicyCenter by an offshore servicing account', sev: ['high', 'critical'], tech: ['T1213', 'T1567.002'], src: ['c-guidewire', 'c-netskope', 'c-splunk'], tenants: ['personal', 'claims'], personal: true, playbook: 'DLP: policyholder data exfiltration' },
+    { title: 'Unexpected third-party script on the pay.kingsbridgemutual.com premium payment page', sev: ['high', 'medium'], tech: ['T1059.007', 'T1190'], src: ['c-cloudflare', 'c-splunk'], tenants: ['personal'], card: true, personal: true, playbook: 'Web: client-side skimming', actor: 2 },
+    { title: 'Phishing: fake auto-body repair estimate (.lnk in ZIP) opened by {user}', sev: ['medium', 'high'], tech: ['T1566.001', 'T1204.002'], src: ['c-proofpoint', 'c-crowdstrike', 'c-splunk'], tenants: ['claims', 'personal', 'commercial'], playbook: 'Phishing: malicious attachment', actor: 2 },
+    { title: 'Kerberoasting from a Charlotte claims workstation against Guidewire integration service accounts', sev: ['high', 'medium'], tech: ['T1558.003', 'T1087.002'], src: ['c-crowdstrike', 'c-csidentity', 'c-splunk'], tenants: ['claims'], host: 'KMI-CC-INT02', playbook: 'AD: credential theft', actor: 5 },
+    { title: 'BeyondTrust vendor session to KMI-GW-INT01 outside the approved window', sev: ['medium', 'high'], tech: ['T1133', 'T1078'], src: ['c-beyondtrust', 'c-cyberark', 'c-splunk'], tenants: ['group', 'personal', 'claims'], host: 'KMI-GW-INT01', playbook: 'Vendor remote access breach' },
+    { title: 'Unscheduled BACnet write to a CRAC setpoint in the Windsor data centre ({ot})', sev: ['medium', 'low'], tech: ['T0855', 'T0836'], src: ['c-hexaot', 'c-facilities', 'c-splunk'], tenants: ['group'], ot: true, playbook: 'OT: unauthorised command' },
+    { title: 'Bucket policy on km-telematics-lake changed to allow cross-account read', sev: ['medium', 'high'], tech: ['T1530'], src: ['c-awssh', 'c-wiz', 'c-splunk'], tenants: ['personal'], personal: true, playbook: 'Cloud: storage exposure' },
+    { title: 'Mailbox rule forwarding SIU case files to an external address for {user}', sev: ['medium', 'high'], tech: ['T1114.003', 'T1567.002'], src: ['c-defender', 'c-abnormal', 'c-splunk'], tenants: ['claims'], personal: true, playbook: 'BEC: mailbox compromise' },
+    { title: 'Falcon sensor uninstall attempt on {host}', sev: ['medium'], tech: ['T1562.001'], src: ['c-crowdstrike', 'c-splunk'], playbook: 'Endpoint: defence evasion' },
+    { title: 'Duck Creek OnDemand admin sign-in from an MGA partner device without MFA', sev: ['medium', 'low'], tech: ['T1078', 'T1199'], src: ['c-duckcreek', 'c-okta', 'c-splunk'], tenants: ['specialty'], playbook: 'Identity: suspicious sign-in' },
+    { title: 'Impossible travel: {user} signed in from Hartford and Lagos within 1 h', sev: ['low', 'medium'], tech: ['T1078'], src: ['c-entra', 'c-splunk'], tenants: ['group', 'commercial', 'life'], playbook: 'Identity: suspicious sign-in' },
+  ],
+  defence: [
+    { title: 'CUI spill: export-controlled drawing set sent from the commercial tenant to a personal address', sev: ['critical', 'high'], tech: ['T1213', 'T1567.002'], src: ['c-purview', 'c-proofpoint', 'c-sentinel'], tenants: ['corporate', 'programs'], leak: true, playbook: 'CUI spill: containment & DIBNet report' },
+    { title: 'APT40 spear-phish: fake prime RFQ (ISO) opened by a guidance engineer, beacon to a VPS', sev: ['critical', 'high'], tech: ['T1566.001', 'T1204.002', 'T1071.001'], src: ['c-mdo', 'c-defender', 'c-sentinel'], tenants: ['engineering', 'programs'], playbook: 'Nation-state: targeted intrusion', actor: 0 },
+    { title: 'ITAR technical data (TDP-2207) opened in Teamcenter by an account not cleared as a US person', sev: ['critical', 'high'], tech: ['T1213', 'T1078'], src: ['c-teamcenter', 'c-entra', 'c-sentinel'], tenants: ['engineering', 'programs'], leak: true, playbook: 'ITAR: unauthorised access' },
+    { title: 'CNC programme changed on B3-DNC-SRV01 for {ot} outside a released revision', sev: ['high', 'critical'], tech: ['T0843', 'T0821'], src: ['c-armis', 'c-hexaot', 'c-sentinel'], tenants: ['manufacturing'], host: 'B3-DNC-SRV01', ot: true, playbook: 'OT: unauthorised programme change' },
+    { title: 'Volt Typhoon-style LOTL on SPD-DC02: ntdsutil IFM and netsh portproxy', sev: ['high', 'medium'], tech: ['T1003.003', 'T1090.001', 'T1047'], src: ['c-defender', 'c-corelight', 'c-sentinel'], tenants: ['programs', 'engineering'], host: 'SPD-DC02', playbook: 'AD: living off the land', actor: 2 },
+    { title: 'Machine-tool OEM session to a Building 3 mill via BeyondTrust without a work order', sev: ['high', 'medium'], tech: ['T1133', 'T0886'], src: ['c-beyondtrust', 'c-armis', 'c-sentinel'], tenants: ['manufacturing'], host: 'SPD-JUMP-OT01', ot: true, playbook: 'Vendor remote access breach' },
+    { title: 'Fake-recruiter lure: trojanised PDF reader run on a flight-software developer laptop', sev: ['high', 'medium'], tech: ['T1566.002', 'T1204.002'], src: ['c-defender', 'c-crowdstrike', 'c-sentinel'], tenants: ['engineering'], playbook: 'Nation-state: targeted intrusion', actor: 4 },
+    { title: 'Flight software repository cloned in full from SPD-GHE-01 to an unmanaged device', sev: ['high', 'medium'], tech: ['T1213', 'T1560.001'], src: ['c-ghas', 'c-corelight', 'c-sentinel'], tenants: ['engineering'], host: 'SPD-GHE-01', leak: true, playbook: 'IP leak: source code exfiltration', actor: 1 },
+    { title: 'Password spray against vpn.sentrypeakdefense.com from residential proxies', sev: ['medium', 'high'], tech: ['T1110.003', 'T1090.003'], src: ['c-entra', 'c-paloalto', 'c-sentinel'], tenants: ['programs', 'engineering', 'corporate'], playbook: 'Identity: password spray', actor: 3 },
+    { title: 'Environmental chamber TUS-CHAMBER-02 profile changed mid-run on the Tucson test range', sev: ['medium', 'high'], tech: ['T0836', 'T0855'], src: ['c-hexaot', 'c-armis', 'c-sentinel'], tenants: ['tucson'], ot: true, playbook: 'OT: test-bench anomaly' },
+    { title: 'Unknown USB device on the Zeiss CMM workstation B3-CMM-WS02', sev: ['medium', 'low'], tech: ['T0847', 'T1091'], src: ['c-armis', 'c-hexaot'], tenants: ['manufacturing'], host: 'B3-CMM-WS02', ot: true, playbook: 'OT: removable media' },
+    { title: 'LockBit affiliate precursor: AnyDesk installed on the AVEVA historian B3-HIST-01', sev: ['high', 'medium'], tech: ['T1219', 'T1570'], src: ['c-armis', 'c-hexaot', 'c-sentinel'], tenants: ['manufacturing'], host: 'B3-HIST-01', ot: true, playbook: 'Ransomware: pre-encryption', actor: 5 },
+    { title: 'Exostar MAG sign-in from a sub-tier supplier account on a new device', sev: ['medium', 'low'], tech: ['T1199', 'T1078'], src: ['c-exostar', 'c-entra-comm', 'c-sentinel'], tenants: ['programs', 'corporate'], playbook: 'Identity: suspicious sign-in' },
+    { title: 'Range telemetry host TUS-TEST-DAQ01 talking to an unlisted external IP', sev: ['medium', 'low'], tech: ['T1071.001', 'T0883'], src: ['c-hexaot', 'c-paloalto', 'c-sentinel'], tenants: ['tucson'], host: 'TUS-TEST-DAQ01', ot: true, playbook: 'Network: C2 beaconing' },
+    { title: 'Defender tamper protection disabled on {host}', sev: ['medium'], tech: ['T1562.001'], src: ['c-defender', 'c-sentinel'], tenants: ['programs', 'engineering', 'corporate', 'tucson'], playbook: 'Endpoint: defence evasion' },
+    { title: 'Costpoint timesheet and rate export by a user outside Finance', sev: ['medium', 'low'], tech: ['T1213'], src: ['c-costpoint', 'c-entra-comm', 'c-sentinel'], tenants: ['corporate'], playbook: 'Insider: data collection' },
+    { title: 'Proposal draft pasted into unsanctioned ChatGPT from an engineering browser', sev: ['low', 'medium'], tech: ['T1567.002'], src: ['c-zscaler', 'c-purview', 'c-sentinel'], tenants: ['corporate', 'engineering'], playbook: 'DLP: unsanctioned AI upload' },
+    { title: 'Impossible travel: {user} signed in from Huntsville and Shenzhen within 2 h', sev: ['low', 'medium'], tech: ['T1078'], src: ['c-entra', 'c-sentinel'], tenants: ['programs', 'engineering', 'tucson'], playbook: 'Identity: suspicious sign-in', actor: 0 },
+  ],
+  pharma: [
+    { title: 'GxP audit trail disabled on LabWare LIMS (BSL-LIMS-LW01), then result edits on release tests', sev: ['critical', 'high'], tech: ['T1565.001', 'T1070'], src: ['c-labware', 'c-veeva-qms', 'c-sentinel'], tenants: ['valais', 'cork'], host: 'BSL-LIMS-LW01', playbook: 'GxP: data integrity breach' },
+    { title: 'APT41 web shell on suppliers.rhenara.com, then biologics process files staged on BSL-FS02', sev: ['critical', 'high'], tech: ['T1505.003', 'T1190', 'T1560.001'], src: ['c-crowdstrike', 'c-wiz', 'c-sentinel'], tenants: ['corporate', 'rnd'], host: 'BSL-FS02', leak: true, playbook: 'IP theft: process & formulation data', actor: 0 },
+    { title: 'Black Basta precursors on RHN-SAP-PRD01: Quick Assist session, Cobalt Strike and vssadmin delete', sev: ['critical', 'high'], tech: ['T1219', 'T1071.001', 'T1490'], src: ['c-crowdstrike', 'c-sap', 'c-sentinel'], tenants: ['corporate', 'valais', 'cork'], host: 'RHN-SAP-PRD01', playbook: 'Ransomware: pre-encryption', actor: 4 },
+    { title: 'RTSM unblinding list for RHN-4471 opened by a user in a blinded study role', sev: ['high', 'critical'], tech: ['T1213', 'T1078'], src: ['c-rave', 'c-okta', 'c-sentinel'], tenants: ['clinops'], personal: true, playbook: 'Clinical: unblinding integrity' },
+    { title: 'DeltaV configuration download from VLS-DELTAV-PROPLUS outside a GxP change record', sev: ['high', 'medium'], tech: ['T0843', 'T0821'], src: ['c-deltav', 'c-claroty', 'c-sentinel'], tenants: ['valais'], host: 'VLS-DELTAV-PROPLUS', ot: true, playbook: 'OT: unauthorised controller change' },
+    { title: 'Emerson remote session to a Valais bioreactor controller via BeyondTrust without a change ticket', sev: ['high', 'medium'], tech: ['T1133', 'T0886'], src: ['c-beyondtrust', 'c-claroty', 'c-sentinel'], tenants: ['valais'], ot: true, playbook: 'Vendor remote access breach' },
+    { title: 'CRO partner account pulling six times its usual eTMF volume (study RHN-3810)', sev: ['high', 'medium'], tech: ['T1199', 'T1530'], src: ['c-veeva-etmf', 'c-okta', 'c-sentinel'], tenants: ['clinops'], personal: true, leak: true, playbook: 'Vendor: abnormal access' },
+    { title: 'Help-desk MFA reset for a QA reviewer, then Veeva QMS sign-in from a new ASN', sev: ['high', 'medium'], tech: ['T1078', 'T1098', 'T1621'], src: ['c-entra', 'c-servicenow', 'c-veeva-qms', 'c-sentinel'], tenants: ['corporate', 'valais', 'cork'], playbook: 'Identity: help-desk social engineering', actor: 5 },
+    { title: 'PAS-X batch record: review-by-exception override signed with a shared operator account', sev: ['high', 'medium'], tech: ['T1078', 'T1565.001'], src: ['c-pasx', 'c-sentinel'], tenants: ['cork', 'valais'], playbook: 'GxP: data integrity breach' },
+    { title: 'Serialisation line host CRK-SERIAL-L3-01 scanning the packaging VLAN', sev: ['medium', 'high'], tech: ['T0846', 'T1046'], src: ['c-dragos', 'c-sentinel'], tenants: ['cork'], host: 'CRK-SERIAL-L3-01', ot: true, playbook: 'OT: discovery activity' },
+    { title: 'Lyophiliser PLC parameter write at Cork outside a batch campaign ({ot})', sev: ['medium', 'high'], tech: ['T0836', 'T0855'], src: ['c-dragos', 'c-pi', 'c-sentinel'], tenants: ['cork'], ot: true, playbook: 'OT: unauthorised command' },
+    { title: 'Cleanroom EMS alarm suppression set by a non-QA account on CRK-EMS-SRV01', sev: ['medium', 'low'], tech: ['T1562.001', 'T0832'], src: ['c-viewlinc', 'c-sentinel'], tenants: ['cork', 'valais'], host: 'CRK-EMS-SRV01', ot: true, playbook: 'GxP: data integrity breach' },
+    { title: 'New engineering laptop seen on the air-gapped aseptic line AF-2 (offline bundle)', sev: ['medium', 'low'], tech: ['T0847', 'T1091'], src: ['c-hexaot'], tenants: ['valais'], ot: true, playbook: 'OT: removable media' },
+    { title: 'Phishing: fake FDA Form 483 response request opened by {user}', sev: ['medium', 'high'], tech: ['T1566.001', 'T1204.002'], src: ['c-proofpoint', 'c-crowdstrike', 'c-sentinel'], tenants: ['corporate', 'rnd', 'clinops', 'commercial'], playbook: 'Phishing: malicious attachment', actor: 1 },
+    { title: 'Compound library export from CAM-ELN-01 uploaded to personal cloud storage', sev: ['medium', 'high'], tech: ['T1567.002', 'T1213'], src: ['c-netskope', 'c-crowdstrike', 'c-sentinel'], tenants: ['rnd'], host: 'CAM-ELN-01', leak: true, playbook: 'IP theft: process & formulation data', actor: 0 },
+    { title: 'Patient-services API on connect.rhenara.com returning other patients’ enrolment records (BOLA probe)', sev: ['medium', 'high'], tech: ['T1190', 'T1213'], src: ['c-prisma', 'c-sentinel'], tenants: ['commercial'], personal: true, playbook: 'Web: API abuse' },
+    { title: 'Argus Safety: bulk export of case narratives by a contractor account', sev: ['medium', 'low'], tech: ['T1213', 'T1530'], src: ['c-argus', 'c-sentinel'], tenants: ['clinops'], personal: true, playbook: 'Privacy: case data access' },
+    { title: 'Cl0p-style probing of the supplier file-transfer gateway', sev: ['low', 'medium'], tech: ['T1190'], src: ['c-paloalto', 'c-sentinel'], tenants: ['corporate'], playbook: 'Web: exploitation attempt', actor: 3 },
+    { title: 'Impossible travel: {user} signed in from Basel and São Paulo within 90 min', sev: ['low', 'medium'], tech: ['T1078'], src: ['c-entra', 'c-sentinel'], tenants: ['corporate', 'rnd', 'commercial'], playbook: 'Identity: suspicious sign-in' },
+  ],
+  sghospital: [
+    { title: 'LockBit 3.0 precursors on PACS archive OBH-PACS-01: AnyDesk, Rclone and shadow copy deletion', sev: ['critical', 'high'], tech: ['T1219', 'T1490', 'T1567.002'], src: ['c-crowdstrike', 'c-vectra', 'c-sentinel'], tenants: ['labimg', 'obh'], host: 'OBH-PACS-01', personal: true, playbook: 'Ransomware: pre-encryption', actor: 0 },
+    { title: 'Help-desk MFA reset for a ward nurse, then TrakCare sign-in from an overseas ASN', sev: ['critical', 'high'], tech: ['T1078', 'T1098', 'T1621'], src: ['c-entra', 'c-servicenow', 'c-trakcare', 'c-sentinel'], tenants: ['obh', 'specialist'], personal: true, playbook: 'Identity: help-desk social engineering', actor: 5 },
+    { title: 'Drug-library push to BD Alaris pumps from a host other than the biomed jump server', sev: ['high', 'critical'], tech: ['T0843', 'T0836'], src: ['c-claroty', 'c-armis', 'c-sentinel'], tenants: ['obh', 'daysurg'], host: 'OBH-ALARIS-SRV', ot: true, playbook: 'Medical device: unauthorised change' },
+    { title: 'FairWarning: VIP patient record in TrakCare opened by {user} without a care relationship', sev: ['high', 'medium'], tech: ['T1213', 'T1078'], src: ['c-fairwarning', 'c-trakcare', 'c-sentinel'], tenants: ['obh', 'specialist', 'daysurg'], personal: true, playbook: 'Privacy: inappropriate EHR access' },
+    { title: 'Windows 7 CT console (GE Revolution) beaconing to an external IP from the imaging VLAN', sev: ['high', 'medium'], tech: ['T1071.001', 'T0883'], src: ['c-hexaot', 'c-vectra', 'c-sentinel'], tenants: ['labimg', 'obh'], ot: true, playbook: 'Medical device: unexpected egress' },
+    { title: 'NEHR contribution: HL7 batch replayed through HealthConnect with altered patient identifiers', sev: ['high', 'medium'], tech: ['T1565.002', 'T1199'], src: ['c-nehr', 'c-trakcare', 'c-sentinel'], tenants: ['obh', 'labimg'], host: 'OBH-HS-ENS01', personal: true, playbook: 'Data integrity: NEHR interface' },
+    { title: 'Siemens Healthineers remote session to an MRI console outside the biomed work order', sev: ['high', 'medium'], tech: ['T1133', 'T0886'], src: ['c-cyberark', 'c-claroty', 'c-sentinel'], tenants: ['obh', 'specialist'], host: 'OBH-JUMP-BIOMED', ot: true, playbook: 'Vendor remote access breach' },
+    { title: 'Password spray against citrix.orchidbay.com.sg from residential proxies', sev: ['medium', 'high'], tech: ['T1110.003', 'T1090.003'], src: ['c-entra', 'c-fortigate', 'c-sentinel'], tenants: ['obh', 'corp'], playbook: 'Identity: password spray', actor: 1 },
+    { title: 'Phishing: fake MOH circular (RAR attachment) opened by {user}', sev: ['medium', 'high'], tech: ['T1566.001', 'T1204.002'], src: ['c-mimecast', 'c-crowdstrike', 'c-sentinel'], playbook: 'Phishing: malicious attachment', actor: 3 },
+    { title: 'Imprivata badge-tap session reused on nursing stations at Novena and Tanglin', sev: ['medium', 'low'], tech: ['T1078', 'T1550.001'], src: ['c-imprivata', 'c-sentinel'], tenants: ['obh', 'specialist'], playbook: 'Identity: suspicious sign-in' },
+    { title: 'Roche cobas middleware scanning the LIS subnet (LAB-LIS-01)', sev: ['medium', 'low'], tech: ['T0846', 'T1046'], src: ['c-hexaot', 'c-sentinel'], tenants: ['labimg'], host: 'LAB-LIS-01', ot: true, playbook: 'Medical device: discovery activity' },
+    { title: 'Falcon sensor removed from radiology reading workstation {host}', sev: ['medium'], tech: ['T1562.001'], src: ['c-crowdstrike', 'c-sentinel'], tenants: ['obh', 'labimg', 'specialist'], playbook: 'Endpoint: defence evasion' },
+    { title: 'Oncology treatment plans exported from SPC-ONC-ARIA01 to a USB drive', sev: ['medium', 'low'], tech: ['T1052.001', 'T1213'], src: ['c-crowdstrike', 'c-sentinel'], tenants: ['specialist'], host: 'SPC-ONC-ARIA01', personal: true, playbook: 'DLP: data exfiltration' },
+    { title: 'Day surgery theatre BMS: AHU setpoint written from an office VLAN ({ot})', sev: ['medium', 'low'], tech: ['T0855', 'T0836'], src: ['c-armis', 'c-claroty', 'c-sentinel'], tenants: ['daysurg'], ot: true, playbook: 'OT: unauthorised command' },
+    { title: 'Telehealth API returning other patients’ appointments (BOLA probe)', sev: ['medium', 'high'], tech: ['T1190', 'T1213'], src: ['c-wiz', 'c-sentinel'], tenants: ['daysurg', 'corp'], personal: true, playbook: 'Web: API abuse' },
+    { title: 'Insurer claims export sent to a personal Gmail address by {user}', sev: ['low', 'medium'], tech: ['T1567.002', 'T1114.003'], src: ['c-purview', 'c-abnormal', 'c-sentinel'], tenants: ['corp'], personal: true, playbook: 'DLP: data exfiltration' },
+    { title: 'UNC3886-style probing of the FortiGate management interface from a VPS', sev: ['low', 'medium'], tech: ['T1190', 'T1133'], src: ['c-fortigate', 'c-sentinel'], tenants: ['corp', 'obh'], playbook: 'Web: exploitation attempt', actor: 4 },
+    { title: 'Impossible travel: {user} signed in from Singapore and Jakarta within 40 min', sev: ['low', 'medium'], tech: ['T1078'], src: ['c-entra', 'c-sentinel'], tenants: ['corp', 'obh', 'labimg'], playbook: 'Identity: suspicious sign-in' },
+  ],
+  studio: [
+    { title: 'NexGuard watermark match: {title} awards-screener frames posted to a Telegram channel', sev: ['critical', 'high'], tech: ['T1567.002', 'T1041'], src: ['c-nexguard', 'c-hexaint', 'c-secops'], tenants: ['studios'], leak: true, playbook: 'Content leak: external sighting' },
+    { title: 'Northlight Pixel artist credential pulling Lodestar plates from aspera.starfallent.com at 03:00', sev: ['critical', 'high'], tech: ['T1199', 'T1078', 'T1530'], src: ['c-aspera', 'c-okta', 'c-hexacustody', 'c-secops'], tenants: ['post', 'studios'], leak: true, playbook: 'Vendor: compromised VFX partner', actor: 0 },
+    { title: 'Ride-control zone breach: maintenance laptop bridged the Orlando ride network to guest Wi-Fi ({ot})', sev: ['critical', 'high'], tech: ['T0866', 'T0883'], src: ['c-dragos', 'c-claroty', 'c-splunk'], tenants: ['parks'], ot: true, playbook: 'OT: ride-control segmentation breach' },
+    { title: 'ALPHV precursors on POST-RENDER-MGR: ESXi shell enabled and datastore enumeration', sev: ['critical', 'high'], tech: ['T1486', 'T1490', 'T1021.004'], src: ['c-s1', 'c-secops'], tenants: ['post'], host: 'POST-RENDER-MGR', playbook: 'Ransomware: pre-encryption', actor: 3 },
+    { title: 'Credential stuffing against login.starfallplus.com: 2.1M attempts from residential proxies', sev: ['high', 'medium'], tech: ['T1110.004', 'T1078'], src: ['c-akamai', 'c-cloudflare', 'c-secops'], tenants: ['play'], personal: true, playbook: 'Identity: credential stuffing', actor: 1 },
+    { title: 'Unexpected third-party script on the Starfall+ checkout page', sev: ['high', 'critical'], tech: ['T1059.007', 'T1190'], src: ['c-akamai', 'c-cloudflare', 'c-secops'], tenants: ['play'], card: true, personal: true, playbook: 'Web: client-side skimming' },
+    { title: 'Help-desk social engineering: Okta MFA reset requested for the Starfall+ SRE lead', sev: ['high', 'medium'], tech: ['T1078', 'T1098', 'T1621'], src: ['c-okta', 'c-servicenow', 'c-secops'], tenants: ['play', 'corp'], playbook: 'Identity: help-desk social engineering', actor: 0 },
+    { title: 'Locked cut copied from DIT cart STU-DIT-CART12 to a personal cloud account', sev: ['high', 'medium'], tech: ['T1567.002', 'T1560.001'], src: ['c-hexacustody', 'c-netskope', 'c-secops'], tenants: ['studios'], host: 'STU-DIT-CART12', leak: true, playbook: 'Content leak: exfiltration', actor: 2 },
+    { title: 'StarPass ticketing gateway PARKS-TKT-GW: API scraping of guest wearable IDs', sev: ['high', 'medium'], tech: ['T1190', 'T1213'], src: ['c-cloudflare', 'c-panorama', 'c-splunk'], tenants: ['parks', 'parksasia'], host: 'PARKS-TKT-GW', personal: true, playbook: 'Web: API abuse' },
+    { title: 'Ride OEM remote session to a ride PLC outside the approved maintenance window', sev: ['high', 'medium'], tech: ['T1133', 'T0886'], src: ['c-cyberark', 'c-claroty', 'c-splunk'], tenants: ['parks', 'parksasia'], host: 'SFE-JUMP-PARKS', ot: true, playbook: 'Vendor remote access breach' },
+    { title: 'Frame.io review link for {title} opened from 11 countries in 3 hours', sev: ['medium', 'high'], tech: ['T1213', 'T1539'], src: ['c-frameio', 'c-cloudflare', 'c-secops'], tenants: ['studios', 'post'], leak: true, playbook: 'Content leak: screener abuse' },
+    { title: 'Show control at Osaka Resort receiving Art-Net writes from a non-show VLAN', sev: ['medium', 'high'], tech: ['T0855', 'T0836'], src: ['c-claroty', 'c-armis', 'c-splunk'], tenants: ['parksasia'], ot: true, playbook: 'OT: unauthorised command' },
+    { title: 'Poisoned ComfyUI node pulled onto a generative VFX workstation (NullBulge pattern)', sev: ['medium', 'high'], tech: ['T1195.002', 'T1204.002'], src: ['c-protectai', 'c-s1', 'c-secops'], tenants: ['post', 'studios'], playbook: 'AI supply chain: malicious model', actor: 5 },
+    { title: 'Phishing: fake talent-agency contract (e-signature lure) opened by {user}', sev: ['medium', 'low'], tech: ['T1566.002', 'T1204.002'], src: ['c-gws', 'c-abnormal', 'c-secops'], tenants: ['studios', 'corp'], playbook: 'Phishing: credential harvest' },
+    { title: 'SentinelOne agent disabled on {host}', sev: ['medium'], tech: ['T1562.001'], src: ['c-s1', 'c-secops'], tenants: ['studios', 'post', 'play', 'corp'], playbook: 'Endpoint: defence evasion' },
+    { title: 'Object Lock retention shortened on the sfe-content-vault pre-release bucket', sev: ['medium', 'high'], tech: ['T1530', 'T1562.008'], src: ['c-awssh', 'c-wiz', 'c-secops'], tenants: ['studios'], leak: true, playbook: 'Cloud: storage exposure' },
+    { title: 'Turnstile controller at Orlando Resort scanning the park BMS network', sev: ['medium', 'low'], tech: ['T0846', 'T1046'], src: ['c-armis', 'c-hexaot', 'c-splunk'], tenants: ['parks'], ot: true, playbook: 'OT: discovery activity' },
+    { title: 'Impossible travel: freelance editor signed in from Burbank and Bucharest within 2 h', sev: ['low', 'medium'], tech: ['T1078'], src: ['c-okta', 'c-secops'], tenants: ['studios', 'post'], playbook: 'Identity: suspicious sign-in' },
+  ],
 };
 
-const OT_TARGET: Record<CustomerId, string[]> = {
+const OT_TARGET: CustomerMap<string[]> = {
   maritime: ['RTM-STS-14', 'RTM-STS-09', 'ANT-STS-03', 'ANT-STS-07'],
   finserv: ['DC-CRAH-04', 'DC-UPS-B2'],
   media: ['LIVE-PLAYOUT-A', 'LIVE-PTP-GM01'],
   healthcare: ['ICU-PUMP-0412', 'NICU-MON-07'],
   automotive: ['ING-PRESS-S7-03', 'ING-PRESS-S7-07', 'GYR-EDRIVE-S7-11'],
+  insurance: ['WDC-CRAC-01', 'WDC-CRAC-03', 'WDC-CRAC-05'],
+  defence: ['B3-HAAS-VF4-02', 'B3-HAAS-VF4-05', 'B3-DMG-NLX-01'],
+  pharma: ['CRK-LYO-01', 'CRK-LYO-02', 'CRK-LYO-03'],
+  sghospital: ['DSC-OT-AHU-02', 'DSC-OT-AHU-04'],
+  studio: ['PARKS-RIDECTL-PLC07', 'PARKS-RIDECTL-PLC11', 'PARKS-RIDECTL-PLC14'],
 };
 
 function fill(s: string, c: CustomerProfile, r: ReturnType<typeof rng>, ctx: { host: string; user: string; vip: string }): string {
@@ -248,7 +365,7 @@ function fill(s: string, c: CustomerProfile, r: ReturnType<typeof rng>, ctx: { h
     .replace('{user}', ctx.user)
     .replace('{vip}', ctx.vip)
     .replace('{vessel}', r.pick(VESSELS))
-    .replace('{ot}', r.pick(OT_TARGET[c.id]))
+    .replace('{ot}', r.pick(forCustomer(OT_TARGET, c)))
     .replace('{title}', r.pick(c.vocab.custodyItems).split(' – ')[0]);
 }
 
@@ -265,7 +382,7 @@ export function incidents(c: CustomerProfile, tenantId: string, days: number): I
   const r = rng(`soc-incidents-${c.id}-${tenantId}`);
   const share = tenantShare(c, tenantId);
   const tenantIds = scopedTenants(c, tenantId).map((t) => t.id);
-  const tpls = INC_TPL[c.id].filter((t) => !t.tenants || t.tenants.some((x) => tenantIds.includes(x)));
+  const tpls = forCustomer(INC_TPL, c).filter((t) => !t.tenants || t.tenants.some((x) => tenantIds.includes(x)));
   const allowedFor = (t: IncTpl) => (t.tenants ?? c.tenants.map((x) => x.id)).filter((x) => tenantIds.includes(x));
   const staffUsers = c.people.staff;
   const vips = staffUsers.filter((p) => p.vip);
@@ -413,16 +530,66 @@ export function regClocks(c: CustomerProfile, inc: Incident): RegClock[] {
     add('Flag state & DPA notification', 'Flag administration (via DPA)', 24 * 60, 'IMO MSC.428(98) · ISM Code SMS');
     add('USCG NRC report (if in US waters)', 'US Coast Guard NRC', 12 * 60, '33 CFR 101.305 · without delay');
   }
-  if (c.id === 'media' && inc.sev === 'critical') add('SEC Form 8-K Item 1.05', 'SEC (after materiality determination)', 4 * 1440, '4 business days from materiality determination');
+  if (c.dataKey === 'media' && inc.sev === 'critical') add('SEC Form 8-K Item 1.05', 'SEC (after materiality determination)', 4 * 1440, '4 business days from materiality determination');
   if (inc.personal && rg.includes('HIPAA')) {
     add('HIPAA breach notification', 'HHS Office for Civil Rights', 60 * 1440, '45 CFR 164.408 · without unreasonable delay, max 60 days');
     add('Ohio breach notice to residents', 'Ohio Attorney General', 45 * 1440, 'ORC 1349.19 · 45 days');
   }
+  // US HHS and German KBA clocks belong to those two customers only, not to customers that share their template.
   if (c.id === 'healthcare' && inc.sev === 'critical') add('Health-ISAC / HHS HC3 voluntary report', 'HHS HC3 · CISA', 72 * 60, 'CIRCIA (pending) · HPH CPG incident reporting');
   if (c.id === 'automotive' && (t.id === 'connected' || inc.title.includes('OTA'))) add('Type-approval authority notification', 'KBA (Kraftfahrt-Bundesamt)', 7 * 1440, 'UNECE R155 7.4 · CSMS monitoring report, without undue delay');
-  if (inc.leak) add('Licensor / studio notification', 'Content owners (contractual)', 24 * 60, 'Distribution & co-production agreements · MPA CSBP');
+  const leakClock = forCustomer(LEAK_CLOCK, c);
+  if (inc.leak && leakClock) add(...leakClock);
+  // Second-wave customers: their own regulators and reporting windows.
+  if (c.id === 'insurance') {
+    const doi = rg.find((x) => x.startsWith('NAIC #668'));
+    if (doi) {
+      const state = doi.match(/\((.+)\)/)?.[1];
+      add('Insurance commissioner notice', state ? `${state} Department of Insurance` : 'Domiciliary state insurance department', 72 * 60, 'NAIC Insurance Data Security Model Law (#668) §6 · 72 h of determination');
+    }
+    if (rg.includes('CT IDSL')) add('Connecticut Insurance Department notice', 'CT Insurance Commissioner', 3 * 1440, 'Conn. Gen. Stat. §38a-38 · 3 business days');
+  }
+  if (c.id === 'defence' && (inc.leak || rg.some((x) => x === 'DFARS 7012' || x === 'CMMC L2'))) {
+    add('DFARS cyber incident report (DIBNet)', 'DoD Cyber Crime Center (DC3)', 72 * 60, 'DFARS 252.204-7012(c) · rapidly report within 72 h of discovery');
+    add('Prime contractor notification', 'Prime contractors (flow-down)', 72 * 60, 'DFARS 252.204-7012(m) · subcontractor reports to DoD and to the prime');
+    add('Preserve images and packet capture', 'DC3 / contracting officer (on request)', 90 * 1440, 'DFARS 252.204-7012(e) · 90 days from report submission');
+    if (inc.leak) add('ITAR voluntary disclosure', 'DDTC (US Department of State)', 60 * 1440, '22 CFR 127.12 · initial notice promptly, full disclosure within 60 days');
+  }
+  if (c.id === 'pharma') {
+    if (t.country === 'IE') {
+      add('NIS2 early warning', 'NCSC Ireland (CSIRT-IE)', 24 * 60, 'Art. 23(4)(a) · significant incident, 24 h');
+      add('NIS2 incident notification', 'NCSC Ireland (CSIRT-IE)', 72 * 60, 'Art. 23(4)(b) · 72 h');
+      if (inc.personal) add('GDPR breach notification', 'Data Protection Commission (IE)', 72 * 60, 'GDPR Art. 33 · 72 h of awareness');
+    }
+    if (t.country === 'CH') {
+      add('Cyberattack report', 'NCSC Switzerland (BACS)', 24 * 60, 'Information Security Act Art. 74a ff. · critical infrastructure, 24 h');
+      if (inc.personal) add('revDSG breach notification', 'FDPIC (EDÖB)', 72 * 60, 'revDSG Art. 24 · as soon as possible (HexaSOC target 72 h)');
+    }
+  }
+  if (c.id === 'sghospital') {
+    if (rg.includes('HIA CS/DS')) {
+      add('MOH significant incident notification', 'Ministry of Health (MOH)', 120, 'Health Information Act · within 2 h of becoming aware');
+      add('MOH full incident report', 'Ministry of Health (MOH)', 14 * 1440, 'Health Information Act · within 14 days');
+    }
+    if (inc.personal) add('PDPC data breach notification', 'Personal Data Protection Commission', 3 * 1440, 'PDPA s26D · 3 calendar days after assessing a notifiable breach');
+  }
+  if (c.id === 'studio' && inc.personal && rg.includes('APPI')) add('APPI breach report', 'Personal Information Protection Commission (Japan)', 30 * 1440, 'APPI Art. 26 · preliminary report promptly (3–5 days), final within 30 days');
   return out;
 }
+
+/** Contractual notice when content, IP or controlled data leaves custody. */
+const LEAK_CLOCK: CustomerMap<[string, string, number, string] | false> = {
+  maritime: ['Licensor / studio notification', 'Content owners (contractual)', 24 * 60, 'Distribution & co-production agreements · MPA CSBP'],
+  finserv: ['Licensor / studio notification', 'Content owners (contractual)', 24 * 60, 'Distribution & co-production agreements · MPA CSBP'],
+  media: ['Licensor / studio notification', 'Content owners (contractual)', 24 * 60, 'Distribution & co-production agreements · MPA CSBP'],
+  healthcare: ['Licensor / studio notification', 'Content owners (contractual)', 24 * 60, 'Distribution & co-production agreements · MPA CSBP'],
+  automotive: ['Licensor / studio notification', 'Content owners (contractual)', 24 * 60, 'Distribution & co-production agreements · MPA CSBP'],
+  insurance: ['Reinsurer / partner notification', 'Affected reinsurers and MGAs (contractual)', 72 * 60, 'Treaty and delegated-authority agreements · 72 h'],
+  defence: false, // covered by the DFARS and ITAR clocks
+  pharma: ['CRO / CDMO partner notification', 'Contract partners (quality & data agreements)', 48 * 60, 'Quality and data-transfer agreements · 48 h'],
+  sghospital: false,
+  studio: ['Talent, licensor & co-financier notification', 'Content owners and co-financiers (contractual)', 24 * 60, 'Distribution, co-production & talent agreements · MPA CSBP'],
+};
 
 /* =====================================================================
    MDR overview
@@ -458,12 +625,17 @@ function bucketLabels(days: number): string[] {
   });
 }
 
-const TACTIC_SKEW: Record<CustomerId, Record<string, number>> = {
+const TACTIC_SKEW: CustomerMap<Record<string, number>> = {
   maritime: { 'Initial Access': 1.4, 'Lateral Movement': 1.2, Discovery: 1.3, Impact: 1.1, 'Command and Control': 1.2 },
   finserv: { 'Credential Access': 1.6, 'Initial Access': 1.4, Persistence: 1.2, Impact: 1.1, 'Privilege Escalation': 1.2 },
   media: { Exfiltration: 1.8, Collection: 1.6, 'Initial Access': 1.3, 'Credential Access': 1.2 },
   healthcare: { 'Initial Access': 1.6, 'Credential Access': 1.5, Impact: 1.3, Collection: 1.2, 'Lateral Movement': 1.1 },
   automotive: { 'Initial Access': 1.4, 'Lateral Movement': 1.3, Exfiltration: 1.4, Impact: 1.2, 'Command and Control': 1.3, Discovery: 1.2 },
+  insurance: { 'Initial Access': 1.6, 'Credential Access': 1.5, Collection: 1.3, Exfiltration: 1.3, Impact: 1.2 },
+  defence: { 'Initial Access': 1.5, Collection: 1.5, Exfiltration: 1.4, 'Command and Control': 1.4, Persistence: 1.3, 'Defense Evasion': 1.2 },
+  pharma: { Collection: 1.6, Exfiltration: 1.5, 'Initial Access': 1.4, Impact: 1.3, 'Credential Access': 1.2 },
+  sghospital: { 'Initial Access': 1.6, Impact: 1.4, 'Credential Access': 1.3, Collection: 1.2, 'Lateral Movement': 1.2 },
+  studio: { Exfiltration: 1.8, Collection: 1.6, 'Credential Access': 1.4, 'Initial Access': 1.4, Impact: 1.1 },
 };
 
 export function mdrData(c: CustomerProfile, tenantId: string, days: number): MdrData {
@@ -494,7 +666,7 @@ export function mdrData(c: CustomerProfile, tenantId: string, days: number): Mdr
     { name: 'Undetermined', value: Math.round(escalated * 0.06) },
   ];
 
-  const skew = TACTIC_SKEW[c.id];
+  const skew = forCustomer(TACTIC_SKEW, c);
   const tactics = TACTICS.map((t) => ({ name: t.short, value: Math.round(escalated * 0.08 * (skew[t.name] ?? 0.8) * r.float(0.6, 1.4, 2)) }));
 
   const crown = new Set([c.vocab.servers[2], c.vocab.servers[3], c.vocab.servers[6]]);
@@ -916,6 +1088,15 @@ const ACTOR_TECH: Record<string, string[]> = {
   Qilin: ['T1133', 'T1078', 'T1558.003', 'T1003.001', 'T1484.001', 'T1021.002', 'T1562.001', 'T1486', 'T1490', 'T1489', 'T1567.002'],
   'INC Ransom': ['T1190', 'T1133', 'T1110.003', 'T1219', 'T1003.001', 'T1021.001', 'T1560.001', 'T1567.002', 'T1486', 'T1490'],
   'BlackSuit (dealer SaaS attacks)': ['T1199', 'T1078', 'T1539', 'T1219', 'T1059.001', 'T1021.001', 'T1486', 'T1490', 'T1489', 'T1567.002'],
+  // Actors named only by the second-wave customers.
+  APT40: ['T1566.001', 'T1204.002', 'T1190', 'T1505.003', 'T1059.001', 'T1003.001', 'T1021.001', 'T1560.001', 'T1071.001', 'T1041', 'T1213'],
+  APT29: ['T1566.002', 'T1078', 'T1110.003', 'T1098', 'T1550.001', 'T1539', 'T1114.002', 'T1059.001', 'T1071.001', 'T1195.002'],
+  'LockBit affiliates': ['T1133', 'T1078', 'T1190', 'T1059.001', 'T1562.001', 'T1003.001', 'T1021.002', 'T1570', 'T1486', 'T1490', 'T1567.002', 'T1219'],
+  'FIN11 / Cl0p': ['T1190', 'T1505.003', 'T1566.001', 'T1059.001', 'T1560.001', 'T1567.002', 'T1041', 'T1486'],
+  'Mustang Panda': ['T1566.001', 'T1204.002', 'T1574.002', 'T1091', 'T1059.003', 'T1071.001', 'T1560.001', 'T1041'],
+  UNC3886: ['T1190', 'T1133', 'T1078', 'T1556', 'T1059.004', 'T1070.001', 'T1071.001', 'T1021.004'],
+  LAPSUS$: ['T1589', 'T1621', 'T1078', 'T1098', 'T1199', 'T1213', 'T1530', 'T1567.002', 'T1489'],
+  NullBulge: ['T1195.002', 'T1204.002', 'T1059.006', 'T1567.002', 'T1213', 'T1041'],
 };
 export function actorTechniques(actor: string): string[] {
   if (ACTOR_TECH[actor]) return ACTOR_TECH[actor];
@@ -936,12 +1117,23 @@ export interface CovCell {
   sources: string[];
 }
 
-const MATRIX_PCT: Record<CustomerId, Record<Exclude<Matrix, 'enterprise'>, number>> = {
+const MATRIX_PCT: CustomerMap<Record<Exclude<Matrix, 'enterprise'>, number>> = {
   maritime: { ics: 58, atlas: 25 },
   finserv: { ics: 31, atlas: 50 },
   media: { ics: 39, atlas: 38 },
   healthcare: { ics: 47, atlas: 34 },
   automotive: { ics: 61, atlas: 41 },
+  insurance: { ics: 28, atlas: 46 },
+  defence: { ics: 52, atlas: 33 },
+  pharma: { ics: 57, atlas: 44 },
+  sghospital: { ics: 44, atlas: 31 },
+  studio: { ics: 49, atlas: 42 },
+};
+
+/** The control that supplies ATLAS (AI) telemetry for each customer. */
+const ATLAS_SRC: CustomerMap<string> = {
+  maritime: 'HexaAI guardrails', finserv: 'Netskope SkopeAI', media: 'HexaAI guardrails', healthcare: 'HexaAI guardrails', automotive: 'Zscaler GenAI controls',
+  insurance: 'Netskope SkopeAI', defence: 'Purview DSPM for AI', pharma: 'Lakera Guard · Protect AI', sghospital: 'Purview DSPM for AI · Lakera Guard', studio: 'Lakera Guard · Protect AI',
 };
 
 export function matrixTechniques(m: Matrix): Technique[] {
@@ -954,7 +1146,7 @@ export function matrixTactics(m: Matrix): string[] {
 
 export function coverage(c: CustomerProfile, tenantId: string, m: Matrix): { cells: CovCell[]; pct: number } {
   const h = headlines(c, tenantId).soc;
-  const pct = m === 'enterprise' ? h.attackCoveragePct : MATRIX_PCT[c.id][m];
+  const pct = m === 'enterprise' ? h.attackCoveragePct : forCustomer(MATRIX_PCT, c)[m];
   const r = rng(`soc-cov-${c.id}-${tenantId}-${m}`);
   const techs = matrixTechniques(m);
   const tools = socTools(c, tenantId);
@@ -970,7 +1162,7 @@ export function coverage(c: CustomerProfile, tenantId: string, m: Matrix): { cel
     const srcs: string[] = [];
     if (level !== 'none') {
       if (m === 'ics') srcs.push(...(tools.ot.length ? tools.ot.map(toolShort) : ['No OT sensor']));
-      else if (m === 'atlas') srcs.push(c.id === 'finserv' ? 'Netskope SkopeAI' : c.id === 'automotive' ? 'Zscaler GenAI controls' : 'HexaAI guardrails');
+      else if (m === 'atlas') srcs.push(forCustomer(ATLAS_SRC, c));
       else srcs.push(tools.siemShort, ...(r.chance(0.6) && tools.edr ? [tools.edrShort] : []), ...(t.tactic === 'Credential Access' || t.tactic === 'Initial Access' ? tools.idps.slice(0, 1).map(toolShort) : []));
     }
     return {
@@ -1025,7 +1217,10 @@ export interface DetectionData {
   intel: { advisory: string; actor: string; receivedH: number; ruleId?: string; deployedH?: number; status: 'deployed' | 'in test' | 'drafting' }[];
 }
 
-const ISAC: Record<CustomerId, string> = { finserv: 'FS-ISAC advisory', maritime: 'Maritime ISAC bulletin', media: 'HexaInt leak watch', healthcare: 'Health-ISAC / HHS HC3 alert', automotive: 'Auto-ISAC advisory' };
+const ISAC: CustomerMap<string> = {
+  finserv: 'FS-ISAC advisory', maritime: 'Maritime ISAC bulletin', media: 'HexaInt leak watch', healthcare: 'Health-ISAC / HHS HC3 alert', automotive: 'Auto-ISAC advisory',
+  insurance: 'FS-ISAC insurance community alert', defence: 'DC3 DCISE / NDISAC advisory', pharma: 'Health-ISAC / NCSC Switzerland alert', sghospital: 'CSA SingCERT / MOH advisory', studio: 'MPA / TPN content security alert',
+};
 
 export function detectionData(c: CustomerProfile, tenantId: string, days: number): DetectionData {
   const h = headlines(c, tenantId).soc;
@@ -1114,7 +1309,7 @@ export function detectionData(c: CustomerProfile, tenantId: string, days: number
     const status = i === 0 ? 'drafting' : i === 1 ? 'in test' : 'deployed';
     const tech = r.pick(actorTechniques(a).length ? actorTechniques(a) : ['T1078']);
     return {
-      advisory: `${r.pick(['HexaInt flash', ISAC[c.id], 'CISA advisory'])}: ${a} · ${TECHNIQUE_BY_ID[tech]?.name ?? tech}`,
+      advisory: `${r.pick(['HexaInt flash', forCustomer(ISAC, c), 'CISA advisory'])}: ${a} · ${TECHNIQUE_BY_ID[tech]?.name ?? tech}`,
       actor: a,
       receivedH,
       ruleId: status === 'drafting' ? undefined : `HV-${tech.replace('.', '-')}-${String(r.int(1, 12)).padStart(2, '0')}`,
@@ -1161,7 +1356,7 @@ interface HuntTpl {
   tenants?: string[];
 }
 
-const HUNT_TPL: Record<CustomerId, HuntTpl[]> = {
+const HUNT_TPL: CustomerMap<HuntTpl[]> = {
   maritime: [
     { name: 'Living-off-the-land on terminal Windows servers', hyp: 'Volt Typhoon-style actors are using built-in tools (wmic, ntdsutil, netsh portproxy) on TOS and historian servers to persist without malware.', actor: 1, tech: ['T1047', 'T1059.003', 'T1003.001', 'T1090.003'], trigger: 'CISA advisory AA24-038A + HexaInt', tenants: ['rtm', 'ant', 'hq'] },
     { name: 'Crane PLC logic changes outside change windows', hyp: 'A Sandworm-style intrusion would push logic to STS crane PLCs from an engineering workstation outside approved maintenance windows.', actor: 0, tech: ['T0843', 'T0821', 'T0886'], trigger: 'ATT&CK ICS gap (HexaMatrix)', tenants: ['rtm', 'ant'] },
@@ -1208,15 +1403,63 @@ const HUNT_TPL: Record<CustomerId, HuntTpl[]> = {
     { name: 'IT-to-OT conduits bypassing the DMZ at Puebla', hyp: 'Flat routes from office VLANs to Level 2 cells exist and are being used by non-engineering hosts.', actor: 2, tech: ['T1021.001', 'T1570', 'T0866'], trigger: 'Armis boundary report', tenants: ['puebla', 'gyor'] },
     { name: 'Dealer SaaS session theft (BlackSuit pattern)', hyp: 'Dealer DMS sessions are being hijacked to pivot into finance and customer data after the industry-wide DMS outage campaign.', actor: 4, tech: ['T1539', 'T1078', 'T1199'], trigger: 'Industry incident (dealer SaaS)', tenants: ['retail'] },
   ],
+  insurance: [
+    { name: 'Help-desk resets followed by ClaimCenter and AgentHub access', hyp: 'Scattered Spider phones the service desk as adjusters or agency staff, resets MFA and reaches ClaimCenter or AgentHub within the hour.', actor: 0, tech: ['T1078', 'T1098', 'T1621'], trigger: 'FS-ISAC insurance community alert + HexaInt' },
+    { name: 'MFT exploitation and archive staging', hyp: 'Cl0p-style actors drop web shells on KMI-MFT-01 and stage policyholder archives before pulling them out over HTTPS.', actor: 3, tech: ['T1190', 'T1505.003', 'T1560.001'], trigger: 'CISA KEV addition (MFT products)', tenants: ['group', 'claims'] },
+    { name: 'Payee and vendor bank changes after risky sign-ins', hyp: 'Fraudsters change claim payee or vendor bank details within hours of a risky sign-in or a lookalike email thread.', actor: 0, tech: ['T1657', 'T1565.001', 'T1078'], trigger: 'SIU referral', tenants: ['claims', 'group'] },
+    { name: 'RACF privilege drift on the policy-admin mainframe', hyp: 'SPECIAL and OPERATIONS attributes are granted on KMI-ZOS-PRD1 without a matching ServiceNow change record.', actor: 4, tech: ['T1098', 'T1078'], trigger: 'NYDFS 500.7 access privilege review', tenants: ['personal', 'commercial', 'life'] },
+    { name: 'Ransomware staging on reserving and claims file servers', hyp: 'ALPHV and Black Basta affiliates stage RMM tools and Rclone on file servers before encrypting reserving models and claim documents.', actor: 1, tech: ['T1219', 'T1570', 'T1490'], trigger: 'HexaInt flash: affiliate tooling', tenants: ['group', 'claims'] },
+    { name: 'Policyholder portal account takeover', hyp: 'Combo lists replayed against my.kingsbridgemutual.com lead to changed payout details on claims and annuity accounts.', actor: 0, tech: ['T1110.004', 'T1078'], trigger: 'Cloudflare bot score shift', tenants: ['personal', 'life'] },
+    { name: 'Telematics lake reads outside the UBI analytics roles', hyp: 'Driver behaviour data in km-telematics-lake is read by identities outside the usage-based insurance analytics roles.', actor: 4, tech: ['T1530', 'T1213'], trigger: 'Chief Privacy Officer request', tenants: ['personal'] },
+    { name: 'MGA access beyond delegated authority', hyp: 'MGA partner accounts in Duck Creek reach policies and rating tables outside their binding authority.', actor: 0, tech: ['T1199', 'T1078'], trigger: 'Delegated-authority audit', tenants: ['specialty', 'commercial'] },
+  ],
+  defence: [
+    { name: 'Living off the land on enclave domain controllers', hyp: 'Volt Typhoon-style actors use ntdsutil, netsh portproxy and wmic on GCC High-joined servers to persist without malware.', actor: 2, tech: ['T1047', 'T1003.003', 'T1090.001'], trigger: 'CISA advisory AA24-038A + DC3 DCISE', tenants: ['programs', 'engineering'] },
+    { name: 'CUI outside the enclave', hyp: 'CUI-marked documents are being stored, shared or emailed from the commercial Microsoft 365 tenant instead of GCC High.', actor: 3, tech: ['T1213', 'T1567.002'], trigger: 'CMMC L2 AC.L2-3.1.3 evidence review', tenants: ['corporate', 'programs'] },
+    { name: 'Spear-phishing of guidance engineers', hyp: 'APT40 targets engineers with fake RFQs and conference invitations carrying ISO or LNK payloads.', actor: 0, tech: ['T1566.001', 'T1204.002', 'T1071.001'], trigger: 'DC3 DCISE advisory', tenants: ['engineering', 'programs'] },
+    { name: 'DNC programme integrity in Building 3', hyp: 'CNC programmes on B3-DNC-SRV01 differ from the released revisions in Teamcenter.', actor: 2, tech: ['T0843', 'T0821', 'T0886'], trigger: 'HexaMatrix ICS gap', tenants: ['manufacturing'] },
+    { name: 'Flight software repository staging', hyp: 'APT41 would clone flight-software repositories on SPD-GHE-01 and stage archives on build hosts before exfiltration.', actor: 1, tech: ['T1213', 'T1560.001', 'T1195.002'], trigger: 'Purple team retest', tenants: ['engineering'] },
+    { name: 'Fake recruiter outreach to developers', hyp: 'Lazarus Group approaches developers with job offers and trojanised coding tests run on corporate laptops.', actor: 4, tech: ['T1566.002', 'T1204.002'], trigger: 'HexaInt flash', tenants: ['engineering'] },
+    { name: 'Test range telemetry egress', hyp: 'Range systems in Tucson have outbound paths beyond the telemetry provider allow-list.', actor: 2, tech: ['T0883', 'T1071.001'], trigger: 'Armis boundary report', tenants: ['tucson'] },
+  ],
+  pharma: [
+    { name: 'Formulation and process IP staging', hyp: 'APT41 stages biologics process and tech-transfer files in archives on Basel file servers before exfiltration.', actor: 0, tech: ['T1560.001', 'T1567.002', 'T1213'], trigger: 'Health-ISAC advisory + HexaInt', tenants: ['corporate', 'rnd'] },
+    { name: 'GxP audit-trail tampering', hyp: 'Audit trails in LabWare, PAS-X or DeltaV are disabled or edited by accounts outside QA, breaching Annex 11 §9 and Part 11.', actor: 5, tech: ['T1565.001', 'T1070', 'T1562.001'], trigger: 'Annex 11 data-integrity review', tenants: ['valais', 'cork'] },
+    { name: 'DCS changes outside GxP change control', hyp: 'DeltaV and PCS 7 configuration downloads happen without an approved GxP change record in ServiceNow.', actor: 0, tech: ['T0843', 'T0821', 'T0886'], trigger: 'HexaMatrix ICS gap', tenants: ['valais'] },
+    { name: 'CRO partner over-collection', hyp: 'CRO accounts in Veeva eTMF and Medidata Rave pull more study data than their work orders cover.', actor: 1, tech: ['T1199', 'T1530'], trigger: 'Clinical quality audit', tenants: ['clinops'] },
+    { name: 'Help-desk resets for QA and plant users', hyp: 'Scattered Spider calls the service desk as QA reviewers to reach Veeva QMS and SAP batch release.', actor: 5, tech: ['T1078', 'T1098', 'T1621'], trigger: 'NCSC Switzerland advisory', tenants: ['corporate', 'valais', 'cork'] },
+    { name: 'Ransomware staging on SAP and plant historians', hyp: 'Black Basta affiliates stage Quick Assist and RMM tools on SAP and PI hosts before encrypting batch-release systems.', actor: 4, tech: ['T1219', 'T1570', 'T1490'], trigger: 'HexaInt flash', tenants: ['corporate', 'valais', 'cork'] },
+    { name: 'Supplier file-transfer exploitation', hyp: 'FIN11 / Cl0p exploits the file transfer servers used for CDMO and supplier exchanges.', actor: 3, tech: ['T1190', 'T1505.003'], trigger: 'CISA KEV addition', tenants: ['corporate', 'commercial'] },
+  ],
+  sghospital: [
+    { name: 'Remote-access tooling staged on PACS and TrakCare servers', hyp: 'LockBit 3.0 affiliates stage AnyDesk and Rclone on PACS and TrakCare hosts before encrypting the imaging archive.', actor: 0, tech: ['T1219', 'T1570', 'T1490'], trigger: 'CSA SingCERT advisory', tenants: ['labimg', 'obh'] },
+    { name: 'Help-desk resets followed by TrakCare sign-in', hyp: 'Callers posing as clinicians reset MFA and reach TrakCare from overseas within the hour.', actor: 5, tech: ['T1078', 'T1098', 'T1621'], trigger: 'MOH advisory + HexaInt' },
+    { name: 'Pump library changes outside biomed work orders', hyp: 'Drug-library or firmware pushes to Alaris pumps come from hosts other than OBH-JUMP-BIOMED or outside ServiceNow work orders.', actor: 1, tech: ['T0843', 'T0836', 'T0886'], trigger: 'HSA GL-04 device review', tenants: ['obh', 'daysurg'] },
+    { name: 'Legacy imaging consoles with outbound paths', hyp: 'Windows 7 CT and MRI consoles at Science Park can reach the internet, which ransomware or C2 could use.', actor: 0, tech: ['T0883', 'T1071.001'], trigger: 'Claroty xDome risk report', tenants: ['labimg', 'obh'] },
+    { name: 'Snooping on VIP patient records', hyp: 'Staff open VIP or co-worker records in TrakCare without a care relationship, beyond what FairWarning has alerted.', actor: 5, tech: ['T1213', 'T1078'], trigger: 'Data Protection Officer request', tenants: ['obh', 'specialist', 'daysurg'] },
+    { name: 'Edge-device persistence', hyp: 'UNC3886-style actors persist on FortiGate and hypervisor management planes where EDR has no view.', actor: 4, tech: ['T1190', 'T1556', 'T1133'], trigger: 'CSA advisory on UNC3886', tenants: ['corp', 'obh'] },
+    { name: 'NEHR interface integrity', hyp: 'HL7 messages to the NEHR HealthConnect gateway are replayed or altered between TrakCare and Synapxe.', actor: 2, tech: ['T1565.002', 'T1199'], trigger: 'NEHR readiness review', tenants: ['obh', 'labimg'] },
+  ],
+  studio: [
+    { name: 'Pre-release staging on DIT carts and edit bays', hyp: 'Insiders or LAPSUS$-style crews archive locked cuts on DIT carts and edit bays before uploading them to personal cloud.', actor: 2, tech: ['T1560.001', 'T1567.002'], trigger: 'HexaInt leak watch', tenants: ['studios', 'post'] },
+    { name: 'VFX vendor credential abuse', hyp: 'Compromised VFX vendor accounts pull plates and cuts through Aspera and Signiant outside their work orders.', actor: 0, tech: ['T1199', 'T1078', 'T1530'], trigger: 'MPA content security alert', tenants: ['post', 'studios'] },
+    { name: 'Starfall+ credential stuffing and account resale', hyp: 'ShinyHunters-sourced combo lists are replayed against login.starfallplus.com and working accounts are resold.', actor: 1, tech: ['T1110.004', 'T1078'], trigger: 'Akamai bot score shift', tenants: ['play'] },
+    { name: 'Ride and show control segmentation', hyp: 'Paths exist from park IT VLANs and vendor laptops into safety-rated ride control zones.', actor: 3, tech: ['T0866', 'T0886', 'T0883'], trigger: 'Dragos ride-zone boundary report', tenants: ['parks', 'parksasia'] },
+    { name: 'ESXi targeting in the London render farm', hyp: 'ALPHV affiliates enable ESXi shell and enumerate datastores on render hypervisors before encrypting.', actor: 3, tech: ['T1486', 'T1490', 'T1021.004'], trigger: 'CISA advisory', tenants: ['post'] },
+    { name: 'Poisoned tooling in generative VFX', hyp: 'NullBulge-style poisoned model nodes and extensions reach generative VFX workstations.', actor: 5, tech: ['T1195.002', 'T1204.002'], trigger: 'Protect AI Guardian finding', tenants: ['post', 'studios'] },
+    { name: 'Checkout script integrity', hyp: 'Third-party scripts on Starfall+ and resort e-commerce checkouts change without a release, a sign of skimming.', actor: 1, tech: ['T1059.007', 'T1190'], trigger: 'PCI DSS 6.4.3 script review', tenants: ['play', 'corp'] },
+  ],
 };
+
+const SCAN_MUL: CustomerMap<number> = { maritime: 1, finserv: 2.4, media: 1, healthcare: 1.6, automotive: 3.1, insurance: 1.8, defence: 0.7, pharma: 2.6, sghospital: 1.1, studio: 3.4 };
 
 export function hunts(c: CustomerProfile, tenantId: string, days: number): Hunt[] {
   const h = headlines(c, tenantId).soc;
   const r = rng(`soc-hunts-${c.id}-${tenantId}`);
   const tools = socTools(c, tenantId);
   const tenantIds = scopedTenants(c, tenantId).map((t) => t.id);
-  const tpls = HUNT_TPL[c.id].filter((t) => !t.tenants || t.tenants.some((x) => tenantIds.includes(x)));
-  const pool = tpls.length ? tpls : HUNT_TPL[c.id];
+  const tpls = forCustomer(HUNT_TPL, c).filter((t) => !t.tenants || t.tenants.some((x) => tenantIds.includes(x)));
+  const pool = tpls.length ? tpls : forCustomer(HUNT_TPL, c);
   const historyN = days <= 7 ? 5 : days <= 30 ? 8 : 14;
   const out: Hunt[] = [];
   const total = h.huntsActive + historyN;
@@ -1227,7 +1470,7 @@ export function hunts(c: CustomerProfile, tenantId: string, days: number): Hunt[
     const tid = allowed.length ? r.pick(allowed) : tenantIds[0];
     const actor = c.vocab.threatActors[tpl.actor] ?? c.vocab.threatActors[0];
     const outcome = active ? undefined : r.weighted<HuntOutcome>([['Detection created', 4], ['No evidence found', 3], ['Hygiene issue raised', 2.5], ['Findings → incident', 1.2]]);
-    const scanned = r.int(40, 900) * 1e6 * (c.id === 'finserv' ? 2.4 : c.id === 'automotive' ? 3.1 : c.id === 'healthcare' ? 1.6 : 1);
+    const scanned = r.int(40, 900) * 1e6 * forCustomer(SCAN_MUL, c);
     const hits = r.int(3, 240);
     const findings = active ? r.int(0, 4) : outcome === 'No evidence found' ? 0 : r.int(1, 9);
     const srcs = [tools.siemShort, ...(tools.edr ? [tools.edrShort] : []), ...(tpl.tech.some((t) => t.startsWith('T0')) ? tools.ot.map(toolShort) : tools.idps.slice(0, 1).map(toolShort))];
@@ -1301,7 +1544,7 @@ export interface ForensicCase {
   timeline: { source: string; hour: number; count: number; label: string }[];
 }
 
-const EV_TYPES: Record<CustomerId, { type: string; source: string; min: number; max: number; tenants?: string[] }[]> = {
+const EV_TYPES: CustomerMap<{ type: string; source: string; min: number; max: number; tenants?: string[] }[]> = {
   maritime: [
     { type: 'Disk image (E01)', source: 'Defender XDR live response + FTK Imager', min: 120e9, max: 900e9 },
     { type: 'Memory capture (raw)', source: 'Defender XDR live response (WinPmem)', min: 8e9, max: 64e9 },
@@ -1357,20 +1600,98 @@ const EV_TYPES: Record<CustomerId, { type: string; source: string; min: number; 
     { type: 'CloudTrail export', source: 'AWS CloudTrail (vireo-connect-prod)', min: 200e6, max: 8e9, tenants: ['connected'] },
     { type: 'SAP Security Audit Log', source: 'SAP S/4HANA (SM20) via SAP ETD', min: 100e6, max: 3e9, tenants: ['group', 'ingolstadt', 'gyor', 'puebla'] },
   ],
+  insurance: [
+    { type: 'Disk image (E01)', source: 'CrowdStrike RTR + FTK Imager', min: 120e9, max: 1e12 },
+    { type: 'Memory capture (raw)', source: 'CrowdStrike RTR (WinPmem)', min: 16e9, max: 96e9 },
+    { type: 'Okta System Log export', source: 'Okta Workforce (agent & broker federation)', min: 40e6, max: 1.4e9 },
+    { type: 'M365 unified audit log export', source: 'Purview audit (Entra ID)', min: 80e6, max: 2.6e9 },
+    { type: 'Guidewire Cloud audit export', source: 'Guidewire ClaimCenter / PolicyCenter audit API', min: 30e6, max: 1.2e9, tenants: ['personal', 'commercial', 'claims'] },
+    { type: 'RACF SMF records', source: 'z/OS SMF type 80 (KMI-ZOS-PRD1)', min: 100e6, max: 3e9, tenants: ['personal', 'commercial', 'life'] },
+    { type: 'CloudTrail export', source: 'AWS CloudTrail (km-personal-gw-prod)', min: 150e6, max: 5e9, tenants: ['personal', 'commercial', 'life'] },
+    { type: 'MFT transfer and audit logs', source: 'KMI-MFT-01 application logs', min: 20e6, max: 600e6, tenants: ['group', 'claims'] },
+    { type: 'BeyondTrust session recording', source: 'BeyondTrust PRA (vendors)', min: 200e6, max: 4e9, tenants: ['group', 'claims', 'personal'] },
+  ],
+  defence: [
+    { type: 'Disk image (E01)', source: 'Defender XDR (GCC High) live response + FTK Imager', min: 120e9, max: 900e9 },
+    { type: 'Memory capture (raw)', source: 'Defender XDR (GCC High) live response', min: 16e9, max: 64e9 },
+    { type: 'GCC High unified audit log export', source: 'Purview audit (Azure Government)', min: 40e6, max: 1.6e9 },
+    { type: 'Entra ID (GCC High) sign-in export', source: 'Entra ID (GCC High)', min: 10e6, max: 400e6 },
+    { type: 'Teamcenter access audit', source: 'Siemens Teamcenter (ITAR item audit)', min: 20e6, max: 900e6, tenants: ['engineering', 'programs'] },
+    { type: 'Network PCAP and Zeek logs', source: 'Corelight sensors (enclave & Building 3 uplink)', min: 1e9, max: 40e9, tenants: ['engineering', 'manufacturing', 'programs'] },
+    { type: 'DNC programme revision history', source: 'B3-DNC-SRV01 export via Armis (read-only)', min: 5e6, max: 200e6, tenants: ['manufacturing'] },
+    { type: 'BeyondTrust session recording', source: 'BeyondTrust PRA (machine-tool vendors)', min: 200e6, max: 3e9, tenants: ['manufacturing', 'tucson'] },
+    { type: 'Test-range DAQ logs', source: 'TUS-TEST-DAQ01 (sealed export)', min: 500e6, max: 20e9, tenants: ['tucson'] },
+  ],
+  pharma: [
+    { type: 'Disk image (E01)', source: 'CrowdStrike RTR + FTK Imager', min: 120e9, max: 1.2e12 },
+    { type: 'Memory capture (raw)', source: 'CrowdStrike RTR (WinPmem)', min: 16e9, max: 128e9 },
+    { type: 'Entra ID sign-in export', source: 'Entra ID', min: 30e6, max: 900e6 },
+    { type: 'LIMS audit trail export', source: 'LabWare LIMS (audit trail, Part 11)', min: 10e6, max: 600e6, tenants: ['valais', 'cork'] },
+    { type: 'PAS-X audit trail export', source: 'Körber Werum PAS-X (eBR audit trail)', min: 10e6, max: 800e6, tenants: ['valais', 'cork'] },
+    { type: 'DeltaV Event Chronicle export', source: 'Emerson DeltaV (read-only export)', min: 50e6, max: 2e9, tenants: ['valais'] },
+    { type: 'Rave EDC / RTSM audit trail', source: 'Medidata Rave (audit trail API)', min: 20e6, max: 700e6, tenants: ['clinops'] },
+    { type: 'Veeva Vault audit trail', source: 'Veeva Vault (QMS / eTMF)', min: 10e6, max: 500e6, tenants: ['clinops', 'corporate', 'valais', 'cork', 'rnd'] },
+    { type: 'SAP Security Audit Log', source: 'SAP S/4HANA (SM20) via SAP ETD', min: 100e6, max: 3e9, tenants: ['corporate', 'valais', 'cork'] },
+    { type: 'Plant network PCAP', source: 'Dragos Platform (span, read-only)', min: 1e9, max: 30e9, tenants: ['cork'] },
+  ],
+  sghospital: [
+    { type: 'Disk image (E01)', source: 'CrowdStrike RTR + FTK Imager', min: 120e9, max: 900e9 },
+    { type: 'Memory capture (raw)', source: 'CrowdStrike RTR (WinPmem)', min: 16e9, max: 64e9 },
+    { type: 'Entra ID sign-in export', source: 'Entra ID', min: 10e6, max: 400e6 },
+    { type: 'TrakCare audit trail', source: 'InterSystems TrakCare (IRIS audit database)', min: 30e6, max: 1.5e9, tenants: ['obh', 'specialist', 'daysurg', 'labimg'] },
+    { type: 'FairWarning case export', source: 'Imprivata FairWarning', min: 2e6, max: 60e6, tenants: ['obh', 'specialist', 'daysurg', 'labimg'] },
+    { type: 'HealthConnect message archive', source: 'HealthShare / NEHR gateway (HL7 v2 archive)', min: 50e6, max: 2e9, tenants: ['obh', 'labimg'] },
+    { type: 'Medical device packet capture', source: 'Claroty xDome for Healthcare (passive)', min: 500e6, max: 15e9, tenants: ['obh', 'specialist', 'daysurg'] },
+    { type: 'PACS audit log', source: 'OBH-PACS-01 (DICOM audit)', min: 20e6, max: 900e6, tenants: ['labimg', 'obh'] },
+    { type: 'CyberArk session recording', source: 'CyberArk Vendor PAM', min: 200e6, max: 3e9 },
+  ],
+  studio: [
+    { type: 'Okta System Log export', source: 'Okta Workforce Identity', min: 60e6, max: 2e9 },
+    { type: 'Google Workspace Drive audit', source: 'Google Workspace', min: 40e6, max: 1.5e9, tenants: ['studios', 'post', 'play'] },
+    { type: 'SentinelOne Deep Visibility export', source: 'SentinelOne Singularity', min: 200e6, max: 9e9, tenants: ['studios', 'post', 'play', 'corp'] },
+    { type: 'Disk image (E01), edit bay or DIT cart', source: 'SentinelOne remote shell + FTK Imager', min: 500e9, max: 4e12, tenants: ['studios', 'post'] },
+    { type: 'S3 server access logs', source: 'AWS (sfe-content-vault)', min: 400e6, max: 15e9, tenants: ['studios'] },
+    { type: 'Aspera and Signiant transfer logs', source: 'IBM Aspera on Cloud · Signiant Media Shuttle', min: 20e6, max: 500e6, tenants: ['studios', 'post'] },
+    { type: 'Watermark extraction report', source: 'NAGRA NexGuard', min: 2e6, max: 50e6, tenants: ['studios', 'post', 'play'] },
+    { type: 'Ride-zone PCAP', source: 'Dragos Platform (span, read-only)', min: 1e9, max: 25e9, tenants: ['parks'] },
+    { type: 'Memory capture (raw)', source: 'CrowdStrike RTR (resorts)', min: 8e9, max: 64e9, tenants: ['parks', 'parksasia'] },
+  ],
 };
 
-const TL_SOURCES: Record<CustomerId, string[]> = {
+const TL_SOURCES: CustomerMap<string[]> = {
   maritime: ['$MFT', 'EVTX', 'Prefetch', 'Entra sign-ins', 'Defender timeline', 'Firewall', 'VDR / ECDIS'],
   finserv: ['$MFT', 'EVTX', 'Prefetch', 'Okta System Log', 'CrowdStrike', 'CloudTrail', 'SWIFT journal'],
   media: ['$MFT', 'Okta System Log', 'Drive audit', 'SentinelOne', 'S3 access', 'Aspera', 'Watermark'],
   healthcare: ['$MFT', 'EVTX', 'Entra sign-ins', 'CrowdStrike', 'Epic access log', 'NetScaler', 'Claroty xDome'],
   automotive: ['$MFT', 'EVTX', 'Entra sign-ins', 'Defender timeline', 'BeyondTrust', 'Armis', 'SAP SM20'],
+  insurance: ['$MFT', 'EVTX', 'Okta System Log', 'CrowdStrike', 'Guidewire audit', 'RACF SMF', 'MFT logs'],
+  defence: ['$MFT', 'EVTX', 'Entra sign-ins (GCC High)', 'Defender timeline', 'Purview audit', 'Teamcenter audit', 'Corelight'],
+  pharma: ['$MFT', 'EVTX', 'Entra sign-ins', 'CrowdStrike', 'LIMS audit trail', 'PAS-X audit trail', 'DeltaV Event Chronicle'],
+  sghospital: ['$MFT', 'EVTX', 'Entra sign-ins', 'CrowdStrike', 'TrakCare audit', 'HealthConnect', 'Claroty xDome'],
+  studio: ['$MFT', 'Okta System Log', 'Drive audit', 'SentinelOne', 'S3 access', 'Aspera / Signiant', 'NexGuard'],
+};
+
+const DFIR_CASES: CustomerMap<number> = { finserv: 8, maritime: 7, media: 5, healthcare: 6, automotive: 9, insurance: 6, defence: 5, pharma: 8, sghospital: 5, studio: 9 };
+
+/** Sector wording for the second forensic question (what left, or what was touched). */
+const DFIR_Q: CustomerMap<{ leak?: string; ot?: string; personal?: string }> = {
+  maritime: {},
+  finserv: {},
+  media: {},
+  healthcare: { ot: 'Did any change reach a medical device or affect patient care?', personal: 'Was ePHI accessed or acquired (HIPAA four-factor risk assessment)?' },
+  automotive: { leak: 'Which design files and versions left custody, and to whom?' },
+  insurance: { leak: 'Which policyholder, claims or treaty files left custody, and to whom?', ot: 'Did any change reach data-centre power or cooling?', personal: 'Was policyholder NPI accessed or acquired (NAIC #668 / NYDFS 500.17 assessment)?' },
+  defence: { leak: 'Which CUI or ITAR files left the enclave, and did any reach a foreign person?', ot: 'Did any change reach a machine or test programme, and are parts or test results affected?', personal: 'Was CUI or covered defence information accessed (DFARS 7012 report scope)?' },
+  pharma: { leak: 'Which study, process or compound files left custody, and to which partner?', ot: 'Did any change reach a controller or batch record, and is batch release affected?', personal: 'Was personal or trial-subject data accessed (GDPR / revDSG assessment)?' },
+  sghospital: { ot: 'Did any change reach a medical device or affect patient care?', personal: 'Was patient data accessed or acquired (PDPA notifiable-breach and MOH assessment)?' },
+  studio: { leak: 'Which titles and versions left custody, and through which vendor?', ot: 'Did any command reach a ride or show controller, and were safety systems ever bypassed?', personal: 'Were subscriber or guest records accessed (CCPA / PCI assessment)?' },
 };
 
 export function forensicCases(c: CustomerProfile, tenantId: string): ForensicCase[] {
   const r = rng(`soc-dfir-${c.id}-${tenantId}`);
   const incs = incidents(c, tenantId, 90).filter((i) => i.sev === 'critical' || i.sev === 'high');
-  const nCases = Math.max(2, scale(({ finserv: 8, maritime: 7, media: 5, healthcare: 6, automotive: 9 } as Record<CustomerId, number>)[c.id], Math.sqrt(tenantShare(c, tenantId))));
+  const nCases = Math.max(2, scale(forCustomer(DFIR_CASES, c), Math.sqrt(tenantShare(c, tenantId))));
+  const q = forCustomer(DFIR_Q, c);
   const leads = ['Freya Lund (DFIR)', 'Hannah Weiss (IR lead)', 'Aiko Tanaka (L3)'];
   const out: ForensicCase[] = [];
   const used = new Set<string>();
@@ -1380,7 +1701,7 @@ export function forensicCases(c: CustomerProfile, tenantId: string): ForensicCas
     used.add(inc.title);
     const status = i === 0 ? 'acquisition' : i < 3 ? 'analysis' : i < 4 ? 'reporting' : r.pick(['closed', 'analysis', 'closed'] as const);
     const id = `DF-${new Date().getFullYear()}-${String(r.int(10, 99)).padStart(3, '0')}${i}`;
-    const types = EV_TYPES[c.id].filter((t) => !t.tenants || t.tenants.includes(inc.tenantId));
+    const types = forCustomer(EV_TYPES, c).filter((t) => !t.tenants || t.tenants.includes(inc.tenantId));
     const nEv = r.int(3, 6);
     const lead = r.pick(leads);
     const opened = status === 'closed' ? r.int(20, 80) : r.int(1, 18);
@@ -1415,7 +1736,7 @@ export function forensicCases(c: CustomerProfile, tenantId: string): ForensicCas
         verified: true,
       };
     });
-    const srcs = TL_SOURCES[c.id];
+    const srcs = forCustomer(TL_SOURCES, c);
     const timeline: ForensicCase['timeline'] = [];
     for (const s of srcs) {
       const n = r.int(5, 12);
@@ -1436,7 +1757,7 @@ export function forensicCases(c: CustomerProfile, tenantId: string): ForensicCas
       legalHold: evidence.some((e) => e.custody.some((s) => s.action === 'Legal hold applied')),
       questions: [
         'How did the actor get in, and when (patient zero)?',
-        inc.leak ? (c.id === 'automotive' ? 'Which design files and versions left custody, and to whom?' : 'Which titles and versions left custody, and to whom?') : inc.ot ? (c.id === 'healthcare' ? 'Did any change reach a medical device or affect patient care?' : 'Did any command reach a controller or affect the process?') : inc.personal && c.id === 'healthcare' ? 'Was ePHI accessed or acquired (HIPAA four-factor risk assessment)?' : 'Was data accessed or exfiltrated?',
+        inc.leak ? (q.leak ?? 'Which titles and versions left custody, and to whom?') : inc.ot ? (q.ot ?? 'Did any command reach a controller or affect the process?') : inc.personal && q.personal ? q.personal : 'Was data accessed or exfiltrated?',
         'Is the actor still present anywhere in the estate?',
       ],
       evidence,
@@ -1449,31 +1770,50 @@ export function forensicCases(c: CustomerProfile, tenantId: string): ForensicCas
 /* =====================================================================
    IR retainer & playbooks
    ===================================================================== */
+const IR_HOURS: CustomerMap<number> = { finserv: 600, maritime: 400, media: 200, healthcare: 400, automotive: 800, insurance: 500, defence: 160, pharma: 800, sghospital: 240, studio: 900 };
+const ONSITE_SLA: CustomerMap<string> = {
+  maritime: '24 h (port), 48 h (vessel at next port call)',
+  finserv: '24 h',
+  media: '24 h',
+  healthcare: '24 h',
+  automotive: '24 h (EU plants), 48 h (Puebla)',
+  insurance: '24 h (Hartford, Charlotte, Columbus), 48 h (other offices)',
+  defence: '24 h (Huntsville), 48 h (Tucson) · US-person responders only',
+  pharma: '24 h (Basel, Valais, Cork), 48 h (Cambridge MA, Morristown)',
+  sghospital: '4 h (all Singapore campuses)',
+  studio: '24 h (Burbank, London, Orlando), 48 h (Osaka)',
+};
+
 export function irRetainer(c: CustomerProfile, tenantId: string) {
   const r = rng(`soc-ret-${c.id}`);
-  const hours = ({ finserv: 600, maritime: 400, media: 200, healthcare: 400, automotive: 800 } as Record<CustomerId, number>)[c.id];
+  const hours = forCustomer(IR_HOURS, c);
   const used = Math.round(hours * r.float(0.28, 0.55, 2));
   const share = tenantShare(c, tenantId);
   return {
     hours, used, usedScoped: Math.round(used * share),
     renewsDays: r.int(60, 220),
     remoteSla: '1 h',
-    onsiteSla: c.id === 'maritime' ? '24 h (port), 48 h (vessel at next port call)' : c.id === 'automotive' ? '24 h (EU plants), 48 h (Puebla)' : '24 h',
+    onsiteSla: forCustomer(ONSITE_SLA, c),
     tabletops: r.int(1, 3),
     lastTabletopDays: r.int(20, 110),
   };
 }
 
-const PLAYBOOKS: Record<CustomerId, string[]> = {
+const PLAYBOOKS: CustomerMap<string[]> = {
   maritime: ['Ransomware: pre-encryption', 'OT: unauthorised controller change', 'Vessel: navigation integrity', 'Vendor remote access breach', 'Identity: MFA fatigue', 'Phishing: malicious attachment', 'BEC: payment fraud'],
   finserv: ['Identity: help-desk social engineering', 'Payments: SWIFT secure zone', 'BEC: payment fraud', 'Data exfiltration: CDE', 'Identity: MFA fatigue', 'Endpoint: credential dumping', 'Cloud: illicit consent grant'],
   media: ['Content leak: exfiltration', 'Content leak: external sighting', 'Identity: help-desk social engineering', 'Vendor: abnormal access', 'Ransomware: pre-encryption', 'Web: client-side skimming'],
   healthcare: ['Ransomware: pre-encryption', 'Identity: help-desk social engineering', 'Medical device: unauthorised change', 'Privacy: inappropriate EHR access', 'BEC: payroll diversion', 'Vendor remote access breach', 'Data exfiltration: research data'],
   automotive: ['Ransomware: plant pre-encryption', 'OT: unauthorised controller change', 'Vehicle: OTA signing integrity', 'Vehicle: backend API abuse', 'IP leak: design exfiltration', 'Identity: help-desk social engineering', 'Fraud: supplier bank change'],
+  insurance: ['Identity: help-desk social engineering', 'Web: MFT exploitation', 'Ransomware: pre-encryption', 'BEC: claims payment fraud', 'DLP: policyholder data exfiltration', 'Identity: credential stuffing', 'Mainframe: privileged change'],
+  defence: ['CUI spill: containment & DIBNet report', 'Nation-state: targeted intrusion', 'ITAR: unauthorised access', 'OT: unauthorised programme change', 'AD: living off the land', 'Vendor remote access breach', 'IP leak: source code exfiltration'],
+  pharma: ['GxP: data integrity breach', 'IP theft: process & formulation data', 'Ransomware: pre-encryption', 'Clinical: unblinding integrity', 'OT: unauthorised controller change', 'Vendor: abnormal access', 'Identity: help-desk social engineering'],
+  sghospital: ['Ransomware: pre-encryption', 'Identity: help-desk social engineering', 'Medical device: unauthorised change', 'Privacy: inappropriate EHR access', 'Data integrity: NEHR interface', 'Vendor remote access breach', 'DLP: data exfiltration'],
+  studio: ['Content leak: external sighting', 'Vendor: compromised VFX partner', 'OT: ride-control segmentation breach', 'Content leak: exfiltration', 'Identity: credential stuffing', 'Web: client-side skimming', 'Ransomware: pre-encryption'],
 };
 export function playbooks(c: CustomerProfile, incs: Incident[]) {
   const r = rng(`soc-pb-${c.id}`);
-  return PLAYBOOKS[c.id].map((p) => ({
+  return forCustomer(PLAYBOOKS, c).map((p) => ({
     name: p,
     runs: incs.filter((i) => i.playbook === p).length,
     steps: r.int(7, 18),
@@ -1535,7 +1875,7 @@ export interface FullCell {
 const RULE_VARIANTS = ['behavioural sequence', 'rare parent process', 'threat-intel indicator match', 'first seen for entity', 'anomalous volume', 'off-hours privileged context', 'known tool signature', 'correlation across sources'];
 
 /** Sector-specific rule names for the techniques that matter most to each customer. */
-const SECTOR_RULES: Record<CustomerId, Record<string, string[]>> = {
+const SECTOR_RULES: CustomerMap<Record<string, string[]>> = {
   maritime: {
     T1133: ['Vendor session to OT jump host outside approved window', 'VSAT terminal admin login from unregistered IP'],
     T1078: ['Impossible travel for port operations staff', 'Crew account sign-in while vessel at sea'],
@@ -1585,14 +1925,74 @@ const SECTOR_RULES: Record<CustomerId, Record<string, string[]>> = {
     T1550: ['Vehicle app token replay from many VINs'],
     T1552: ['Cloud key committed to vehicle-software repository'],
   },
+  insurance: {
+    T1078: ['ClaimCenter sign-in from new ASN after help-desk MFA reset', 'AgentHub agency login from a country outside the appointment list'],
+    T1098: ['RACF SPECIAL or OPERATIONS granted outside a change record', 'Okta MFA factor reset for claims supervisor without call-back'],
+    T1657: ['Claim payee bank change within 24 h of a risky sign-in', 'Vendor master bank change after lookalike-domain email'],
+    T1190: ['Exploit pattern against the MFT web tier', 'Policyholder portal injection attempt (Cloudflare WAF)'],
+    T1110: ['Credential stuffing against my.kingsbridgemutual.com (Auth0)'],
+    T1213: ['Bulk PolicyCenter search and export by servicing account'],
+    T1530: ['Telematics lake read by identity outside the UBI roles'],
+    T1059: ['New script on the premium payment page'],
+    T1486: ['Encryption burst on claims document and reserving shares'],
+  },
+  defence: {
+    T1078: ['GCC High sign-in from a non-compliant device', 'Enclave account used from outside the United States'],
+    T1213: ['ITAR-marked Teamcenter item opened by an account not cleared as a US person', 'CUI-labelled file opened in the commercial tenant'],
+    T1566: ['Prime RFQ lure with ISO or LNK attachment', 'Recruiter lure with a trojanised coding test'],
+    T1567: ['CUI-labelled file uploaded to unsanctioned cloud or AI service'],
+    T1003: ['ntdsutil IFM on enclave domain controller'],
+    T1090: ['netsh portproxy created on a server'],
+    T1133: ['Machine-tool OEM session to Building 3 without a work order'],
+    T1560: ['Archive of flight-software repository on a build host'],
+    T1110: ['Password spray against the enclave VPN'],
+  },
+  pharma: {
+    T1565: ['LIMS result edited after audit trail was paused', 'PAS-X batch record override by a shared account'],
+    T1562: ['GxP audit trail disabled on a validated system', 'Cleanroom EMS alarm suppressed by non-QA account'],
+    T1213: ['RTSM unblinding list opened by blinded role', 'Bulk compound library export from the ELN'],
+    T1199: ['CRO partner pulling more eTMF data than usual'],
+    T1560: ['Archive of process or tech-transfer files on a file server'],
+    T1567: ['Process or compound data uploaded to personal cloud'],
+    T1078: ['Veeva QMS sign-in from new ASN after help-desk MFA reset'],
+    T1219: ['Quick Assist or RMM tool on SAP or plant historian'],
+    T1190: ['Exploit pattern against supplier file transfer'],
+  },
+  sghospital: {
+    T1078: ['TrakCare sign-in from overseas ASN after MFA reset', 'Imprivata badge-tap session reused across campuses'],
+    T1213: ['FairWarning: VIP record opened without a care relationship', 'Bulk TrakCare record access by one user'],
+    T1565: ['HL7 message altered or replayed at the NEHR gateway'],
+    T1219: ['AnyDesk or ScreenConnect on PACS or TrakCare servers'],
+    T1490: ['Shadow copy deletion on PACS archive'],
+    T1133: ['Biomed vendor session to a modality outside the work order', 'FortiGate SSL VPN session without device posture'],
+    T1190: ['Exploit pattern against the FortiGate management plane', 'Telehealth API object-level authorisation probe'],
+    T1566: ['MOH circular lure with archive attachment'],
+    T1052: ['Treatment plans copied to removable media'],
+  },
+  studio: {
+    T1567: ['Locked cut uploaded to personal cloud from DIT cart or edit bay', 'Pre-release asset to WeTransfer from a VFX workstation'],
+    T1530: ['Object Lock retention changed on the content vault', 'Vendor bulk pull from Aspera beyond the work order'],
+    T1213: ['Screener or Frame.io link opened from many countries'],
+    T1199: ['VFX vendor account used outside its work-order window'],
+    T1110: ['Credential stuffing against login.starfallplus.com'],
+    T1059: ['New third-party script on the Starfall+ checkout'],
+    T1195: ['Unsigned model node pulled into generative VFX tooling'],
+    T1486: ['ESXi datastore encryption pattern on render hypervisors'],
+    T1078: ['Freelancer sign-in from two continents within 2 h'],
+  },
 };
 
-const MATRIX_SEED_TECHS: Record<CustomerId, string[]> = {
+const MATRIX_SEED_TECHS: CustomerMap<string[]> = {
   maritime: ['T1133', 'T1078', 'T1219', 'T1190', 'T1566', 'T1486', 'T1490', 'T1059', 'T1003', 'T1558', 'T1071', 'T1657', 'T1110', 'T1621', 'T1562', 'T1021'],
   finserv: ['T1078', 'T1621', 'T1098', 'T1539', 'T1550', 'T1003', 'T1558', 'T1021', 'T1657', 'T1565', 'T1114', 'T1048', 'T1190', 'T1486', 'T1566', 'T1110'],
   media: ['T1567', 'T1530', 'T1213', 'T1199', 'T1078', 'T1621', 'T1098', 'T1539', 'T1560', 'T1041', 'T1486', 'T1110', 'T1566', 'T1562'],
   healthcare: ['T1078', 'T1098', 'T1621', 'T1213', 'T1219', 'T1490', 'T1486', 'T1133', 'T1190', 'T1566', 'T1530', 'T1558', 'T1003', 'T1657', 'T1110', 'T1562', 'T1059'],
   automotive: ['T1078', 'T1195', 'T1190', 'T1133', 'T1567', 'T1565', 'T1486', 'T1490', 'T1003', 'T1550', 'T1552', 'T1219', 'T1566', 'T1021', 'T1071', 'T1059', 'T1110'],
+  insurance: ['T1078', 'T1098', 'T1621', 'T1657', 'T1190', 'T1505', 'T1110', 'T1213', 'T1530', 'T1539', 'T1059', 'T1486', 'T1490', 'T1558', 'T1566', 'T1114', 'T1562'],
+  defence: ['T1078', 'T1213', 'T1566', 'T1567', 'T1003', 'T1090', 'T1047', 'T1133', 'T1560', 'T1071', 'T1110', 'T1204', 'T1195', 'T1562', 'T1021'],
+  pharma: ['T1565', 'T1562', 'T1213', 'T1199', 'T1560', 'T1567', 'T1078', 'T1098', 'T1219', 'T1190', 'T1505', 'T1486', 'T1490', 'T1566', 'T1530', 'T1133'],
+  sghospital: ['T1078', 'T1098', 'T1621', 'T1213', 'T1565', 'T1219', 'T1490', 'T1486', 'T1133', 'T1190', 'T1566', 'T1052', 'T1110', 'T1562', 'T1071'],
+  studio: ['T1567', 'T1530', 'T1213', 'T1199', 'T1078', 'T1621', 'T1098', 'T1110', 'T1059', 'T1195', 'T1486', 'T1490', 'T1560', 'T1539', 'T1566', 'T1562'],
 };
 
 export function hexaMatrix(c: CustomerProfile, tenantId: string) {
@@ -1601,7 +2001,7 @@ export function hexaMatrix(c: CustomerProfile, tenantId: string) {
   const tools = socTools(c, tenantId);
   const techs = FULL_TECHNIQUES;
   const actorSet = new Set(c.vocab.threatActors.flatMap(actorTechniques).map(parentId));
-  const seed = new Set(MATRIX_SEED_TECHS[c.id]);
+  const seed = new Set(forCustomer(MATRIX_SEED_TECHS, c));
   const incs = incidents(c, tenantId, 90);
   const incCount = new Map<string, number>();
   for (const i of incs) for (const t of i.techniques) incCount.set(parentId(t), (incCount.get(parentId(t)) ?? 0) + 1);
@@ -1615,7 +2015,7 @@ export function hexaMatrix(c: CustomerProfile, tenantId: string) {
   const k = Math.round((h.attackCoveragePct / 100) * techs.length);
   const kFull = Math.round(k * 0.62);
   const platforms = [tools.siemShort, ...(tools.edr ? [tools.edrShort] : []), ...tools.idps.map(toolShort), ...(tools.email ? [toolShort(tools.email)] : []), ...tools.net.slice(0, 2).map(toolShort)];
-  const sector = SECTOR_RULES[c.id];
+  const sector = forCustomer(SECTOR_RULES, c);
   const cells: FullCell[] = scored.map(({ t }, i) => {
     const level: FullCov = i < kFull ? 'full' : i < k ? 'partial' : 'none';
     const n = level === 'full' ? r.int(3, 11) : level === 'partial' ? r.int(1, 3) : 0;
@@ -1685,7 +2085,7 @@ export interface Ticket {
 }
 
 type TT = [string, Ticket['category'], TicketPriority, string, string, string?];
-const TICKET_TPL: Record<CustomerId, TT[]> = {
+const TICKET_TPL: CustomerMap<TT[]> = {
   maritime: [
     ['Suspicious "port dues" invoice email to the Rotterdam finance team', 'Report suspicious activity', 'High', 'Three people received an invoice from a domain one letter off our agent in Rotterdam. One opened the PDF.', 'Sender domain registered 4 days ago; PDF contains a link to a credential page. Blocked sender and purged 11 copies.', 'rtm'],
     ['Allow Konecranes engineer access to STS-14 PLC on Thursday 06:00-10:00', 'Change request', 'Normal', 'Crane maintenance window agreed with ops. Please open the CyberArk jump for the named engineer only.', 'Window created in CyberArk and the vendor watchlist; session will be recorded and monitored live.', 'rtm'],
@@ -1740,13 +2140,67 @@ const TICKET_TPL: Record<CustomerId, TT[]> = {
     ['Vehicle owner reports their car unlocked by itself overnight', 'Report suspicious activity', 'High', 'Raised via dealer service desk, VIN supplied.', 'Upstream vSOC shows remote-unlock calls from a token reused across many VINs; linked to the API abuse incident.', 'connected'],
     ['New design agency needs access to pre-launch renders', 'Vendor & third party', 'Normal', 'AutoVision Design Studio for Project Lumen.', 'TISAX prototype label required first; assessment requested via HexaComply.', 'group'],
   ],
+  insurance: [
+    ['Claimant email asks to change the payee account on an open auto claim', 'Report suspicious activity', 'High', 'An adjuster in Charlotte got a payee change request from an address one letter off the claimant’s. Payment is due tomorrow.', 'Lookalike domain registered 3 days ago. Payment held in ClaimCenter, claimant called back on the number on file, sender blocked in Abnormal.', 'claims'],
+    ['Cognizant needs mainframe access for the CICS maintenance window on Saturday', 'Change request', 'Normal', 'Change CHG-30418, Saturday 22:00-04:00, two named engineers only.', 'BeyondTrust jump items enabled for the window and linked to the change; RACF activity will be watched live.', 'personal'],
+    ['Independent agent says AgentHub showed another agency’s book of business', 'Report suspicious activity', 'Urgent', 'An agency principal in Ohio saw another agency’s policies after signing in.', 'Traced to a CDN cache rule change; rule rolled back, affected sessions revoked and the event logged for NYDFS 500.17 review.', 'commercial'],
+    ['Adjuster laptop stolen from a car at a catastrophe site', 'Device & hardware', 'Urgent', 'Field adjuster working the hurricane claims surge.', 'Intune wipe sent, BitLocker confirmed, Okta and Entra sessions revoked. No NPI outside the encrypted cache.', 'claims'],
+    ['NYDFS annual certification: please export last year’s cybersecurity events', 'Reports & questions', 'High', 'Compliance needs the event list and the 72-hour notices we filed.', 'Export prepared with classification, notification timestamps and evidence links; shared through HexaComply.', 'group'],
+    ['New BPO servicing team needs read access to PolicyCenter', 'Access & permissions', 'Normal', '40 servicing agents join the Personal Lines queue next week.', 'Access granted through Island Browser with copy and download blocked; time-bound to the statement of work.', 'personal'],
+    ['Reinsurer asks for our incident summary ahead of the treaty renewal', 'Vendor & third party', 'Normal', 'Reinsurance team needs a summary of material incidents for the 2027 renewal.', 'Executive summary prepared without policyholder data; shared through the HexaCustody data room.', 'group'],
+    ['Annuitant says their payout bank account changed without their request', 'Report suspicious activity', 'Urgent', 'Life & Annuities call centre took the complaint this morning.', 'Portal account taken over by credential stuffing; change reversed, account locked and step-up verification enforced on payout changes.', 'life'],
+    ['MGA partner cannot sign in to Duck Creek after an MFA change', 'Access & permissions', 'Low', 'Scottsdale underwriting partner locked out.', 'MFA re-registered after a verified video call; partner moved to a FIDO2 key.', 'specialty'],
+  ],
+  defence: [
+    ['Drawing marked CUI found in a commercial-tenant Teams chat', 'Report suspicious activity', 'Urgent', 'An engineer spotted a seeker gimbal drawing posted in a commercial Teams chat.', 'File removed and preserved; spill procedure started with the Empowered Official; DIBNet report drafted for review inside 72 h.', 'corporate'],
+    ['Machine-tool OEM needs remote access to mill VF4-02 for a spindle fault', 'Change request', 'Normal', 'Work order WO-2291, Thursday 06:00-09:00. The technician is a US person per the visitor log.', 'BeyondTrust jump item opened for the window only; session recorded and watched live by HexaSOC.', 'manufacturing'],
+    ['Prime asks us to confirm our SPRS score and POA&M status', 'Reports & questions', 'High', 'Supplier portal request ahead of the next CMMC phase.', 'SPRS summary and POA&M extract prepared from HexaComply; shared through Exostar with the CISO’s approval.', 'programs'],
+    ['Laptop lost at a trade show in Paris', 'Device & hardware', 'Urgent', 'Business development lead lost a laptop on the stand.', 'Commercial-tenant device only and encrypted; Intune wipe sent, sessions revoked, FSO informed for the foreign-travel record.', 'corporate'],
+    ['New engineer needs Teamcenter access to the guidance housing TDP', 'Access & permissions', 'Normal', 'Starts Monday on the guidance programme.', 'Access waits for the Empowered Official’s US-person confirmation; Teamcenter ITAR group assigned once cleared.', 'engineering'],
+    ['Sub-tier machine shop asks for drawings by normal email', 'Vendor & third party', 'High', 'The supplier asked for the rev F drawing set as email attachments.', 'Declined. Drawings shared through HexaCustody with watermarking and expiry; supplier reminded of the DFARS 7012 flow-down.', 'programs'],
+    ['Test chamber controller dropped off the network mid-run in Tucson', 'Device & hardware', 'High', 'Run 26-04 had to restart after the chamber controller went offline.', 'No sign of interference; firmware fault confirmed with the OEM. Test data checked against the DAQ log.', 'tucson'],
+    ['Recruiter sent a coding test to one of our firmware developers', 'Report suspicious activity', 'High', 'The developer has not run it, but the archive looks odd.', 'Archive holds a trojanised package matching Lazarus tradecraft; blocked in Defender and shared with DC3 DCISE.', 'engineering'],
+  ],
+  pharma: [
+    ['QC analyst says the LIMS audit trail was off on an HPLC', 'Report suspicious activity', 'Urgent', 'Found during second-person review of a stability batch.', 'Audit trail re-enabled by QA; change traced to a shared admin account. Data-integrity investigation opened with the QP.', 'cork'],
+    ['Emerson needs remote access to DeltaV for a controller upgrade', 'Change request', 'Normal', 'GxP change CC-77104, Sunday 06:00-12:00 on the Valais bioreactor suite.', 'BeyondTrust window created and tied to the GxP change; session recorded and the DeltaV Event Chronicle watched live.', 'valais'],
+    ['CRO monitor cannot reach the eTMF from a new laptop', 'Access & permissions', 'Low', 'Clinical research associate for study RHN-3810 changed devices.', 'Device registered in the Okta partner org after verification; access stays scoped to the study.', 'clinops'],
+    ['Fake "FDA inspection" email sent to Cork QA', 'Report suspicious activity', 'High', 'The email asked QA to upload batch records to a portal ahead of an inspection.', 'Credential-harvest site on a lookalike domain; Proofpoint purged 46 copies, 2 users reset, domain taken down via HexaInt.', 'cork'],
+    ['Please confirm the Argus export alert did not expose case data', 'Reports & questions', 'High', 'Pharmacovigilance needs a statement for the safety committee.', 'The export was a scheduled contractor job approved in ServiceNow; no anomalous access. Statement attached.', 'clinops'],
+    ['CDMO needs the tech-transfer pack for the new biologic', 'Vendor & third party', 'Normal', 'Tech transfer kicks off next month.', 'Pack shared through HexaCustody with watermarking and expiry; partner custody agent confirmed.', 'rnd'],
+    ['Mass spectrometer PC in Basel will not boot after a Windows update', 'Device & hardware', 'Normal', 'Instrument controller PC in the analytical lab.', 'Update rolled back; instrument PCs moved to the validated update ring so changes go through GxP change control.', 'rnd'],
+    ['Patient-services hub asks us to register a new API client', 'Change request', 'Normal', 'US patient support vendor integration.', 'Client registered with least-privilege scopes and added to BOLA monitoring on connect.rhenara.com.', 'commercial'],
+    ['NIS2 register: which incidents were significant last quarter?', 'Reports & questions', 'Normal', 'Cork site compliance needs it for the NCSC Ireland register.', 'None met the significant threshold; classification evidence attached.', 'cork'],
+  ],
+  sghospital: [
+    ['Caller posing as IT asked an ICU nurse to read out an MFA code', 'Report suspicious activity', 'Urgent', 'A caller quoting a staff ID phoned the ICU. The nurse did not share the code.', 'Matches an active vishing campaign; no sign-in followed. Account moved to phishing-resistant MFA and help-desk call-back enforced.', 'obh'],
+    ['Siemens Healthineers needs remote access to MRI 2 for a software update', 'Change request', 'Normal', 'Biomed work order BM-4471, Saturday 07:00-11:00.', 'CyberArk vendor window created and linked to the work order; session recorded and watched live.', 'obh'],
+    ['Ward workstation left signed in to TrakCare at the nurses’ station', 'Device & hardware', 'Normal', 'Found on Ward 7A with a patient record open.', 'Imprivata tap-out was 15 minutes on that ward; set to 2 minutes for all shared ward stations.', 'obh'],
+    ['MOH asks for our incident register for the HIA compliance review', 'Reports & questions', 'High', 'Quality office is assembling evidence for the Cybersecurity & Data Security Essentials review.', 'Register exported with 2-hour notification timestamps and 14-day reports; shared through HexaComply.', 'corp'],
+    ['Patient says they received someone else’s lab results by email', 'Report suspicious activity', 'Urgent', 'Raised at the Science Park lab front desk.', 'Mis-sent email confirmed; recipient contacted and deletion confirmed. PDPC 3-day assessment started by the DPO.', 'labimg'],
+    ['PACS team needs a service account for the chest X-ray AI tool', 'Access & permissions', 'Normal', 'AI triage integration goes live next month.', 'Service account created with read-only DICOM scope and vaulted in CyberArk.', 'labimg'],
+    ['Unknown device next to the endoscopy stack in day surgery theatre 2', 'Device & hardware', 'High', 'Biomed found a new IP on the theatre network.', 'Armis identified a vendor laptop left connected; removed and the port shut via Cisco ISE.', 'daysurg'],
+    ['Insurer asks for a security attestation before a claims integration', 'Vendor & third party', 'Low', 'Integration team request from a health insurer.', 'Cyber Trust mark certificate and summary shared; penetration test report withheld per policy.', 'corp'],
+    ['Oncology registrar wants to copy a de-identified dataset to USB', 'Access & permissions', 'Normal', 'Dataset ONC-SG-07 for a conference poster.', 'USB declined; shared through HexaCustody with expiry and watermarking after research office approval.', 'specialist'],
+  ],
+  studio: [
+    ['Awards screener for Crown of Ash posted on a forum', 'Report suspicious activity', 'Urgent', 'The awards team saw a link to the FYC screener on a public forum.', 'Link revoked in HexaCustody; NexGuard extraction named the recipient account; guild contact informed.', 'studios'],
+    ['VFX vendor asks for Lodestar plates by WeTransfer', 'Vendor & third party', 'High', 'A vendor coordinator says Aspera is down for them.', 'Declined. Aspera is healthy; the vendor account was checked for compromise and the request looks like social engineering.', 'post'],
+    ['Ride OEM needs remote access to a ride PLC on Tuesday night', 'Change request', 'Normal', 'Scheduled maintenance on an Orlando coaster while the park is closed.', 'CyberArk vendor window created for the named engineer; ride-zone activity watched live. Ride control stays read-only for HexaView.', 'parks'],
+    ['Editor’s laptop stolen from a car in Burbank', 'Device & hardware', 'Urgent', 'It held the Lodestar edit proxies.', 'Encrypted device; wipe sent via SentinelOne and MDM, Okta sessions revoked, HexaCustody keys for the proxies revoked.', 'studios'],
+    ['Starfall+ members getting password reset emails they did not request', 'Report suspicious activity', 'High', 'Member support is seeing a spike in tickets.', 'Credential stuffing wave from residential proxies; Akamai bot rules tightened and forced reset for 2,300 confirmed takeovers.', 'play'],
+    ['Freelance colourist needs NEXIS access for three weeks', 'Access & permissions', 'Normal', 'Joining the finishing team in Soho.', 'Time-bound Okta package granted through Island Browser; watermarking enforced on playback.', 'post'],
+    ['Osaka ride engineer asks to use a USB diagnostics tool on a ride HMI', 'Change request', 'High', 'The tool comes from the ride OEM.', 'Approved for a signed, scanned USB key only, under the site change process; HexaView stays read-only.', 'parksasia'],
+    ['Why did custody anomalies jump after the trailer launch?', 'Reports & questions', 'Low', 'The board view showed a spike last week.', 'Trailer vendors pulled more assets than their work orders allowed; two access grants trimmed.', 'corp'],
+    ['Dubbing vendor needs scripts 1–4 for The Hollow Coast S3', 'Vendor & third party', 'Normal', 'Localisation kick-off for the new season.', 'TPN status checked; scripts shared through HexaCustody with per-recipient watermarking.', 'post'],
+  ],
 };
 
 export function tickets(c: CustomerProfile, tenantId: string): Ticket[] {
   const r = rng(`soc-tickets-${c.id}-${tenantId}`);
   const ids = scopedTenants(c, tenantId).map((t) => t.id);
-  const tpl = TICKET_TPL[c.id].filter((t) => !t[5] || ids.includes(t[5]));
-  const pool = tpl.length ? tpl : TICKET_TPL[c.id].slice(0, 3);
+  const tpl = forCustomer(TICKET_TPL, c).filter((t) => !t[5] || ids.includes(t[5]));
+  const pool = tpl.length ? tpl : forCustomer(TICKET_TPL, c).slice(0, 3);
   const incs = incidents(c, tenantId, 30);
   const staff = c.people.staff;
   let seq = r.int(2100, 2900);
@@ -1811,7 +2265,7 @@ const CVE_COMMON: CveSeed[] = [
   ['CVE-2024-24691', 'Zoom Desktop Client (Windows)', 'Improper input validation, privilege escalation', 9.6, false, 610, 'Third-party app', 'A network attacker may escalate privileges through the Zoom client.', 'Update Zoom Workplace to 5.16.5 or later.'],
   ['CVE-2023-21608', 'Adobe Acrobat Reader DC', 'Use-after-free code execution', 7.8, true, 990, 'Office', 'Opening a crafted PDF runs code as the user.', 'Update Acrobat Reader DC to the current release.'],
 ];
-const CVE_SECTOR: Record<CustomerId, CveSeed[]> = {
+const CVE_SECTOR: CustomerMap<CveSeed[]> = {
   maritime: [
     ['CVE-2024-3400', 'Palo Alto PAN-OS GlobalProtect', 'Command injection in GlobalProtect', 10.0, true, 540, 'Remote access', 'Unauthenticated command execution on the firewall that fronts terminal VPN access.', 'Upgrade PAN-OS to a fixed hotfix release.'],
     ['CVE-2024-40711', 'Veeam Backup & Replication', 'Deserialisation RCE', 9.8, true, 390, 'Server', 'Unauthenticated RCE on the backup server; abused by Akira and Fog ransomware.', 'Upgrade to Veeam B&R 12.2.0.334 or later.'],
@@ -1841,13 +2295,39 @@ const CVE_SECTOR: Record<CustomerId, CveSeed[]> = {
     ['CVE-2023-24932', 'Windows Boot Manager', 'Secure Boot bypass (BlackLotus)', 6.7, false, 880, 'OS', 'Bootkits can persist below EDR on plant engineering stations.', 'Apply the boot manager revocations (DBX) after testing on HMI images.'],
     ['CVE-2024-6387', 'OpenSSH (glibc Linux)', '"regreSSHion" signal handler race', 8.1, false, 460, 'Server', 'Remote unauthenticated code execution on Linux build and telematics gateway hosts.', 'Upgrade OpenSSH to 9.8p1 or set LoginGraceTime 0.'],
   ],
+  insurance: [
+    ['CVE-2023-34362', 'Progress MOVEit Transfer', 'SQL injection in the web front end', 9.8, true, 1220, 'Server', 'Mass-exploited by Cl0p to steal files from insurers and their vendors; one claims vendor still runs it.', 'Confirm the vendor is on a fixed release; hunt for the human2.aspx web shell.'],
+    ['CVE-2025-10035', 'Fortra GoAnywhere MFT', 'Licence servlet deserialisation', 10.0, true, 380, 'Server', 'Unauthenticated code execution on the file transfer server that exchanges bordereaux with reinsurers.', 'Upgrade GoAnywhere to 7.8.4 or later; keep the admin console off the internet.'],
+    ['CVE-2024-1086', 'Linux kernel (nf_tables)', 'Use-after-free elevation of privilege', 7.8, true, 980, 'Server', 'Local attackers gain root on Guidewire integration nodes; used by ransomware crews after initial access.', 'Apply the vendor kernel update to RHEL integration hosts.'],
+  ],
+  defence: [
+    ['CVE-2024-3400', 'Palo Alto PAN-OS GlobalProtect', 'Command injection in GlobalProtect', 10.0, true, 905, 'Remote access', 'Unauthenticated command execution on the firewall that fronts vpn.sentrypeakdefense.com; exploited by state actors.', 'Confirm the fixed hotfix is installed and review for persistence on the device.'],
+    ['CVE-2025-20281', 'Cisco Identity Services Engine', 'Unauthenticated API code execution', 10.0, true, 465, 'Server', 'Root-level code execution on the NAC that decides which devices join the enclave and Building 3.', 'Upgrade ISE to 3.3 Patch 7 or 3.4 Patch 2.'],
+    ['CVE-2024-6800', 'GitHub Enterprise Server', 'SAML authentication bypass', 9.5, false, 780, 'Engineering tool', 'A forged SAML response could give access to the flight-software repositories on SPD-GHE-01.', 'Upgrade GHES to 3.13.3 or later.'],
+  ],
+  pharma: [
+    ['CVE-2025-31324', 'SAP NetWeaver Visual Composer', 'Unauthenticated file upload', 10.0, true, 528, 'Server', 'Web shells on SAP application servers give attackers a path to batch release and finance data.', 'Apply SAP Security Note 3594142; disable Visual Composer if unused.'],
+    ['CVE-2025-53770', 'Microsoft SharePoint Server', '"ToolShell" deserialisation RCE', 9.8, true, 442, 'Server', 'Unauthenticated code execution on the on-premises SharePoint farm that hosts R&D collaboration sites.', 'Apply the July 2025 SharePoint updates, rotate machine keys and enable AMSI.'],
+    ['CVE-2023-27997', 'Fortinet FortiOS SSL VPN', 'Heap overflow, pre-auth RCE', 9.8, true, 1210, 'Remote access', 'Pre-auth code execution on the SSL VPN still used by one CDMO connection.', 'Upgrade FortiOS or move the partner to ZPA.'],
+  ],
+  sghospital: [
+    ['CVE-2024-21762', 'Fortinet FortiOS SSL VPN', 'Out-of-bounds write, unauthenticated RCE', 9.8, true, 970, 'Remote access', 'Pre-auth code execution on the FortiGate that fronts citrix.orchidbay.com.sg.', 'Upgrade FortiOS to a fixed release and check for symlink persistence.'],
+    ['CVE-2023-20867', 'VMware Tools', 'Authentication bypass from a compromised ESXi host', 3.9, true, 1200, 'Server', 'Used by UNC3886 to run commands in guest VMs from a compromised hypervisor.', 'Upgrade VMware Tools to 12.2.5 or later on TrakCare and PACS VMs.'],
+    ['CVE-2024-40711', 'Veeam Backup & Replication', 'Deserialisation RCE', 9.8, true, 750, 'Server', 'Unauthenticated code execution on the DR backup server; ransomware crews target it to destroy restores.', 'Upgrade Veeam B&R to 12.2.0.334 or later and isolate the backup network.'],
+    ['CVE-2025-5777', 'Citrix NetScaler ADC/Gateway', '"CitrixBleed 2" out-of-bounds read', 9.3, true, 470, 'Remote access', 'Session tokens leak from the gateway that publishes TrakCare to remote clinicians.', 'Upgrade NetScaler and terminate all ICA sessions after patching.'],
+  ],
+  studio: [
+    ['CVE-2025-22224', 'VMware ESXi', 'VMCI time-of-check race (VM escape)', 9.3, true, 580, 'Server', 'Code execution on the render hypervisor from inside a VM; chained by ransomware operators.', 'Upgrade ESXi to 8.0 U3d or later.'],
+    ['CVE-2025-24813', 'Apache Tomcat', 'Partial PUT path equivalence RCE', 9.8, true, 570, 'Server', 'Remote code execution on review-portal servers that serve press and screener pages.', 'Upgrade Tomcat to 10.1.35 / 9.0.99 or later.'],
+    ['CVE-2025-0108', 'Palo Alto PAN-OS management interface', 'Authentication bypass', 8.8, true, 600, 'Remote access', 'Bypasses login on resort firewall management interfaces reachable from the park admin network.', 'Upgrade PAN-OS and restrict management to the jump host.'],
+  ],
 };
 
 export function endpointCves(c: CustomerProfile, tenantId: string): EndpointCve[] {
   const r = rng(`soc-cve-${c.id}-${tenantId}`);
   const share = tenantShare(c, tenantId);
   const devs = endpointDevices(c, tenantId);
-  const seeds = [...CVE_SECTOR[c.id], ...CVE_COMMON];
+  const seeds = [...forCustomer(CVE_SECTOR, c), ...CVE_COMMON];
   return seeds.map(([id, product, title, cvss, kev, pub, category, impact, rem]) => {
     const sev: Severity = cvss >= 9 ? 'critical' : cvss >= 7 ? 'high' : cvss >= 4 ? 'medium' : 'low';
     const affected = category === 'Remote access' || category === 'Server' || category === 'Engineering tool' ? r.int(1, 4) : Math.max(2, Math.round(r.int(6, 48) * share * (category === 'Browser' ? 3 : 1)));
@@ -1888,19 +2368,24 @@ export interface Device {
 }
 
 type DevSeed = [string, string, string[]];
-const DEVICE_KINDS: Record<CustomerId, DevSeed[]> = {
+const DEVICE_KINDS: CustomerMap<DevSeed[]> = {
   maritime: [['WS', 'Office workstation', ['Windows 11 23H2', 'Windows 11 24H2']], ['ENG', 'Crane engineering workstation', ['Windows 10 LTSC 2019']], ['BRG', 'Bridge workstation (vessel)', ['Windows 10 22H2']], ['SRV', 'Server', ['Windows Server 2022', 'Windows Server 2019']], ['LNX', 'Linux server', ['Ubuntu 22.04 LTS', 'RHEL 9.4']], ['LT', 'Laptop', ['Windows 11 24H2']]],
   finserv: [['WS', 'Office workstation', ['Windows 11 24H2']], ['TRD', 'Trading desk workstation', ['Windows 11 23H2']], ['CTX', 'Citrix session host', ['Windows Server 2022']], ['SRV', 'Server', ['Windows Server 2022', 'Windows Server 2019']], ['LNX', 'Linux server', ['RHEL 9.4', 'RHEL 8.10']], ['MAC', 'Laptop (macOS)', ['macOS 15 Sequoia']]],
   media: [['EDT', 'Edit bay workstation', ['Windows 11 23H2', 'macOS 15 Sequoia']], ['RND', 'Render node', ['Rocky Linux 9.4']], ['WS', 'Office workstation', ['Windows 11 24H2']], ['SRV', 'Server', ['Windows Server 2022']], ['MAC', 'Laptop (macOS)', ['macOS 15 Sequoia', 'macOS 14 Sonoma']]],
   healthcare: [['WOW', 'Workstation on wheels (clinical)', ['Windows 10 22H2', 'Windows 11 23H2']], ['NS', 'Nursing station (shared, Imprivata)', ['Windows 11 23H2']], ['RAD', 'Radiology reading workstation', ['Windows 11 24H2']], ['CTX', 'Epic Citrix VDA', ['Windows Server 2022']], ['SRV', 'Server', ['Windows Server 2022', 'Windows Server 2019', 'Windows Server 2016']], ['LT', 'Clinician laptop', ['Windows 11 24H2']], ['KSK', 'Patient check-in kiosk', ['Windows 10 IoT Enterprise']], ['HPC', 'Genomics HPC node', ['Rocky Linux 9.4']]],
   automotive: [['WS', 'Office workstation', ['Windows 11 24H2']], ['ENG', 'Engineering workstation (TIA Portal)', ['Windows 10 LTSC 2021', 'Windows 11 IoT LTSC']], ['HMI', 'Plant HMI (WinCC)', ['Windows 10 LTSC 2019']], ['CAD', 'CAD / Teamcenter workstation', ['Windows 11 23H2']], ['SRV', 'Server', ['Windows Server 2022', 'Windows Server 2019']], ['BLD', 'Vehicle software build server', ['Ubuntu 22.04 LTS']], ['GW', 'Telematics API gateway', ['Amazon Linux 2023']], ['LT', 'Laptop', ['Windows 11 24H2']]],
+  insurance: [['WS', 'Office workstation', ['Windows 11 24H2']], ['ADJ', 'Claims adjuster laptop', ['Windows 11 24H2', 'Windows 11 23H2']], ['AVD', 'Azure Virtual Desktop (BPO servicing)', ['Windows 11 Enterprise multi-session']], ['SRV', 'Server', ['Windows Server 2022', 'Windows Server 2019']], ['INT', 'Guidewire integration node', ['RHEL 9.4']], ['PRT', 'Print plant HMI (inserter line)', ['Windows 10 LTSC 2019']], ['MAC', 'Laptop (macOS)', ['macOS 15 Sequoia']]],
+  defence: [['WS', 'CUI enclave workstation (GCC High)', ['Windows 11 24H2']], ['CAD', 'CAD / Teamcenter workstation', ['Windows 11 23H2']], ['HPC', 'Simulation node', ['RHEL 9.4']], ['HMI', 'CNC / DNC HMI (Building 3)', ['Windows 10 LTSC 2019']], ['ATE', 'Test bench PC (NI PXI)', ['Windows 10 LTSC 2021']], ['SRV', 'Server', ['Windows Server 2022', 'Windows Server 2019']], ['LT', 'Laptop', ['Windows 11 24H2']]],
+  pharma: [['WS', 'Office workstation', ['Windows 11 24H2']], ['LAB', 'Laboratory instrument PC', ['Windows 10 LTSC 2019', 'Windows 10 22H2']], ['HMI', 'Process HMI (DeltaV / PCS 7 operator station)', ['Windows 10 LTSC 2019']], ['MES', 'PAS-X MES terminal', ['Windows 10 LTSC 2021']], ['SRV', 'Server', ['Windows Server 2022', 'Windows Server 2019']], ['HPC', 'Research HPC node', ['Rocky Linux 9.4']], ['LT', 'Laptop', ['Windows 11 24H2', 'macOS 15 Sequoia']]],
+  sghospital: [['WOW', 'Workstation on wheels (ward)', ['Windows 11 23H2', 'Windows 10 22H2']], ['NS', 'Nursing station (shared, Imprivata)', ['Windows 11 23H2']], ['RAD', 'Radiology reading workstation', ['Windows 11 24H2']], ['MOD', 'Imaging modality console', ['Windows 7 Embedded', 'Windows 10 LTSC 2019']], ['SRV', 'Server', ['Windows Server 2022', 'Windows Server 2019', 'Windows Server 2016']], ['LT', 'Clinician laptop', ['Windows 11 24H2']], ['KSK', 'Patient registration kiosk', ['Windows 10 IoT Enterprise']]],
+  studio: [['EDT', 'Edit bay workstation', ['macOS 15 Sequoia', 'Windows 11 23H2']], ['DIT', 'DIT cart (on set)', ['macOS 14 Sonoma']], ['RND', 'Render node', ['Rocky Linux 9.4']], ['WS', 'Office workstation', ['Windows 11 24H2']], ['HMI', 'Ride control HMI', ['Windows 10 LTSC 2019']], ['POS', 'Park point-of-sale terminal', ['Windows 10 IoT Enterprise']], ['SRV', 'Server', ['Windows Server 2022']], ['MAC', 'Laptop (macOS)', ['macOS 15 Sequoia']]],
 };
 
 export function endpointDevices(c: CustomerProfile, tenantId: string): Device[] {
   const r = rng(`soc-devices-${c.id}-${tenantId}`);
   const ts = scopedTenants(c, tenantId).filter((t) => !t.env.every((e) => e === 'ot'));
   const tlist = ts.length ? ts : scopedTenants(c, tenantId);
-  const kinds = DEVICE_KINDS[c.id];
+  const kinds = forCustomer(DEVICE_KINDS, c);
   const staff = [c.people.ciso, c.people.socLead, c.people.grcLead, c.people.admin, ...c.people.staff];
   const out: Device[] = [];
   const crown = new Set(c.vocab.servers.slice(0, 8));
@@ -1919,7 +2404,7 @@ export function endpointDevices(c: CustomerProfile, tenantId: string): Device[] 
 }
 
 function mkDevice(r: ReturnType<typeof rng>, host: string, kind: string, os: string, tenantId: string, crown: boolean, owner: string): Device {
-  const legacy = /Windows 10|2016|LTSC 2019/.test(os);
+  const legacy = /Windows 7|Windows 10|2016|LTSC 2019/.test(os);
   const exposure = r.weighted<Exposure>([['High', legacy || crown ? 3 : 1.2], ['Medium', 3], ['Low', 2], ['None', 1.4]]);
   const onboarded = r.chance(kind.includes('HMI') ? 0.55 : 0.95);
   const online = r.chance(0.86);
@@ -1979,7 +2464,7 @@ const REC_COMMON: RecSeed[] = [
   ['Enable BitLocker on all portable devices', 'Unencrypted laptops expose all local data if lost or stolen.', 'OS', 'Encryption', 6, 'Medium', 'Low', ['T1005']],
   ['Disable the Remote Registry service', 'Reduces the remote attack surface for configuration changes and reconnaissance.', 'OS', 'Services', 4, 'Low', 'Low', ['T1012', 'T1112']],
 ];
-const REC_SECTOR: Record<CustomerId, RecSeed[]> = {
+const REC_SECTOR: CustomerMap<RecSeed[]> = {
   maritime: [
     ['Block USB mass storage on crane and bridge engineering stations', 'Removable media is the main route onto vessels and crane networks (IACS E26 4.3.3).', 'OS', 'Removable media', 9, 'Medium', 'Medium', ['T1091', 'T0847']],
     ['Restrict RDP from vessel networks to the PAM jump host only', 'Vessel-to-shore RDP bypasses the brokered access path.', 'Network', 'Remote access', 7, 'Medium', 'Low', ['T1021.001', 'T1133']],
@@ -2006,6 +2491,37 @@ const REC_SECTOR: Record<CustomerId, RecSeed[]> = {
     ['Remove Quick Assist from managed devices', 'Remote support should go through the brokered tool, not Quick Assist.', 'Application', 'Remote support', 7, 'Low', 'Low', ['T1219']],
     ['Enforce code signing for all scripts on vehicle-software build servers', 'Unsigned scripts in CI can tamper with ECU builds before OTA signing.', 'Security controls', 'Supply chain', 8, 'Medium', 'Low', ['T1195.002', 'T1059']],
   ],
+  insurance: [
+    ['Enforce FIDO2 for claims supervisors and agency administrators', 'Push MFA is the route help-desk social engineers use into ClaimCenter and AgentHub (NYDFS 500.12).', 'Accounts', 'MFA', 10, 'Medium', 'Medium', ['T1621', 'T1078']],
+    ['Require dual approval for claim payee bank changes', 'A single compromised adjuster account can redirect claim payments today.', 'Application', 'Payments', 9, 'Medium', 'Low', ['T1657', 'T1565.001']],
+    ['Remove internet exposure of the MFT admin console', 'The file transfer admin interface should only be reachable from the Tier 0 jump host.', 'Network', 'File transfer', 8, 'Low', 'Low', ['T1190']],
+    ['Block copy, print and download for BPO servicing sessions', 'Offshore servicing staff should not be able to move NPI out of PolicyCenter.', 'Application', 'Data loss prevention', 7, 'Low', 'Medium', ['T1213', 'T1567.002']],
+  ],
+  defence: [
+    ['Block USB mass storage on Building 3 HMIs except registered DNC transfer keys', 'Removable media is the main route onto the shop floor (NIST 800-171 3.8.7).', 'Plant', 'Removable media', 10, 'Medium', 'Medium', ['T1091', 'T0847']],
+    ['Require FIPS-validated YubiKeys for every CUI enclave account', 'Phishing-resistant MFA meets CMMC IA.L2-3.5.3 and stops replayed credentials from spear-phishing.', 'Accounts', 'MFA', 10, 'Medium', 'Medium', ['T1621', 'T1078']],
+    ['Stop the commercial tenant opening CUI-labelled files', 'CUI must stay in GCC High; sensitivity-label policy can block access from the commercial tenant.', 'Application', 'CUI boundary', 9, 'Medium', 'Medium', ['T1213', 'T1567.002']],
+    ['Application allow-listing on test bench and CMM PCs', 'ATE and CMM PCs run legacy Windows that cannot host the full EDR sensor.', 'Plant', 'Application control', 8, 'High', 'Low', ['T1204.002', 'T1059']],
+  ],
+  pharma: [
+    ['Lock audit-trail settings on LIMS and PAS-X so only QA can change them', 'Annex 11 §9 and Part 11 §11.10(e) require audit trails users cannot switch off.', 'Plant', 'Data integrity', 10, 'Medium', 'Low', ['T1565.001', 'T1562.001']],
+    ['Block USB mass storage on lab instrument PCs except validated transfer media', 'Instrument PCs run legacy Windows and are a removable-media path into GxP systems.', 'Plant', 'Removable media', 9, 'Medium', 'Medium', ['T1091', 'T0847']],
+    ['Retire OPC DA (DCOM) on PCS 7 servers after the OPC UA migration', 'DCOM exposes the DCS to lateral movement from the plant DMZ.', 'Network', 'Plant protocols', 7, 'High', 'Low', ['T0866', 'T1021.003']],
+    ['Require FIDO2 for CRO partner accounts in Okta', 'Partner accounts span several studies and are a favourite target for credential theft.', 'Accounts', 'MFA', 8, 'Medium', 'Medium', ['T1078', 'T1199']],
+  ],
+  sghospital: [
+    ['Set Imprivata tap-out to 2 minutes on shared ward workstations', 'Carts left signed in to TrakCare expose records to passers-by (MOH CS/DS Essentials, access control).', 'Clinical', 'Shared workstations', 9, 'Low', 'Medium', ['T1078', 'T1213']],
+    ['Remove internet access from Windows 7 imaging consoles', 'Legacy modality consoles should reach only PACS and the biomed jump host (HSA GL-04).', 'Clinical', 'Imaging VLANs', 10, 'High', 'Low', ['T0883', 'T1071.001']],
+    ['Require phishing-resistant MFA for help-desk-resettable clinical accounts', 'Help-desk resets are the most common route into hospital EHRs.', 'Accounts', 'MFA', 10, 'Medium', 'Medium', ['T1621', 'T1098']],
+    ['Restrict FortiGate management to the admin VLAN', 'Edge-device management planes are a known UNC3886 target.', 'Network', 'Edge devices', 8, 'Low', 'Low', ['T1190', 'T1133']],
+  ],
+  studio: [
+    ['Block personal cloud and AirDrop on edit bays and DIT carts', 'Locked cuts should only move through Aspera, Signiant or HexaCustody (MPA CSBP).', 'Application', 'Content protection', 10, 'Low', 'Medium', ['T1567.002', 'T1011']],
+    ['Application allow-listing on ride control HMIs', 'Ride HMIs on LTSC 2019 cannot run the full EDR sensor; allow-listing closes the gap (IEC 62443 SR 3.2).', 'Plant', 'Application control', 9, 'High', 'Low', ['T1204.002', 'T1059']],
+    ['Bind screener and review links to registered devices', 'Links replayed from many countries are the most common screener leak path.', 'Application', 'Screeners', 8, 'Low', 'Low', ['T1539', 'T1213']],
+    ['Require FIDO2 for vendor and freelancer Okta accounts', 'Help-desk and push-MFA attacks on vendors are the usual first step in content theft.', 'Accounts', 'MFA', 9, 'Medium', 'Medium', ['T1621', 'T1078']],
+    ['Block USB mass storage on park point-of-sale terminals', 'POS terminals in the parks are in PCI DSS scope.', 'OS', 'Removable media', 6, 'Low', 'Low', ['T1091']],
+  ],
 };
 
 export function recommendations(c: CustomerProfile, tenantId: string) {
@@ -2013,7 +2529,7 @@ export function recommendations(c: CustomerProfile, tenantId: string) {
   const share = tenantShare(c, tenantId);
   const tools = socTools(c, tenantId);
   const sum = deviceSummary(c, tenantId);
-  const seeds = [...REC_SECTOR[c.id], ...REC_COMMON];
+  const seeds = [...forCustomer(REC_SECTOR, c), ...REC_COMMON];
   const recs: Recommendation[] = seeds.map(([title, desc, category, sub, points, effort, userImpact, techniques], i) => ({
     id: `scid-${r.int(10, 140)}`,
     title, desc, category, sub, points, effort, userImpact, techniques,
@@ -2045,22 +2561,29 @@ const PROTOCOLS: { name: string; port: number; w: number }[] = [
   { name: 'HTTP', port: 80, w: 4 }, { name: 'HTTP-alt', port: 8080, w: 2.4 }, { name: 'SIP', port: 5060, w: 1.6 }, { name: 'Modbus/TCP', port: 502, w: 1.2 }, { name: 'MSSQL', port: 1433, w: 1.4 },
   { name: 'DNS', port: 53, w: 1.2 }, { name: 'AMT', port: 16992, w: 0.6 },
 ];
-const GEO_EXTRA: Record<CustomerId, { name: string; port: number; w: number; note: string }[]> = {
+const GEO_EXTRA: CustomerMap<{ name: string; port: number; w: number; note: string }[]> = {
   maritime: [{ name: 'VSAT management', port: 8443, w: 2.2, note: 'Satellite terminal admin UI' }, { name: 'S7comm', port: 102, w: 0.8, note: 'Probes for crane PLCs' }],
   finserv: [{ name: 'SWIFT FIN (LAU)', port: 48002, w: 0.4, note: 'Never exposed: scans only' }, { name: 'IKE / IPsec', port: 500, w: 1.6, note: 'VPN concentrators' }],
   media: [{ name: 'Aspera FASP', port: 33001, w: 1.6, note: 'Content transfer gateway' }, { name: 'RTMP', port: 1935, w: 1.2, note: 'Live encoder ingest' }],
   healthcare: [{ name: 'DICOM', port: 104, w: 1.8, note: 'Scans for exposed PACS' }, { name: 'HL7 MLLP', port: 2575, w: 1.1, note: 'Interface engine probes' }, { name: 'Citrix ICA', port: 1494, w: 1.4, note: 'Epic Citrix gateway' }],
   automotive: [{ name: 'OPC UA', port: 4840, w: 1.6, note: 'Plant MES probes' }, { name: 'MQTT', port: 8883, w: 2.4, note: 'Telematics broker' }, { name: 'S7comm', port: 102, w: 1.0, note: 'Probes for plant PLCs' }],
+  insurance: [{ name: 'MFT admin (HTTPS)', port: 8443, w: 1.6, note: 'File transfer admin console' }, { name: 'TN3270', port: 992, w: 0.6, note: 'Mainframe terminal probes' }, { name: 'IKE / IPsec', port: 500, w: 1.2, note: 'Agency VPN concentrators' }],
+  defence: [{ name: 'IKEv2 (VPN)', port: 4500, w: 1.6, note: 'Enclave remote access gateway' }, { name: 'MTConnect', port: 5000, w: 0.6, note: 'Probes for machine-tool agents' }, { name: 'EtherNet/IP', port: 44818, w: 0.7, note: 'Probes for shop-floor controllers' }],
+  pharma: [{ name: 'OPC UA', port: 4840, w: 1.4, note: 'Probes for plant historians' }, { name: 'SAProuter', port: 3299, w: 1.2, note: 'SAP gateway scans' }, { name: 'EtherNet/IP', port: 44818, w: 0.8, note: 'Probes for packaging-line PLCs' }],
+  sghospital: [{ name: 'DICOM', port: 104, w: 1.6, note: 'Probes for imaging archives' }, { name: 'HL7 MLLP', port: 2575, w: 1.0, note: 'HealthConnect interface probes' }, { name: 'FortiGate SSL VPN', port: 10443, w: 1.5, note: 'Remote clinician gateway' }],
+  studio: [{ name: 'Aspera FASP', port: 33001, w: 1.8, note: 'Pre-release transfer gateway' }, { name: 'Art-Net', port: 6454, w: 0.6, note: 'Probes for show lighting controllers' }, { name: 'RTSP', port: 554, w: 1.0, note: 'Park camera and media server probes' }],
 };
+
+const GEO_SIZE: CustomerMap<number> = { maritime: 1, finserv: 2.6, media: 0.9, healthcare: 1.5, automotive: 3.2, insurance: 1.4, defence: 0.5, pharma: 2.2, sghospital: 0.8, studio: 3.6 };
 
 export function geoThreats(c: CustomerProfile, tenantId: string, days: number) {
   const r = rng(`soc-geo-${c.id}-${tenantId}-${days}`);
   const share = tenantShare(c, tenantId);
-  const sizeMul = ({ maritime: 1, finserv: 2.6, media: 0.9, healthcare: 1.5, automotive: 3.2 } as Record<CustomerId, number>)[c.id];
+  const sizeMul = forCustomer(GEO_SIZE, c);
   const blocked = Math.round(42000 * sizeMul * share * days * r.float(0.85, 1.15, 2));
   const tw = GEO.reduce((s, g) => s + g.w, 0);
   const countries = GEO.map((g) => ({ ...g, count: Math.round((blocked * g.w * r.float(0.6, 1.4, 2)) / tw / 3) })).sort((a, b) => b.count - a.count);
-  const protos = [...PROTOCOLS.map((p) => ({ ...p, note: '' })), ...GEO_EXTRA[c.id]];
+  const protos = [...PROTOCOLS.map((p) => ({ ...p, note: '' })), ...forCustomer(GEO_EXTRA, c)];
   const pw = protos.reduce((s, p) => s + p.w, 0);
   const protocols = protos.map((p) => ({ ...p, count: Math.round((blocked * p.w * r.float(0.6, 1.4, 2)) / pw / 4) })).sort((a, b) => b.count - a.count);
   const targets = c.vocab.externalHosts.slice(0, 6).map((h, i) => ({ host: h, ip: `${r.pick([20, 52, 104, 145, 185])}.${r.int(10, 250)}.${r.int(0, 250)}.${r.int(2, 250)}`, count: Math.round(blocked * [0.31, 0.22, 0.16, 0.12, 0.1, 0.09][i]) }));
@@ -2110,38 +2633,59 @@ export interface IdUser {
   failed7d: number;
 }
 
-const ID_APPS: Record<CustomerId, string[]> = {
+const ID_APPS: CustomerMap<string[]> = {
   maritime: ['Navis N4 (TOS)', 'SAP S/4HANA', 'Outlook Web', 'Microsoft Teams', 'CyberArk PVWA', 'Windows Sign In'],
   finserv: ['Okta Dashboard', 'Bloomberg Terminal SSO', 'SWIFT Alliance Web', 'Outlook Web', 'Salesforce FSC', 'Windows Sign In'],
   media: ['Okta Dashboard', 'Avid NEXIS', 'Frame.io', 'Google Workspace', 'Aspera on Cloud', 'Windows Sign In'],
   healthcare: ['Epic Hyperspace (Citrix)', 'Workday', 'Outlook Web', 'Microsoft Teams', 'Imprivata OneSign', 'PACS viewer', 'Windows Sign In'],
   automotive: ['Teamcenter PLM', 'SAP S/4HANA', 'Outlook Web', 'Microsoft Teams', 'BeyondTrust PRA', 'Supplier portal', 'Windows Sign In'],
+  insurance: ['Guidewire ClaimCenter', 'Guidewire PolicyCenter', 'Kingsbridge AgentHub', 'Outlook Web', 'Microsoft Teams', 'CyberArk PVWA', 'Windows Sign In'],
+  defence: ['Teamcenter PLM', 'Outlook (GCC High)', 'Microsoft Teams (GCC High)', 'Deltek Costpoint', 'Exostar MAG', 'PreVeil', 'Windows Sign In'],
+  pharma: ['Veeva Vault QMS', 'Medidata Rave', 'SAP S/4HANA', 'Workday', 'Outlook Web', 'Microsoft Teams', 'Windows Sign In'],
+  sghospital: ['TrakCare', 'Imprivata OneSign', 'PACS viewer', 'Outlook Web', 'Microsoft Teams', 'ServiceNow', 'Windows Sign In'],
+  studio: ['Okta Dashboard', 'Avid NEXIS', 'Frame.io', 'Google Workspace', 'Aspera on Cloud', 'ServiceNow', 'Windows Sign In'],
 };
-const ID_EXTRA: Record<CustomerId, [string, string, IdUser['source']][]> = {
+const ID_EXTRA: CustomerMap<[string, string, IdUser['source']][]> = {
   maritime: [['Svc-Navis-Integration', 'Service account', 'Hybrid'], ['Konecranes Field Engineer', 'Vendor (B2B guest)', 'Guest (B2B)'], ['Bridge Officer (shared)', 'Vessel shared logon', 'Shared / kiosk']],
   finserv: [['Svc-SWIFT-Batch', 'Service account', 'Hybrid'], ['Accenture Contractor', 'Vendor (B2B guest)', 'Guest (B2B)'], ['Trading Floor Kiosk', 'Shared kiosk', 'Shared / kiosk']],
   media: [['Svc-MAM-Ingest', 'Service account', 'Cloud only'], ['Red Fern Localisation', 'Vendor (B2B guest)', 'Guest (B2B)'], ['Edit Bay 4 (shared)', 'Shared workstation', 'Shared / kiosk']],
   healthcare: [['Svc-Epic-Interconnect', 'Service account', 'Hybrid'], ['GE HealthCare Field Engineer', 'Biomed vendor (B2B guest)', 'Guest (B2B)'], ['3 East Nursing Station', 'Shared clinical workstation', 'Shared / kiosk'], ['Agency Nurse (travel)', 'Contract clinician', 'Cloud only'], ['Svc-Alaris-Gateway', 'Medical device service account', 'Hybrid']],
   automotive: [['Svc-OTA-Pipeline', 'Service account (release pipeline)', 'Cloud only'], ['KUKA Service Engineer', 'Robot OEM (B2B guest)', 'Guest (B2B)'], ['Bosch ECU Engineer', 'Tier 1 supplier (B2B guest)', 'Guest (B2B)'], ['Line 3 Shift Lead (shared)', 'Plant shared logon', 'Shared / kiosk'], ['Dealer Admin (Lyon)', 'Dealer user', 'Guest (B2B)']],
+  insurance: [['Svc-Guidewire-Integration', 'Service account', 'Hybrid'], ['EXL Servicing Agent', 'BPO servicing (B2B guest)', 'Guest (B2B)'], ['Cognizant Mainframe Engineer', 'Vendor (B2B guest)', 'Guest (B2B)'], ['Print Plant Line 2 (shared)', 'Shared print-plant logon', 'Shared / kiosk']],
+  defence: [['Svc-DNC-Transfer', 'Service account', 'Hybrid'], ['Haas Field Technician', 'Machine-tool OEM (B2B guest)', 'Guest (B2B)'], ['Redstone Assessor', 'C3PAO assessor (B2B guest)', 'Guest (B2B)'], ['Building 3 CMM Station (shared)', 'Shop-floor shared logon', 'Shared / kiosk']],
+  pharma: [['Svc-PASX-Interface', 'Service account', 'Hybrid'], ['IQVIA Clinical Research Associate', 'CRO partner (B2B guest)', 'Guest (B2B)'], ['Emerson Service Engineer', 'DCS OEM (B2B guest)', 'Guest (B2B)'], ['Cork QC Lab Bench 3 (shared)', 'Shared lab logon', 'Shared / kiosk']],
+  sghospital: [['Svc-TrakCare-Interface', 'Service account', 'Hybrid'], ['Siemens Healthineers Engineer', 'Biomed vendor (B2B guest)', 'Guest (B2B)'], ['Ward 7A Nursing Station', 'Shared clinical workstation', 'Shared / kiosk'], ['Locum Doctor', 'Contract clinician', 'Cloud only'], ['Svc-Pump-Server', 'Medical device service account', 'Hybrid']],
+  studio: [['Svc-MAM-Transcode', 'Service account', 'Cloud only'], ['Northlight Pixel Compositor', 'VFX vendor (B2B guest)', 'Guest (B2B)'], ['Iyuno Dubbing Engineer', 'Localisation vendor (B2B guest)', 'Guest (B2B)'], ['Edit Suite 12 (shared)', 'Shared workstation', 'Shared / kiosk'], ['Orlando Ride Ops Console', 'Ride operations shared logon', 'Shared / kiosk']],
 };
-const LOCS: Record<CustomerId, string[]> = {
+const LOCS: CustomerMap<string[]> = {
   maritime: ['Rotterdam, NL', 'Antwerp, BE', 'Port Klang, MY', 'Santos, BR', 'London, GB', 'At sea (VSAT)'],
   finserv: ['London, GB', 'Edinburgh, GB', 'Luxembourg, LU', 'New York, US', 'Singapore, SG', 'Remote'],
   media: ['London, GB', 'Los Angeles, US', 'Atlanta, US', 'Vancouver, CA', 'Remote'],
   healthcare: ['Columbus, OH', 'Zanesville, OH', 'Marion, OH', 'Chillicothe, OH', 'Dublin, OH', 'Remote'],
   automotive: ['Munich, DE', 'Ingolstadt, DE', 'Győr, HU', 'Puebla, MX', 'Salzgitter, DE', 'Stuttgart, DE', 'Remote'],
+  insurance: ['Hartford, CT', 'Columbus, OH', 'Chicago, IL', 'Charlotte, NC', 'Des Moines, IA', 'Scottsdale, AZ', 'Remote'],
+  defence: ['Huntsville, AL', 'Tucson, AZ', 'Remote (US)'],
+  pharma: ['Basel, CH', 'Sierre, CH', 'Ringaskiddy, IE', 'Dublin, IE', 'Cambridge, MA', 'Morristown, NJ', 'Remote'],
+  sghospital: ['Novena, SG', 'Tanglin, SG', 'Punggol, SG', 'Science Park, SG', 'Changi Business Park, SG', 'Remote'],
+  studio: ['Burbank, US', 'London, GB', 'Santa Monica, US', 'Orlando, US', 'Osaka, JP', 'New York, US', 'Vancouver, CA', 'Remote'],
 };
+
+/** Shared clinical workstations switch user by Imprivata badge tap where the customer runs it. */
+export function hasBadgeTap(c: CustomerProfile): boolean {
+  return c.connectors.some((k) => k.id === 'c-imprivata');
+}
 
 export function identityUsers(c: CustomerProfile, tenantId: string): { users: IdUser[]; total: number; hybrid: number; cloud: number; guests: number; enabled: number; disabled: number; caFailed: number; risky: number; mfaPct: number; privileged: number; methods: { name: string; value: number }[] } {
   const r = rng(`soc-identity-${c.id}-${tenantId}`);
   const tids = scopedTenants(c, tenantId).map((t) => t.id);
   const domain = c.domain;
   const ppl = [c.people.board, c.people.ciso, c.people.socLead, c.people.grcLead, ...(c.people.otLead ? [c.people.otLead] : []), c.people.admin, ...c.people.staff];
-  const apps = ID_APPS[c.id];
-  const locs = LOCS[c.id];
+  const apps = forCustomer(ID_APPS, c);
+  const locs = forCustomer(LOCS, c);
+  const badge = hasBadgeTap(c);
   const mk = (name: string, role: string, src: IdUser['source'], vip: boolean, privileged: boolean, email?: string): IdUser => {
     const risk = r.weighted<IdUser['risk']>([['none', 7], ['low', 2], ['medium', 1.1], ['high', src === 'Guest (B2B)' ? 0.8 : 0.35]]);
-    const mfa: IdUser['mfa'] = src === 'Shared / kiosk' ? (c.id === 'healthcare' ? 'Badge tap (Imprivata)' : 'None') : privileged ? r.pick(['FIDO2 / passkey', 'Number matching'] as const) : r.weighted<IdUser['mfa']>([['Number matching', 5], ['Authenticator push', 3], ['FIDO2 / passkey', 2], ['SMS', src === 'Guest (B2B)' ? 2 : 0.7]]);
+    const mfa: IdUser['mfa'] = src === 'Shared / kiosk' ? (badge ? 'Badge tap (Imprivata)' : 'None') : privileged ? r.pick(['FIDO2 / passkey', 'Number matching'] as const) : r.weighted<IdUser['mfa']>([['Number matching', 5], ['Authenticator push', 3], ['FIDO2 / passkey', 2], ['SMS', src === 'Guest (B2B)' ? 2 : 0.7]]);
     const ca: IdUser['ca'] = risk === 'high' && r.chance(0.6) ? 'Failed' : src === 'Shared / kiosk' || r.chance(0.12) ? 'Not applied' : 'Passed';
     return {
       name, role, source: src, tenantId: r.pick(tids),
@@ -2153,19 +2697,19 @@ export function identityUsers(c: CustomerProfile, tenantId: string): { users: Id
   };
   const users: IdUser[] = [
     ...ppl.map((p, i) => mk(p.name, p.role, i % 5 === 3 ? 'Cloud only' : 'Hybrid', !!p.vip || i === 0, /CISO|Admin|Administrator|Platform|Security Operations|Cyber Defence/i.test(p.role), p.email)),
-    ...ID_EXTRA[c.id].map(([n, role, src]) => mk(n, role, src, false, role.includes('Service'))),
+    ...forCustomer(ID_EXTRA, c).map(([n, role, src]) => mk(n, role, src, false, role.includes('Service'))),
   ];
   const share = tenantShare(c, tenantId);
   const total = Math.round(c.employees * 1.35 * share);
   const guests = Math.round(total * r.float(0.04, 0.09, 3));
   const cloud = Math.round(total * r.float(0.12, 0.22, 3));
   const disabled = Math.round(total * r.float(0.05, 0.09, 3));
-  const mfaPct = r.float(c.id === 'healthcare' ? 91 : 95, 99.4, 1);
+  const mfaPct = r.float(badge ? 91 : 95, 99.4, 1);
   const methods = [
     { name: 'Number matching', value: r.int(42, 55) },
-    { name: 'FIDO2 / passkey', value: r.int(8, c.id === 'finserv' ? 30 : 18) },
+    { name: 'FIDO2 / passkey', value: r.int(8, c.dataKey === 'finserv' ? 30 : 18) },
     { name: 'Authenticator push', value: r.int(12, 22) },
-    ...(c.id === 'healthcare' ? [{ name: 'Badge tap (Imprivata)', value: r.int(14, 22) }] : []),
+    ...(badge ? [{ name: 'Badge tap (Imprivata)', value: r.int(14, 22) }] : []),
     { name: 'SMS', value: r.int(2, 7) },
   ];
   return {
@@ -2193,7 +2737,7 @@ export interface Insight {
 }
 
 type InsSeed = [InsightCat, number, string, string, string[], string[], string[]];
-const INSIGHTS: Record<CustomerId, InsSeed[]> = {
+const INSIGHTS: CustomerMap<InsSeed[]> = {
   maritime: [
     ['Incident report', 4, 'Out-of-window crane vendor session contained at Rotterdam', 'A Konecranes engineer reached an STS crane PLC outside the approved window. The session was cut at the jump host by site staff within 11 minutes; no logic change reached the controller.', ['HexaOT flagged an engineering session on the crane network at 02:14 with no matching window in CyberArk.', 'The on-shift analyst confirmed the vendor identity with Konecranes, while the site OT lead suspended the jump item (OT stays read-only for HexaView).', 'Dragos confirmed no program download occurred. The vendor had reused a shared account from a previous job.'], ['Move the vendor to named accounts in CyberArk', 'Enable the staged "vendor session outside window" rule at Antwerp'], ['T1133', 'T0886']],
     ['Advisory', 12, 'GNSS interference hotspots: Black Sea and Strait of Hormuz', 'Spoofing incidents rose this month. Bridge teams should cross-check ECDIS against radar and visual fixes in these regions.', ['HexaInt and the Maritime ISAC report a rise in GNSS spoofing that places vessels at inland airports.', 'Your fleet logged 3 position jumps; all correlated with known interference areas, not onboard compromise.'], ['Brief masters before transits', 'Keep the AIS/ECDIS mismatch rule enabled fleet-wide'], ['T0832', 'T0855']],
@@ -2230,11 +2774,46 @@ const INSIGHTS: Record<CustomerId, InsSeed[]> = {
     ['Threat brief', 30, 'APT41 and automotive software supply chains', 'APT41 targets build systems and signing keys. This brief maps the techniques to your OTA pipeline and R156 controls.', ['Your HSM requires dual control; one operator credential appeared in a supplier stealer log and has been rotated.'], ['Review OTA signing ceremony evidence monthly'], ['T1195.002', 'T1078']],
     ['Advisory', 44, 'Air-gapped battery plant: what the offline bundles told us this quarter', 'Every 6-hour bundle from Salzgitter was imported and analysed. One removable-media event was approved maintenance; no other anomalies.', ['The data diode and signed bundles give evidence for IEC 62443 SR 6.2 without a network path out.'], ['Keep USB keys signed and registered'], ['T0847', 'T1091']],
   ],
+  insurance: [
+    ['Incident report', 3, 'Help-desk reset abused to reach ClaimCenter: payee edits reversed within the hour', 'A caller posing as a claims supervisor got an MFA reset and edited payees on 14 open claims. HexaSOC revoked the session and Claims Finance held every affected payment.', ['Okta flagged the sign-in from a new ASN; the Triage agent tied it to a ServiceNow reset ticket opened 11 minutes earlier.', 'Guidewire audit showed payee edits only; no payment had been released. Each claimant was called back on the number on file.', 'The NYDFS 500.17 assessment found the event reportable; the notice was filed inside 72 hours.'], ['Enforce call-back or video verification for claims MFA resets', 'Require dual approval for payee bank changes'], ['T1078', 'T1098', 'T1657']],
+    ['Advisory', 9, 'Managed file transfer is again the soft spot for insurers', 'Cl0p-style crews keep exploiting the MFT products insurers use to swap bordereaux and claims files. Your MFT server is patched; two vendors still run vulnerable versions.', ['HexaInt matched both vendors through BitSight and the third-party register.', 'Neither vendor holds live claims data, but both receive policyholder extracts monthly.'], ['Ask both vendors for patch evidence this week', 'Move extracts to the HexaCustody data room'], ['T1190', 'T1505.003']],
+    ['Phishing', 15, 'Fake repair-shop estimates aimed at adjusters', 'Lures carry a ZIP with a shortcut file posing as a body-shop estimate. Proofpoint stopped most; two adjusters opened one and CrowdStrike blocked the loader.', ['The lures reuse real claim numbers scraped from a repairer portal.'], ['Report estimate emails that do not arrive through CCC', 'Block LNK files inside archives from external senders'], ['T1566.001', 'T1204.002']],
+    ['Patch update', 24, 'Patch priorities: GoAnywhere and kernel updates on integration nodes', 'The file transfer server and the Guidewire integration nodes carry KEV-listed flaws. Patch them before the monthly Windows cycle.', ['The integration nodes run privileged jobs into PolicyCenter, so privilege escalation there matters.'], ['Upgrade GoAnywhere to 7.8.4', 'Roll the RHEL kernel update to integration nodes'], ['T1190', 'T1068']],
+    ['Threat brief', 34, 'Scattered Spider and US insurers: lessons from the 2025 wave', 'The group moved through several US insurers using help-desk calls and SIM swaps. This brief maps that playbook to your service desk, Okta and ClaimCenter controls.', ['Two of the five call-back controls are fully in place; the other three are rolling out.'], ['Finish FIDO2 for claims and agency administrators'], ['T1078', 'T1621', 'T1098']],
+  ],
+  defence: [
+    ['Incident report', 4, 'CUI drawing posted in a commercial Teams chat: spill contained and reported', 'A seeker gimbal drawing marked CUI was posted in the commercial tenant. HexaSOC removed it, preserved evidence and the DFARS 7012 report reached DC3 inside 72 hours.', ['Purview detected the CUI label outside GCC High within 6 minutes of posting.', 'Three people had viewed the file; all are US persons, so the Empowered Official found no ITAR disclosure.', 'Images and logs are preserved for 90 days as DFARS 7012 requires.'], ['Block CUI-labelled files in the commercial tenant', 'Brief engineering on CUI marking'], ['T1213', 'T1567.002']],
+    ['Advisory', 10, 'APT40 is phishing DIB engineers with fake RFQs', 'DC3 DCISE reports a campaign using prime-branded RFQs with ISO attachments. Mail filtering blocked most; one engineer opened a lure and Defender stopped the payload.', ['The infrastructure overlaps with earlier APT40 activity against aerospace suppliers.'], ['Block ISO and IMG attachments from external senders', 'Verify RFQs through the prime’s supplier portal'], ['T1566.001', 'T1204.002']],
+    ['Phishing', 17, 'Fake recruiter lures to firmware developers', 'Developers receive job offers with coding tests that install a backdoor. One test archive was reported and blocked; no execution was seen.', ['The package matches Lazarus Group tooling seen across the DIB.'], ['Run coding tests only in the isolated sandbox', 'Report unsolicited recruiter contact to the FSO'], ['T1566.002', 'T1204.002']],
+    ['Patch update', 26, 'Patch priorities: PAN-OS, Cisco ISE, GitHub Enterprise Server', 'The enclave VPN and the NAC carry KEV-listed flaws, and GHES holds the flight-software code. These come before workstation updates.', ['ISE decides which devices may join the enclave, so a compromise there undermines the CUI boundary.'], ['Patch ISE this week', 'Upgrade GHES to 3.13.3'], ['T1190', 'T1133']],
+    ['Threat brief', 38, 'Volt Typhoon and the defence supply chain', 'State actors pre-position in DIB suppliers using built-in tools. This brief covers the hunts we run on your enclave domain controllers and the test range.', ['No Volt Typhoon activity found in the last cycle; one netsh portproxy rule was an approved admin change.'], ['Keep PowerShell and command-line auditing on all servers'], ['T1047', 'T1003.003', 'T1090.001']],
+  ],
+  pharma: [
+    ['Incident report', 2, 'LIMS audit trail paused at Cork: data-integrity investigation opened', 'An audit trail on an HPLC data system was paused for 40 minutes while results were edited. QA restored it and two batches are on hold pending QP review.', ['LabWare logged the change against a shared admin account; the edit came from a QC bench PC.', 'HexaSOC found no external access; it is being handled as a GxP data-integrity deviation, not an intrusion.', 'The shared admin account has been retired and named accounts issued.'], ['Lock audit-trail settings to QA only', 'Retire shared admin accounts on all GxP systems'], ['T1565.001', 'T1562.001']],
+    ['Advisory', 8, 'APT41 is after biologics process IP', 'Health-ISAC and NCSC Switzerland warn of APT41 campaigns against pharma companies and CDMOs. Your supplier portal was targeted last month; the web shell was caught before data left.', ['Tech-transfer packs sent to CDMOs remain the highest-value target.'], ['Move all tech-transfer packs to HexaCustody', 'Review supplier portal hardening'], ['T1190', 'T1505.003', 'T1560.001']],
+    ['Phishing', 14, 'Fake FDA and Swissmedic inspection notices', 'Lures ask QA staff to upload batch records to a fake inspection portal. Proofpoint caught most; two Cork users entered credentials and were reset within minutes.', ['Genuine inspection requests never arrive with an upload link.'], ['Check inspection emails with QA leadership before acting'], ['T1566.002', 'T1598']],
+    ['Patch update', 21, 'Patch priorities: SAP NetWeaver, SharePoint, partner SSL VPN', 'Three internet-facing systems carry KEV-listed flaws. Validated GxP systems follow the GxP change calendar.', ['SAP holds batch-release data, so the NetWeaver fix comes first.'], ['Apply SAP Note 3594142', 'Rotate SharePoint machine keys after patching'], ['T1190']],
+    ['Threat brief', 33, 'Ransomware and pharma plants: protecting batch release', 'Crews such as Black Basta hit SAP and plant historians to stop batch release. This brief maps those dependencies for Valais and Cork.', ['The air-gapped aseptic line AF-2 is out of reach of IT ransomware but relies on offline bundles for monitoring.'], ['Rehearse SAP batch-release downtime with QA'], ['T1486', 'T1490', 'T1219']],
+  ],
+  sghospital: [
+    ['Incident report', 3, 'Help-desk MFA reset abused to reach TrakCare: contained in 22 minutes', 'A caller posing as a ward nurse got an MFA reset and signed in to TrakCare from overseas. HexaSOC revoked sessions and locked the account; MOH was notified inside 2 hours.', ['Entra ID flagged the sign-in; the Triage agent linked it to a ServiceNow reset ticket opened 8 minutes earlier.', 'FairWarning showed 3 records viewed and none exported. The DPO completed the PDPC assessment: not notifiable.', 'The 14-day MOH report is drafted in HexaComply.'], ['Require video verification for clinical MFA resets', 'Enrol help-desk-resettable accounts in phishing-resistant MFA'], ['T1078', 'T1098', 'T1621']],
+    ['Advisory', 9, 'LockBit and Qilin affiliates are hitting hospitals in the region', 'Both crews use exposed VPNs and remote-access tools, then encrypt PACS and file servers. CSA SingCERT has issued an advisory.', ['Your FortiGate is patched; the DR Veeam server is not yet on the fixed release.'], ['Patch Veeam at the DR site this week', 'Confirm PACS backups are immutable'], ['T1190', 'T1219', 'T1486']],
+    ['Phishing', 16, 'Fake MOH circulars with archive attachments', 'Lures mimic MOH circulars and carry RAR files that side-load a backdoor. Mimecast blocked most; one user opened one and CrowdStrike stopped it.', ['The tooling overlaps with Mustang Panda campaigns across Southeast Asia.'], ['Check MOH circulars on the official portal', 'Block RAR attachments from external senders'], ['T1566.001', 'T1204.002']],
+    ['Patch update', 23, 'Patch priorities: FortiOS, NetScaler, VMware Tools', 'Remote-access gateways and virtualisation come before the monthly Windows cycle. Medical device updates follow vendor approval under HSA GL-04.', ['UNC3886 has used the VMware Tools flaw against hypervisors in the region.'], ['Upgrade VMware Tools on TrakCare and PACS VMs', 'Terminate ICA sessions after the NetScaler upgrade'], ['T1190', 'T1133']],
+    ['Threat brief', 31, 'Medical devices and the MOH Essentials: what we monitor', 'Infusion pumps, imaging consoles and theatre BMS sit on clinical VLANs. This brief maps your Alaris, PACS and nurse-call dependencies to the MOH Cybersecurity & Data Security Essentials.', ['Claroty shows 312 legacy devices still on flat clinical VLANs at Science Park.'], ['Segment the imaging VLAN at Science Park', 'Rehearse Alaris downtime procedures with nursing'], ['T0883', 'T0886', 'T1486']],
+  ],
+  studio: [
+    ['Incident report', 2, 'Crown of Ash screener leak traced to one account in 9 minutes', 'Frames from the awards screener appeared on a Telegram channel. NexGuard named the recipient account and HexaCustody revoked every screener link for the title within 2 minutes.', ['HexaInt spotted the post; the watermark matched one guild member’s viewing session.', 'The account had been shared with a family member; no Starfall system was compromised.', 'Legal and the awards team handled the guild notice.'], ['Bind screener links to registered devices', 'Shorten screener link lifetimes during awards season'], ['T1567.002', 'T1213']],
+    ['Advisory', 7, 'VFX vendor accounts are the new front door', 'Crews phish artists at VFX houses and use their Aspera and Signiant access to pull plates. One Northlight Pixel account was used at 03:00 last week and was blocked.', ['Vendor accounts should only work inside their work-order windows.'], ['Enforce work-order windows on vendor transfer accounts', 'Move vendors to FIDO2'], ['T1199', 'T1078', 'T1530']],
+    ['Phishing', 14, 'Fake talent-agency contracts with e-signature lures', 'Talent services and legal staff received fake contract envelopes leading to credential pages. Abnormal caught most; two users were reset.', ['The lures name real upcoming productions.'], ['Open contracts only from the e-signature platform itself'], ['T1566.002', 'T1204.002']],
+    ['Patch update', 22, 'Patch priorities: ESXi, Tomcat review portals, resort firewalls', 'The render hypervisors, review portals and resort firewall management carry KEV-listed flaws. Ride systems follow the park change calendar.', ['The ESXi flaw lets code inside a VM reach the hypervisor.'], ['Upgrade ESXi on the London render farm', 'Restrict resort firewall management to the jump host'], ['T1190', 'T1486']],
+    ['Threat brief', 35, 'Theme park OT: keeping ride control isolated', 'Ride and show control networks are safety-critical. This brief shows how HexaOT and Dragos watch the ride zones in Orlando and Osaka without ever sending a command.', ['One maintenance laptop bridged a ride network to guest Wi-Fi this quarter and was removed within 20 minutes.'], ['Lock down maintenance laptop network profiles', 'Review ride-zone firewall rules each season'], ['T0866', 'T0886', 'T0883']],
+  ],
 };
 
 export function insights(c: CustomerProfile): Insight[] {
   const r = rng(`soc-insight-${c.id}`);
-  return INSIGHTS[c.id].map(([cat, daysAgo, title, summary, body, actions, techniques], i) => ({
+  return forCustomer(INSIGHTS, c).map(([cat, daysAgo, title, summary, body, actions, techniques], i) => ({
     id: `INS-${r.int(100, 999)}${i}`,
     cat, daysAgo, title, summary, body, actions, techniques,
     read: Math.max(2, Math.round((summary.length + body.join(' ').length) / 260)),
@@ -2266,12 +2845,17 @@ export interface SocReport {
   tactics: { tactic: string; count: number }[];
 }
 
-const REPORT_FOCUS: Record<CustomerId, string[]> = {
+const REPORT_FOCUS: CustomerMap<string[]> = {
   maritime: ['Vendor remote access to cranes and vessels', 'Removable media on board', 'Ransomware readiness for TOS and SAP'],
   finserv: ['Help-desk and MFA social engineering', 'SWIFT secure zone', 'DORA major-incident classification'],
   media: ['Pre-release content custody', 'Vendor access to content', 'Subscriber credential stuffing'],
   healthcare: ['Help-desk reset abuse and Epic access', 'Ransomware readiness for Epic downtime', 'Medical device segmentation', 'HIPAA breach assessments'],
   automotive: ['Plant ransomware readiness', 'OTA signing integrity (R156)', 'Vehicle API abuse (R155)', 'Design IP (TISAX prototype)'],
+  insurance: ['Help-desk and MFA social engineering', 'Claims payment fraud', 'MFT and vendor file exchange', 'NYDFS 500.17 event classification'],
+  defence: ['CUI boundary and spill response', 'Nation-state targeting of engineers', 'Building 3 machine-tool integrity', 'DFARS 7012 reporting readiness'],
+  pharma: ['GxP data integrity', 'Process and formulation IP', 'Plant ransomware readiness', 'CRO and CDMO access'],
+  sghospital: ['Help-desk reset abuse and TrakCare access', 'Ransomware readiness for PACS and TrakCare', 'Medical device segmentation', 'MOH and PDPC notification readiness'],
+  studio: ['Pre-release content custody', 'VFX vendor access', 'Starfall+ account takeover', 'Ride-control segmentation'],
 };
 
 export function socReports(c: CustomerProfile, tenantId: string): SocReport[] {
@@ -2279,7 +2863,7 @@ export function socReports(c: CustomerProfile, tenantId: string): SocReport[] {
   const r = rng(`soc-reports-${c.id}-${tenantId}`);
   const out: SocReport[] = [];
   const now = new Date();
-  const focus = REPORT_FOCUS[c.id];
+  const focus = forCustomer(REPORT_FOCUS, c);
   for (let i = 1; i <= 6; i++) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const month = d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });

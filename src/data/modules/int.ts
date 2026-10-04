@@ -1,12 +1,13 @@
 // HexaInt (Cyber Intelligence) data: dark web, OSINT / threat intel and
 // credential & executive exposure. Pure, seeded per customer and tenant.
 // All content is fictional demo data; snippets are redacted summaries only.
-import type { CustomerProfile, CustomerId, Severity, Connector } from '../types';
+import type { CustomerProfile, Severity, Connector } from '../types';
 import { rng } from '../../lib/rng';
 import { headlines } from '../core';
 import { scopedTenants } from '../customers';
 import type { TimeRange } from '../../state/AppContext';
 import { dayLabels, hourLabels, fmtDateShort, daysAgo } from '../../lib/format';
+import { forCustomer, type CustomerMap } from '../customerMap';
 
 /* ---------------- shared helpers ---------------- */
 
@@ -92,7 +93,7 @@ function scopeOf(t: MT): MentionScope {
 
 function mentionTemplates(c: CustomerProfile): MT[] {
   const ci = c.vocab.custodyItems;
-  const map: Record<CustomerId, MT[]> = {
+  const map: CustomerMap<MT[]> = {
     maritime: [
       { source: 'Forums', venue: 'Access-broker forum (RU)', sev: 'critical', category: 'Network access for sale', title: 'Broker advertising remote access to an unnamed EU container terminal operator', snippet: 'Post offers "VPN + domain foothold" at a large European ports group matching Halcyon by revenue band and terminal footprint. Specifics redacted by HexaInt analyst.', actor: 'Initial-access broker (forum rep ~40)', asset: 'vpn.halcyonports.com', action: 'Force VPN MFA re-registration, hunt for the referenced access, rotate OT jump-host credentials in CyberArk.', tenant: 'hq' },
       { source: 'Telegram', venue: 'Hacktivist channel', sev: 'high', category: 'Targeting / threat', title: 'Channel names Halcyon terminals in a port-disruption "call to action"', snippet: 'Hacktivist channel lists several European ports, including Halcyon sites, as desirable targets. No capability demonstrated; posture only.', actor: 'Pro-state hacktivist collective', asset: 'Maasvlakte, Antwerp terminals', action: 'Raise monitoring on internet-facing terminal assets; brief terminal SOCs.', tenant: 'rtm' },
@@ -138,8 +139,53 @@ function mentionTemplates(c: CustomerProfile): MT[] {
       { source: 'Paste sites', venue: 'Public paste site', sev: 'medium', category: 'Data leak', scope: 'Supply chain', title: 'Pasted CAD export metadata references a Vireo pre-launch project', snippet: 'A paste lists file names from a PLM export for "Project Lumen". No geometry is included; traced to an external design-agency share.', actor: 'Unattributed', asset: 'AutoVision Design Studio share', action: 'Revoke the agency share in HexaCustody; review TISAX prototype-protection controls.', tenant: 'group' },
       { source: 'Markets', venue: 'Fraud marketplace', sev: 'low', category: 'Brand abuse', scope: 'Direct mention', title: 'Discounted "Vireo Connect" feature-unlock subscriptions resold', snippet: 'Listings sell cheap feature-unlock subscriptions, assessed as fraud with stolen payment cards rather than a platform compromise.', actor: 'Fraud resellers', asset: 'shop.vireo-motors.com', action: 'Notify the e-commerce fraud team; request marketplace takedown.', tenant: 'retail' },
     ],
+    insurance: [
+      { source: 'Forums', venue: 'Access-broker forum', sev: 'critical', category: 'Network access for sale', scope: 'Direct mention', title: 'Broker selling VPN access to a "top-30 US mutual P&C carrier"', snippet: 'Listing offers VPN access plus a claims-adjuster account at a Northeast mutual insurer matching Kingsbridge by premium band. Analyst assesses high relevance; specifics redacted.', actor: 'Initial-access broker (forum rep ~60)', asset: 'vpn.kingsbridgemutual.com', action: 'Force MFA re-registration on the VPN, hunt for the described access in Splunk ES and CrowdStrike, review claims-adjuster sign-ins.', tenant: 'claims' },
+      { source: 'Markets', venue: 'Stealer-log marketplace', sev: 'high', category: 'Credentials for sale', scope: 'Supply chain', title: 'Independent-agent AgentHub sessions in a fresh stealer-log batch', snippet: 'Three independent agency workstations leaked saved logins and session cookies for the Kingsbridge AgentHub quote-and-bind portal. Values held in evidence, not shown.', actor: 'Stealer-log vendor', asset: 'agents.kingsbridgemutual.com', action: 'Revoke the agency sessions in Okta, force reset, and require device posture for AgentHub bind authority.', tenant: 'commercial' },
+      { source: 'Ransomware leak sites', venue: 'Leak-site victim board', sev: 'high', category: 'Sector peer breached', scope: 'Sector', title: 'Regional P&C carrier posted on a leak site with claimed policyholder data', snippet: 'A Midwest insurer appears on a countdown with a sample of claim files. Kingsbridge is not named; a shared claims-estimating platform is noted.', actor: 'Black Basta', asset: 'Supply-chain overlap: CCC Intelligent Solutions', action: 'Confirm CCC integration keys are unique to Kingsbridge; review claims-file export volumes.', tenant: 'claims' },
+      { source: 'Telegram', venue: 'BEC crew channel', sev: 'high', category: 'Fraud kit', scope: 'Direct mention', title: 'Claims-payment redirection template naming Kingsbridge adjusters', snippet: 'A BEC crew shares a template that asks body shops and contractors to "update remittance details" for Kingsbridge claim payments. No mailbox compromise evidenced.', actor: 'BEC crew (West Africa-based)', asset: 'Claims payments (One Inc disbursements)', action: 'Push lure indicators to Abnormal and Proofpoint; enforce call-back on payee bank changes in ClaimCenter.', tenant: 'claims' },
+      { source: 'Forums', venue: 'Fraud forum', sev: 'medium', category: 'Credential stuffing', scope: 'Direct mention', title: 'Credential-stuffing config targeting the policyholder portal', snippet: 'A shared config for a stuffing tool targets my.kingsbridgemutual.com login and MFA-enrolment endpoints. Cloudflare Bot Management is blocking the current pattern.', actor: 'Account-takeover crew', asset: 'my.kingsbridgemutual.com', action: 'Tighten Cloudflare bot rules on the login route; alert Auth0 on impossible-travel enrolments.', tenant: 'personal' },
+      { source: 'Paste sites', venue: 'Public paste site', sev: 'medium', category: 'Config / data leak', scope: 'Direct mention', title: 'Pasted MFT job script references a Kingsbridge transfer host', snippet: 'A paste includes a scheduled-transfer script naming mft.kingsbridgemutual.com and a reinsurance bordereau path. The embedded key was already rotated.', actor: 'Unattributed', asset: 'KMI-MFT-01', action: 'Confirm key rotation; scan public repositories for Kingsbridge transfer scripts.', tenant: 'group' },
+      { source: 'Telegram', venue: 'Fraud channel', sev: 'low', category: 'Brand abuse', scope: 'Direct mention', title: 'Fake "Kingsbridge premium refund" text lure circulating', snippet: 'An SMS lure promises a premium refund and links to a lookalike payment page. The lookalike domain is tracked separately.', actor: 'Consumer-fraud crew', asset: 'pay.kingsbridgemutual.com', action: 'Request takedown; post a policyholder warning on the portal.', tenant: 'personal' },
+    ],
+    defence: [
+      { source: 'Forums', venue: 'Access-broker forum', sev: 'critical', category: 'Network access for sale', scope: 'Direct mention', title: 'Broker advertising access to an "Alabama defence subcontractor"', snippet: 'Listing offers a supplier-portal foothold at a DIB machining and avionics subcontractor in north Alabama matching Sentry Peak. Analyst assesses high relevance; specifics redacted.', actor: 'Initial-access broker', asset: 'suppliers.sentrypeakdefense.com', action: 'Hunt in Sentinel for the described access, rotate supplier-portal credentials, brief the FSO and prepare for a possible DFARS 7012 report.', tenant: 'corporate' },
+      { source: 'Forums', venue: 'State-aligned recruiting thread', sev: 'high', category: 'Targeting / threat', scope: 'Sector', title: 'Thread seeking "guidance and seeker" engineers at US primes and subs', snippet: 'Fake-recruiter persona solicits avionics and guidance engineers for "consulting" with document-heavy interviews, the pattern linked to state espionage. Sentry Peak engineers named among targets.', actor: 'APT40-aligned persona', asset: 'Engineering staff (LinkedIn)', action: 'Brief engineering on fake-recruiter lures; alert on PreVeil and Teamcenter bulk exports.', tenant: 'engineering' },
+      { source: 'Ransomware leak sites', venue: 'Leak-site victim board', sev: 'high', category: 'Sector peer breached', scope: 'Supply chain', title: 'Precision machining sub-tier posted on a leak site with drawings', snippet: 'A sub-tier machine shop supplying several primes appears on a leak site with sample drawings. Sentry Peak uses a supplier of similar profile for overflow work.', actor: 'LockBit affiliates', asset: 'Supply-chain overlap: Cumberland Precision Machining', action: 'Confirm which TDPs the supplier holds in HexaCustody; request incident confirmation under the subcontract flow-down.', tenant: 'manufacturing' },
+      { source: 'Markets', venue: 'Stealer-log marketplace', sev: 'high', category: 'Credentials for sale', scope: 'Direct mention', title: 'Commercial-tenant Microsoft 365 session for a Sentry Peak manager', snippet: 'An infected personal device leaked a commercial-tenant session and a saved Exostar login. The CUI enclave (GCC High) requires FIPS YubiKeys and was not reachable. Values held in evidence.', actor: 'Stealer-log vendor', asset: 'login.microsoftonline.com (commercial)', action: 'Revoke sessions in the commercial Entra tenant, reset the Exostar account, confirm no GCC High sign-in attempts.', tenant: 'corporate' },
+      { source: 'Paste sites', venue: 'Public paste site', sev: 'medium', category: 'Config / data leak', scope: 'Direct mention', title: 'Pasted DNC transfer script references a Building 3 host', snippet: 'A paste contains a DNC programme-transfer script naming B3-DNC-SRV01. No programme content included; traced to a former contractor’s public repository.', actor: 'Unattributed', asset: 'B3-DNC-SRV01', action: 'Confirm the shop-floor service account was rotated; request repository removal.', tenant: 'manufacturing' },
+      { source: 'Telegram', venue: 'Hacktivist channel', sev: 'medium', category: 'Targeting / threat', scope: 'Sector', title: 'Channel lists US defence test ranges in a disruption "call to action"', snippet: 'A hacktivist channel names several southwestern test ranges, including the Tucson area. No capability demonstrated; posture only.', actor: 'Pro-state hacktivist collective', asset: 'test.sentrypeakdefense.com', action: 'Raise DDoS readiness on public hosts; brief the Tucson range manager.', tenant: 'tucson' },
+      { source: 'Telegram', venue: 'Fraud channel', sev: 'low', category: 'Brand abuse', scope: 'Direct mention', title: 'Fake Sentry Peak job offers used to harvest clearance details', snippet: 'Scam posts advertise Sentry Peak roles and ask applicants for clearance level and SF-86 details. Careers lookalike tracked separately.', actor: 'Recruitment-fraud crew', asset: 'careers.sentrypeakdefense.com', action: 'Request takedown; publish a careers-page warning with the FSO contact.', tenant: 'corporate' },
+    ],
+    pharma: [
+      { source: 'Forums', venue: 'Access-broker forum', sev: 'critical', category: 'Network access for sale', scope: 'Direct mention', title: 'Broker selling VPN access to a "Swiss biologics manufacturer"', snippet: 'Listing offers VPN plus domain-user access at a Swiss pharmaceutical group with biologics plants in Valais and Ireland, matching Rhenara. Specifics redacted by the HexaInt analyst.', actor: 'Initial-access broker (forum rep ~55)', asset: 'vpn.rhenara.com', action: 'Force MFA re-registration on the VPN, hunt in Sentinel and CrowdStrike, confirm the plant DMZ jump hosts were not touched.', tenant: 'corporate' },
+      { source: 'Forums', venue: 'Espionage-tasking thread', sev: 'high', category: 'Targeting / threat', scope: 'Sector', title: 'Request for biologics process-development documents from European pharma', snippet: 'A thread seeks cell-line and purification process documents for monoclonal antibodies from European manufacturers. Rhenara named among examples; pattern consistent with APT41 tasking.', actor: 'APT41-linked broker', asset: 'Biologics formulation & process IP', action: 'Raise HexaCustody monitoring on tech-transfer packs; alert on bulk exports from R&D shares.', tenant: 'rnd' },
+      { source: 'Ransomware leak sites', venue: 'Leak-site victim board', sev: 'high', category: 'Sector peer breached', scope: 'Supply chain', title: 'Mid-size CRO posted on a leak site with claimed trial data', snippet: 'A contract research organisation appears with sample site-monitoring reports. Rhenara is not named; CRO data-transfer patterns are under review across IQVIA, ICON and Parexel.', actor: 'Black Basta', asset: 'Supply-chain overlap: CRO data transfers', action: 'Confirm Rhenara studies held by the CRO type; review eTMF and Rave export logs.', tenant: 'clinops' },
+      { source: 'Markets', venue: 'Stealer-log marketplace', sev: 'high', category: 'Credentials for sale', scope: 'Direct mention', title: 'CRO partner-portal and Veeva Vault sessions in a stealer log', snippet: 'An infected CRO monitor laptop leaked sessions for the Rhenara partner portal and a Veeva Vault eTMF account. Values held in evidence, not shown.', actor: 'Stealer-log vendor', asset: 'connect.rhenara.com', action: 'Revoke the partner sessions in Okta, re-enrol the CRO account, confirm no unblinded data access in Rave.', tenant: 'clinops' },
+      { source: 'Paste sites', venue: 'Public paste site', sev: 'medium', category: 'Config / data leak', scope: 'Direct mention', title: 'Pasted OPC UA client config references a Valais historian', snippet: 'A paste contains an OPC UA client configuration naming VLS-PI-HIST01. Certificate thumbprint only; traced to an integrator’s troubleshooting post.', actor: 'Unattributed', asset: 'VLS-PI-HIST01', action: 'Rotate the historian client certificate; remind integrators of the confidentiality clause.', tenant: 'valais' },
+      { source: 'Telegram', venue: 'Counterfeit-medicines channel', sev: 'medium', category: 'Brand abuse', scope: 'Direct mention', title: 'Counterfeit Rhenara oncology packs advertised with cloned serial codes', snippet: 'Sellers offer packs bearing Rhenara branding and serial numbers that fail EU FMD verification. Cork serialisation master data is not implicated.', actor: 'Counterfeit-medicines network', asset: 'Serialisation master data (EU FMD / DSCSA)', action: 'Report to Swissmedic and HPRA; feed serials to the brand-protection team.', tenant: 'cork' },
+      { source: 'Telegram', venue: 'Fraud channel', sev: 'low', category: 'Brand abuse', scope: 'Direct mention', title: 'Fake Rhenara patient-support programme lure', snippet: 'A message lure offers "co-pay assistance" and links to a cloned HCP portal page. Lookalike domain tracked separately.', actor: 'Consumer-fraud crew', asset: 'hcp.rhenara.com', action: 'Request takedown; brief the US patient-services hotline.', tenant: 'commercial' },
+    ],
+    sghospital: [
+      { source: 'Forums', venue: 'Access-broker forum', sev: 'critical', category: 'Network access for sale', scope: 'Direct mention', title: 'Broker advertising Citrix access to a "private hospital group, Singapore"', snippet: 'Listing offers remote-access credentials at a Singapore private hospital group running TrakCare, matching Orchid Bay by bed count. Specifics redacted by the HexaInt analyst.', actor: 'Initial-access broker', asset: 'citrix.orchidbay.com.sg', action: 'Force MFA re-registration on Citrix, hunt in Sentinel and CrowdStrike, prepare the MOH 2-hour notification decision.', tenant: 'obh' },
+      { source: 'Markets', venue: 'Stealer-log marketplace', sev: 'high', category: 'Credentials for sale', scope: 'Direct mention', title: 'Visiting-consultant TrakCare and Citrix sessions in a stealer log', snippet: 'A visiting consultant’s home PC leaked Citrix cookies and a saved TrakCare launch link. Values held in evidence, not shown.', actor: 'Stealer-log vendor', asset: 'citrix.orchidbay.com.sg', action: 'Revoke sessions in Entra ID, force reset, and review the consultant’s TrakCare access in FairWarning.', tenant: 'specialist' },
+      { source: 'Ransomware leak sites', venue: 'Leak-site victim board', sev: 'high', category: 'Sector peer breached', scope: 'Sector', title: 'Regional hospital in Southeast Asia posted with claimed patient records', snippet: 'A private hospital in the region appears on a countdown. Orchid Bay is not named; a shared imaging-equipment service provider is noted.', actor: 'Qilin', asset: 'Supply-chain overlap: imaging vendor remote service', action: 'Confirm vendor remote sessions go through CyberArk Vendor PAM; review PACS segmentation.', tenant: 'labimg' },
+      { source: 'Telegram', venue: 'Data-broker channel', sev: 'high', category: 'Data leak', scope: 'Supply chain', title: 'Seller claims telehealth appointment records referencing Orchid Bay', snippet: 'A small redacted sample claims telehealth bookings from Orchid Bay. HexaInt assesses it as scraped from the CareLink appointment chatbot integration, not TrakCare.', actor: 'Data broker (low reputation)', asset: 'telehealth.orchidbay.com.sg', action: 'Engage CareLink Telehealth; start the PDPA assessment (PDPC notification within 3 calendar days if notifiable).', tenant: 'daysurg' },
+      { source: 'Forums', venue: 'APT tradecraft forum', sev: 'medium', category: 'Targeting / threat', scope: 'Sector', title: 'Discussion of Singapore healthcare as a target after the 2018 precedent', snippet: 'A thread revisits the 2018 SingHealth intrusion and lists private hospital groups as softer targets. No capability shared; posture only.', actor: 'UNC3886-aligned commentators', asset: 'TrakCare EHR (IRIS database)', action: 'Re-validate privileged-access paths to OBH-TRAK-DB01; brief the CSA liaison.', tenant: 'obh' },
+      { source: 'Paste sites', venue: 'Public paste site', sev: 'medium', category: 'Config / data leak', scope: 'Direct mention', title: 'Pasted HL7 interface config references an Orchid Bay lab host', snippet: 'A paste contains an HL7 route configuration naming LAB-LIS-01. Credentials in it were already rotated; traced to an integrator forum post.', actor: 'Unattributed', asset: 'LAB-LIS-01', action: 'Confirm rotation; remind integrators of the data-handling clause.', tenant: 'labimg' },
+      { source: 'Telegram', venue: 'Fraud channel', sev: 'low', category: 'Brand abuse', scope: 'Direct mention', title: 'Fake "Orchid Bay bill payment" SMS lure circulating', snippet: 'An SMS lure impersonating patient billing links to a lookalike PayNow page. The lookalike domain is tracked separately.', actor: 'Scam syndicate', asset: 'pay.orchidbay.com.sg', action: 'Request takedown; report to the ScamShield team and warn patients via the app.', tenant: 'corp' },
+    ],
+    studio: [
+      { source: 'Ransomware leak sites', venue: 'Leak forum ("pre-release" board)', sev: 'critical', category: 'Content leak', scope: 'Direct mention', title: `Frames from "${ci[0] ?? 'an unreleased feature'}" offered on a leak forum`, snippet: 'Low-resolution frames tagged as a Starfall feature are offered for sale. The NexGuard forensic watermark traces to a vendor review session.', actor: 'Pre-release content broker', asset: ci[0] ?? 'Pre-release master', action: 'Revoke the implicated Frame.io review link, open a NexGuard trace, begin takedown and legal referral.', tenant: 'studios' },
+      { source: 'Markets', venue: 'Stealer-log marketplace', sev: 'critical', category: 'Credentials for sale', scope: 'Supply chain', title: 'VFX vendor artist’s Aspera and Okta sessions in a stealer log', snippet: 'An artist workstation at Northlight Pixel leaked sessions for the Starfall Aspera share and Okta. Values held in evidence, not shown.', actor: 'Stealer-log vendor', asset: 'aspera.starfallent.com', action: 'Revoke the vendor sessions, rotate Aspera share keys and confirm which Lodestar plates were reachable.', tenant: 'post' },
+      { source: 'Forums', venue: 'Insider-recruitment thread', sev: 'high', category: 'Insider solicitation', scope: 'Sector', title: 'Thread seeking post and localisation staff with screener access', snippet: 'A post offers payment for awards screeners and dubbing scripts from major studios. Starfall titles named among wanted items.', actor: 'Extortion / brokerage crew', asset: 'Awards screeners (FYC)', action: 'Raise HexaCustody monitoring on FYC screeners; awareness nudge to localisation vendors.', tenant: 'studios' },
+      { source: 'Forums', venue: 'Account-takeover forum', sev: 'high', category: 'Credential stuffing', scope: 'Direct mention', title: 'Starfall+ account checker shared with fresh combolists', snippet: 'A checker config targets login.starfallplus.com and resells working subscriber accounts. Akamai bot rules are blocking the current pattern.', actor: 'Account-takeover crew', asset: 'login.starfallplus.com', action: 'Tighten Akamai bot rules; force reset for matched subscribers and alert on device-limit spikes.', tenant: 'play' },
+      { source: 'Ransomware leak sites', venue: 'Leak-site victim board', sev: 'high', category: 'Sector peer breached', scope: 'Supply chain', title: 'Dubbing vendor posted as a ransomware victim', snippet: 'A localisation and dubbing house used across the sector appears on a leak site. Starfall shares a dubbing vendor of similar profile.', actor: 'ALPHV/BlackCat affiliates', asset: 'Vendor chain: localisation', action: 'Confirm which titles the vendor holds; pre-emptively rotate Signiant access.', tenant: 'post' },
+      { source: 'Telegram', venue: 'Hacktivist channel', sev: 'medium', category: 'OT intelligence', scope: 'Sector', title: 'Channel shares screenshots of theme-park ride HMIs found online', snippet: 'A channel posts HMI screenshots from amusement operators. None match Starfall resorts; Claroty xDome confirms no ride-control HMIs are internet-reachable.', actor: 'Hacktivist collective', asset: 'Ride & show control networks', action: 'Re-run external exposure checks on PARKS- ranges; brief ride and show engineering.', tenant: 'parks' },
+      { source: 'Telegram', venue: 'Fraud channel', sev: 'low', category: 'Brand abuse', scope: 'Direct mention', title: 'Fake discounted StarPass resort tickets sold in a fraud channel', snippet: 'Sellers offer cut-price park tickets bought with stolen cards; a lookalike ticketing domain is tracked separately.', actor: 'Ticket-fraud crew', asset: 'tickets.starfallresorts.com', action: 'Notify accesso and Adyen fraud teams; request takedown.', tenant: 'parksasia' },
+    ],
   };
-  return map[c.id];
+  return forCustomer(map, c);
 }
 
 export function darkwebMentions(c: CustomerProfile, tenantId = 'all'): Mention[] {
@@ -213,7 +259,7 @@ export interface RansomGroup {
 }
 export function ransomGroups(c: CustomerProfile): RansomGroup[] {
   const r = rng(`int-ransom-${c.id}`);
-  const data: Record<CustomerId, RansomGroup[]> = {
+  const data: CustomerMap<RansomGroup[]> = {
     maritime: [
       { name: 'LockBit 3.0 affiliates', active: true, sectorVictims90d: 6, lastSeenDays: 4, tactics: ['T1486', 'T1490', 'T1133'], note: 'Most prolific against logistics and ports; double extortion.', peers: ['DP terminal peer (EU)', 'Regional feeder line', 'Inland logistics operator'] },
       { name: 'Black Basta', active: true, sectorVictims90d: 3, lastSeenDays: 11, tactics: ['T1486', 'T1566.001', 'T1021.001'], note: 'Qakbot-style access, targets shipping and manufacturing.', peers: ['Bulk carrier operator', 'Port authority (APAC)'] },
@@ -244,9 +290,39 @@ export function ransomGroups(c: CustomerProfile): RansomGroup[] {
       { name: 'BlackSuit (dealer SaaS attacks)', active: true, sectorVictims90d: 2, lastSeenDays: 17, tactics: ['T1199', 'T1486', 'T1567.002'], note: 'Supply-chain attacks on dealer software took thousands of dealers offline in 2024.', peers: ['Dealer-management SaaS'] },
       { name: 'LockBit 3.0 affiliates', active: false, sectorVictims90d: 1, lastSeenDays: 66, tactics: ['T1486', 'T1490'], note: 'Reduced after law-enforcement disruption; occasional parts suppliers.', peers: ['Aftermarket parts distributor'] },
     ],
+    insurance: [
+      { name: 'Black Basta', active: true, sectorVictims90d: 4, lastSeenDays: 5, tactics: ['T1219', 'T1078', 'T1486'], note: 'Help-desk vishing and remote-support tooling against carriers and MGAs; claims files used for extortion.', peers: ['Regional P&C carrier (Midwest)', 'Managing general agent (TX)', 'Third-party claims administrator'] },
+      { name: 'Cl0p', active: true, sectorVictims90d: 3, lastSeenDays: 10, tactics: ['T1190', 'T1567.002'], note: 'MFT mass exploitation; insurers and their bordereau and reinsurance transfers are recurring victims.', peers: ['Life & annuity administrator', 'Policy print-and-mail vendor'] },
+      { name: 'Scattered Spider', active: true, sectorVictims90d: 3, lastSeenDays: 13, tactics: ['T1621', 'T1078', 'T1098'], note: 'A 2025 wave against US insurers used service-desk resets to reach Okta and VMware estates.', peers: ['US auto insurer', 'Life insurer (Midwest)'] },
+      { name: 'LockBit affiliates', active: false, sectorVictims90d: 1, lastSeenDays: 71, tactics: ['T1133', 'T1486', 'T1490'], note: 'Reduced after disruption; occasional independent agencies.', peers: ['Independent insurance agency'] },
+    ],
+    defence: [
+      { name: 'LockBit affiliates', active: true, sectorVictims90d: 4, lastSeenDays: 7, tactics: ['T1133', 'T1486', 'T1567.002'], note: 'Machine shops and sub-tier suppliers; stolen drawings published as leverage.', peers: ['Sub-tier machine shop (OH)', 'Composite structures supplier', 'Defence electronics distributor'] },
+      { name: 'Akira', active: true, sectorVictims90d: 3, lastSeenDays: 12, tactics: ['T1133', 'T1486', 'T1490'], note: 'VPN-led intrusions into small DIB manufacturers without phishing-resistant MFA.', peers: ['Avionics harness maker', 'Test-equipment integrator'] },
+      { name: 'Black Basta', active: true, sectorVictims90d: 2, lastSeenDays: 19, tactics: ['T1219', 'T1078', 'T1486'], note: 'Help-desk vishing into aerospace manufacturers; fast to encryption.', peers: ['Aerospace fastener supplier'] },
+      { name: 'Cl0p', active: false, sectorVictims90d: 1, lastSeenDays: 88, tactics: ['T1190', 'T1567.002'], note: 'MFT exploitation hit several primes’ suppliers; no current campaign.', peers: ['Logistics provider (defence freight)'] },
+    ],
+    pharma: [
+      { name: 'Black Basta', active: true, sectorVictims90d: 4, lastSeenDays: 6, tactics: ['T1219', 'T1078', 'T1486'], note: 'European pharma and CDMOs hit; batch-release and QC systems encrypted.', peers: ['CDMO (Switzerland)', 'Generic manufacturer (DE)', 'Clinical-supply packager'] },
+      { name: 'Cl0p', active: true, sectorVictims90d: 3, lastSeenDays: 11, tactics: ['T1190', 'T1567.002'], note: 'MFT mass exploitation; CRO and clinical-data transfers exposed.', peers: ['Contract research organisation', 'Pharmacovigilance outsourcer'] },
+      { name: 'Qilin', active: true, sectorVictims90d: 2, lastSeenDays: 16, tactics: ['T1078', 'T1486', 'T1490'], note: 'Life-sciences labs and diagnostics; data theft before encryption.', peers: ['Bioanalytical lab'] },
+      { name: 'LockBit 3.0 affiliates', active: false, sectorVictims90d: 1, lastSeenDays: 74, tactics: ['T1486', 'T1490'], note: 'Reduced after disruption; occasional packaging suppliers.', peers: ['Pharma packaging supplier'] },
+    ],
+    sghospital: [
+      { name: 'Qilin', active: true, sectorVictims90d: 4, lastSeenDays: 5, tactics: ['T1078', 'T1486', 'T1490'], note: 'Hospitals and pathology providers across APAC; laboratory and imaging services disrupted.', peers: ['Private hospital (Malaysia)', 'Diagnostic lab chain (Australia)', 'Specialist clinic group (SG)'] },
+      { name: 'LockBit 3.0 affiliates', active: true, sectorVictims90d: 3, lastSeenDays: 9, tactics: ['T1133', 'T1486', 'T1490'], note: 'Still active against Southeast Asian healthcare despite the 2024 disruption.', peers: ['Hospital group (Indonesia)', 'Dental chain (SG)'] },
+      { name: 'Akira', active: true, sectorVictims90d: 2, lastSeenDays: 15, tactics: ['T1133', 'T1486'], note: 'VPN appliances without MFA at medical centres and aged-care operators.', peers: ['Medical centre group (MY)'] },
+      { name: 'Rhysida', active: false, sectorVictims90d: 1, lastSeenDays: 63, tactics: ['T1133', 'T1486', 'T1567.002'], note: 'Hospital victims mostly outside the region this quarter.', peers: ['Hospital (Australia)'] },
+    ],
+    studio: [
+      { name: 'ShinyHunters', active: true, sectorVictims90d: 5, lastSeenDays: 4, tactics: ['T1078', 'T1530', 'T1567.002'], note: 'Vishing into SaaS tenants and cloud storage; subscriber and ticketing data resold.', peers: ['Streaming service', 'Ticketing platform', 'Entertainment retailer'] },
+      { name: 'Scattered Spider', active: true, sectorVictims90d: 3, lastSeenDays: 8, tactics: ['T1621', 'T1078', 'T1098'], note: 'Help-desk resets into entertainment and resort operators; the 2023 casino attacks set the template.', peers: ['Resort and casino operator', 'Hospitality group'] },
+      { name: 'Akira', active: true, sectorVictims90d: 3, lastSeenDays: 13, tactics: ['T1133', 'T1486', 'T1490'], note: 'Post-production and VFX houses; render storage encrypted ahead of deliveries.', peers: ['VFX house (London)', 'Animation studio'] },
+      { name: 'ALPHV/BlackCat affiliates', active: false, sectorVictims90d: 1, lastSeenDays: 79, tactics: ['T1133', 'T1486', 'T1567.002'], note: 'Brand dormant; former affiliates now operate under other programmes.', peers: ['Dubbing vendor'] },
+    ],
   };
   // stable jitter so peers feel per-customer
-  return data[c.id].map((g) => ({ ...g, lastSeenDays: g.lastSeenDays + r.int(0, 2) }));
+  return forCustomer(data, c).map((g) => ({ ...g, lastSeenDays: g.lastSeenDays + r.int(0, 2) }));
 }
 
 /* ---------------- lookalike / impersonation domains ---------------- */
@@ -273,7 +349,9 @@ export function lookalikes(c: CustomerProfile, tenantId = 'all'): Lookalike[] {
   const r = rng(`int-look-${c.id}`);
   const n = headlines(c).int.lookalikeDomains;
   const base = c.vocab.lookalikeBase;
-  const homo = base.replace('o', '0').replace(/l(?!.*l)/, '1');
+  const glyph = base.replace('o', '0').replace(/l(?!.*l)/, '1');
+  // Bases with no o/l (e.g. rhenara) need a typo instead, or the "lookalike" is the real domain.
+  const homo = glyph !== base ? glyph : /n/.test(base) ? base.replace('n', 'nn') : `${base}s`;
   const variants: { make: (b: string) => string; kind: string }[] = [
     { make: () => `${homo}.com`, kind: 'Typo / homoglyph' },
     { make: (b) => `${b}-support.com`, kind: 'Hyphen + keyword' },
@@ -365,6 +443,14 @@ export function actorProfiles(c: CustomerProfile): ActorProfile[] {
     'INC Ransom': { name: 'INC Ransom', aka: '—', origin: 'Cybercrime (RaaS)', motivation: 'Financial / extortion', sectors: ['Healthcare', 'Public sector'], activity: 'Medium', techniques: ['T1190', 'T1486', 'T1567.002'], summary: 'Exploits edge appliances, then data theft and encryption against health providers.' },
     'BlackSuit (dealer SaaS attacks)': { name: 'BlackSuit (dealer SaaS attacks)', aka: 'Royal lineage', origin: 'Cybercrime (RaaS)', motivation: 'Financial / extortion', sectors: ['Automotive retail', 'Manufacturing'], activity: 'Medium', techniques: ['T1199', 'T1486', 'T1567.002', 'T1490'], summary: 'Supply-chain attacks on dealer-management software that took thousands of dealerships offline.' },
     'Lazarus Group': { name: 'Lazarus Group', aka: 'Hidden Cobra, APT38', origin: 'North Korea', motivation: 'Financial / state', sectors: ['Media', 'Crypto', 'Defense'], activity: 'Medium', techniques: ['T1566.001', 'T1078', 'T1567.002', 'T1059.001'], summary: 'State operator with a history of destructive attacks on a film studio and fake-recruiter lures.' },
+    'LockBit affiliates': { name: 'LockBit affiliates', aka: 'LockBit Black / 5.0', origin: 'Cybercrime (RaaS)', motivation: 'Financial / extortion', sectors: ['Manufacturing', 'Insurance', 'Defense supply chain'], activity: 'Medium', techniques: ['T1133', 'T1486', 'T1490', 'T1567.002'], summary: 'Affiliates regrouped after the 2024 disruption; small suppliers and agencies are the usual victims.' },
+    'APT40': { name: 'APT40', aka: 'Leviathan, Gingham Typhoon', origin: 'China (MSS)', motivation: 'Espionage / state', sectors: ['Defense', 'Maritime', 'Engineering'], activity: 'High', techniques: ['T1190', 'T1566.001', 'T1505.003', 'T1078', 'T1560.001'], summary: 'Targets defence and engineering IP; fast exploitation of edge devices and fake-recruiter approaches to engineers.' },
+    'APT29': { name: 'APT29', aka: 'Midnight Blizzard, Cozy Bear', origin: 'Russia (SVR)', motivation: 'Espionage / state', sectors: ['Government', 'Defense', 'Pharma'], activity: 'Medium', techniques: ['T1078', 'T1098', 'T1550.001', 'T1566.002'], summary: 'Cloud-identity tradecraft: OAuth app abuse and password spraying against Microsoft tenants; historically targeted vaccine research.' },
+    'FIN11 / Cl0p': { name: 'FIN11 / Cl0p', aka: 'TA505-linked', origin: 'Cybercrime', motivation: 'Financial / extortion', sectors: ['Pharma', 'Finance', 'Many'], activity: 'Medium', techniques: ['T1190', 'T1567.002', 'T1657'], summary: 'Mass exploitation of managed-file-transfer products, then data-theft extortion without encryption.' },
+    'Mustang Panda': { name: 'Mustang Panda', aka: 'Earth Preta, TA416', origin: 'China', motivation: 'Espionage / state', sectors: ['Government', 'Healthcare', 'Southeast Asia'], activity: 'High', techniques: ['T1566.001', 'T1204.002', 'T1027', 'T1071.001'], summary: 'Southeast Asia-focused espionage; lure documents and USB-borne loaders using DLL side-loading.' },
+    'UNC3886': { name: 'UNC3886', aka: '—', origin: 'China-nexus', motivation: 'Espionage / state', sectors: ['Critical infrastructure', 'Telecom', 'Singapore'], activity: 'High', techniques: ['T1190', 'T1505.003', 'T1078', 'T1070.001'], summary: 'Named by Singapore in 2025 for attacks on critical infrastructure; exploits hypervisors, firewalls and other appliances without EDR.' },
+    'LAPSUS$': { name: 'LAPSUS$', aka: 'DEV-0537, Strawberry Tempest', origin: 'Cybercrime (youth)', motivation: 'Extortion / notoriety', sectors: ['Media', 'Gaming', 'Tech'], activity: 'Medium', techniques: ['T1621', 'T1078', 'T1199', 'T1567.002'], summary: 'MFA fatigue, SIM swaps and paid insiders; leaks source code and unreleased content for notoriety.' },
+    'NullBulge': { name: 'NullBulge', aka: '—', origin: 'Hacktivist / cybercrime', motivation: 'Ideological / extortion', sectors: ['Media', 'Gaming', 'AI'], activity: 'Low', techniques: ['T1195.002', 'T1213', 'T1567.002'], summary: 'Poisons creative and AI tool add-ons, then leaks internal chat and content from entertainment companies.' },
   };
   return c.vocab.threatActors
     .map((name) => LIB[name])
@@ -385,13 +471,16 @@ export interface Advisory {
 export function advisories(c: CustomerProfile): Advisory[] {
   const r = rng(`int-adv-${c.id}`);
   const isac = isacName(c);
+  // Which estates actually run the affected product (GlobalProtect gateways; on-prem SharePoint).
+  const globalProtect: CustomerMap<boolean> = { maritime: true, finserv: false, media: false, healthcare: false, automotive: false, insurance: true, defence: false, pharma: false, sghospital: false, studio: false };
+  const sharePoint: CustomerMap<boolean> = { maritime: true, finserv: true, media: false, healthcare: true, automotive: true, insurance: true, defence: false, pharma: true, sghospital: true, studio: false };
   const common: Advisory[] = [
-    { id: 'A1', source: 'CISA KEV', title: 'Palo Alto GlobalProtect command injection added to KEV', ref: 'CVE-2024-3400', sev: 'critical', daysAgo: r.int(2, 20), affectsEstate: c.id === 'maritime', note: 'Internet-facing GlobalProtect; patch within KEV due date.' },
+    { id: 'A1', source: 'CISA KEV', title: 'Palo Alto GlobalProtect command injection added to KEV', ref: 'CVE-2024-3400', sev: 'critical', daysAgo: r.int(2, 20), affectsEstate: forCustomer(globalProtect, c), note: 'Internet-facing GlobalProtect; patch within KEV due date.' },
     { id: 'A2', source: 'CISA KEV', title: 'Ivanti Connect Secure RCE exploited in the wild', ref: 'CVE-2025-0282', sev: 'critical', daysAgo: r.int(3, 25), affectsEstate: false, note: 'No Ivanti ICS appliances found in estate.' },
-    { id: 'A3', source: 'Vendor', title: 'Microsoft SharePoint "ToolShell" deserialisation RCE', ref: 'CVE-2025-53770', sev: 'critical', daysAgo: r.int(1, 10), affectsEstate: c.id !== 'media', note: 'On-prem SharePoint; verify exposure and patch.' },
-    { id: 'A4', source: 'Sector ISAC', title: `${isac}: active campaign against the sector`, ref: `${isac}-2026-${r.int(100, 999)}`, sev: 'high', daysAgo: r.int(1, 7), affectsEstate: true, note: 'Mapped to techniques in your coverage matrix.' },
+    { id: 'A3', source: 'Vendor', title: 'Microsoft SharePoint "ToolShell" deserialisation RCE', ref: 'CVE-2025-53770', sev: 'critical', daysAgo: r.int(1, 10), affectsEstate: forCustomer(sharePoint, c), note: 'On-prem SharePoint; verify exposure and patch.' },
+    { id: 'A4', source: 'Sector ISAC', title: `${isac}: active campaign against the sector`, ref: `${isac.split(/[\s/+]/)[0]}-2026-${r.int(100, 999)}`, sev: 'high', daysAgo: r.int(1, 7), affectsEstate: true, note: 'Mapped to techniques in your coverage matrix.' },
   ];
-  const sector: Record<CustomerId, Advisory[]> = {
+  const sector: CustomerMap<Advisory[]> = {
     maritime: [
       { id: 'M1', source: 'Sector ISAC', title: 'Maritime ISAC: GPS/AIS spoofing cluster in a transit chokepoint', ref: 'MAR-2026-044', sev: 'high', daysAgo: r.int(1, 9), affectsEstate: true, note: 'Relevant to vessel navigation integrity (IMO MSC.428).' },
       { id: 'M2', source: 'Vendor', title: 'Rockwell ControlLogix out-of-bounds write advisory', ref: 'CVE-2023-3595', sev: 'high', daysAgo: r.int(10, 40), affectsEstate: true, note: 'Check crane and RTU controllers.' },
@@ -414,13 +503,41 @@ export function advisories(c: CustomerProfile): Advisory[] {
       { id: 'V2', source: 'Vendor', title: 'Fortinet FortiOS SSL-VPN out-of-bounds write exploited', ref: 'CVE-2024-21762', sev: 'critical', daysAgo: r.int(8, 30), affectsEstate: true, note: 'Puebla plant gateway still on an affected build; patch window agreed.' },
       { id: 'V3', source: 'Vendor', title: 'Siemens ProductCERT advisory for S7-1500 CPU firmware', ref: `SSA-${r.int(100000, 999999)}`, sev: 'medium', daysAgo: r.int(5, 25), affectsEstate: true, note: 'Press-line PLCs in Ingolstadt; OT is read-only, raised to plant engineering.' },
     ],
+    insurance: [
+      { id: 'I1', source: 'Sector ISAC', title: 'FS-ISAC insurance community: service-desk vishing wave against US carriers', ref: `FSISAC-INS-2026-${r.int(100, 999)}`, sev: 'high', daysAgo: r.int(1, 6), affectsEstate: true, note: 'Callers impersonate adjusters to reset Okta MFA; enforce call-back and manager approval.' },
+      { id: 'I2', source: 'Vendor', title: 'Managed-file-transfer pre-auth flaw under mass exploitation', ref: 'CVE-2026-21487', sev: 'critical', daysAgo: r.int(3, 18), affectsEstate: true, note: 'mft.kingsbridgemutual.com runs an affected build; patched in the emergency window, logs under review for NYDFS 500.17.' },
+      { id: 'I3', source: 'Vendor', title: 'Guidewire Cloud security bulletin: API token scope hardening', ref: `GW-SB-2026-${r.int(10, 99)}`, sev: 'medium', daysAgo: r.int(6, 30), affectsEstate: true, note: 'Re-scope ClaimCenter integration tokens used by CCC and One Inc.' },
+    ],
+    defence: [
+      { id: 'D1', source: 'Sector ISAC', title: 'DC3 DCISE + ND-ISAC: state actors targeting DIB engineers with fake recruiter lures', ref: `DCISE-2026-${r.int(100, 999)}`, sev: 'high', daysAgo: r.int(1, 6), affectsEstate: true, note: 'Indicators pushed to Sentinel and Defender XDR (GCC High); brief engineering and the FSO.' },
+      { id: 'D2', source: 'CISA KEV', title: 'Cisco ISE unauthenticated remote code execution', ref: 'CVE-2025-20281', sev: 'critical', daysAgo: r.int(6, 28), affectsEstate: true, note: 'Two ISE nodes front the engineering and Building 3 NAC; patched, POA&M entry closed in HexaComply.' },
+      { id: 'D3', source: 'Vendor', title: 'Siemens Teamcenter access-control advisory', ref: `SSA-${r.int(100000, 999999)}`, sev: 'medium', daysAgo: r.int(5, 25), affectsEstate: true, note: 'ITAR item-level access in Teamcenter; verify ACLs and audit export-controlled item reads.' },
+    ],
+    pharma: [
+      { id: 'P1', source: 'Sector ISAC', title: 'Health-ISAC + NCSC Switzerland: APT41 activity against biologics process development', ref: `HISAC-2026-${r.int(100, 999)}`, sev: 'high', daysAgo: r.int(1, 7), affectsEstate: true, note: 'Matches R&D share access patterns; indicators pushed to Sentinel and CrowdStrike.' },
+      { id: 'P2', source: 'Vendor', title: 'Emerson DeltaV workstation privilege-escalation advisory', ref: `ICSA-26-${r.int(100, 300)}-02`, sev: 'medium', daysAgo: r.int(5, 25), affectsEstate: true, note: 'Valais DeltaV operator stations; patch through GxP change control, Claroty compensating monitoring in place.' },
+      { id: 'P3', source: 'Vendor', title: 'Siemens SIMATIC PCS 7 / WinCC advisory', ref: `SSA-${r.int(100000, 999999)}`, sev: 'medium', daysAgo: r.int(8, 35), affectsEstate: true, note: 'PCS 7 engineering stations in Valais; vendor-validated patch scheduled for the next shutdown.' },
+    ],
+    sghospital: [
+      { id: 'S1', source: 'Sector ISAC', title: 'CSA SingCERT + MOH: ransomware groups targeting Singapore healthcare', ref: `SingCERT-AL-2026-${r.int(100, 999)}`, sev: 'high', daysAgo: r.int(1, 6), affectsEstate: true, note: 'Indicators pushed to Sentinel and CrowdStrike; MOH 2-hour notification playbook rehearsed.' },
+      { id: 'S2', source: 'Vendor', title: 'Fortinet FortiOS SSL-VPN heap overflow exploited', ref: 'CVE-2024-21762', sev: 'critical', daysAgo: r.int(8, 30), affectsEstate: true, note: 'Punggol day-surgery FortiGate was on an affected build; patched and sessions reset.' },
+      { id: 'S3', source: 'Sector ISAC', title: 'CISA medical advisory: infusion pump server weaknesses', ref: `ICSMA-26-${r.int(100, 300)}-01`, sev: 'medium', daysAgo: r.int(4, 20), affectsEstate: true, note: 'Matches the BD Alaris server (OBH-ALARIS-SRV) in Claroty xDome; HSA GL-04 vendor patch requested.' },
+    ],
+    studio: [
+      { id: 'T1', source: 'Sector ISAC', title: 'ME-ISAC: vishing campaign against studio SaaS tenants and vendor help desks', ref: `ME-2026-${r.int(100, 999)}`, sev: 'high', daysAgo: r.int(1, 6), affectsEstate: true, note: 'Matches Okta reset attempts at two VFX vendors; enforce call-back verification.' },
+      { id: 'T2', source: 'Vendor', title: 'Next.js middleware authorisation bypass', ref: 'CVE-2025-29927', sev: 'high', daysAgo: r.int(5, 30), affectsEstate: true, note: 'screeners.starfallent.com and the press site run Next.js; both patched.' },
+      { id: 'T3', source: 'Vendor', title: 'Rockwell GuardLogix safety controller advisory', ref: `ICSA-26-${r.int(100, 300)}-04`, sev: 'medium', daysAgo: r.int(6, 28), affectsEstate: true, note: 'Ride-control PLCs at Orlando; safety-rated zones are isolated, patch during the annual ride rehab.' },
+    ],
   };
-  return [...common, ...sector[c.id]];
+  return [...common, ...forCustomer(sector, c)];
 }
 
 export function isacName(c: CustomerProfile): string {
-  const m: Record<CustomerId, string> = { maritime: 'Maritime ISAC', finserv: 'FS-ISAC', media: 'ME-ISAC', healthcare: 'Health-ISAC', automotive: 'Auto-ISAC' };
-  return m[c.id];
+  const m: CustomerMap<string> = {
+    maritime: 'Maritime ISAC', finserv: 'FS-ISAC', media: 'ME-ISAC', healthcare: 'Health-ISAC', automotive: 'Auto-ISAC',
+    insurance: 'FS-ISAC', defence: 'ND-ISAC / DIB CS (DC3)', pharma: 'Health-ISAC + NCSC Switzerland', sghospital: 'Health-ISAC / CSA SingCERT / Synapxe', studio: 'ME-ISAC',
+  };
+  return forCustomer(m, c);
 }
 
 export interface IocStat {
@@ -458,7 +575,7 @@ export interface SectorBriefItem {
 }
 export function sectorBrief(c: CustomerProfile): { week: string; items: SectorBriefItem[] } {
   const isac = isacName(c);
-  const map: Record<CustomerId, SectorBriefItem[]> = {
+  const map: CustomerMap<SectorBriefItem[]> = {
     healthcare: [
       { heading: 'Ransomware', body: 'Rhysida and Qilin remain the leading threats to US hospitals; 9 sector victims posted in 90 days, several with ambulance diversion.' },
       { heading: 'Identity', body: 'Service-desk social engineering for MFA resets continues; patient-portal and Citrix sessions keep appearing in stealer logs.' },
@@ -489,8 +606,38 @@ export function sectorBrief(c: CustomerProfile): { week: string; items: SectorBr
       { heading: 'Vendors', body: 'Akira and ShinyHunters hitting post-production and cloud-storage providers.' },
       { heading: 'Recommendation', body: 'Reinforce custody on high-value titles and tighten vendor review-link controls.' },
     ],
+    insurance: [
+      { heading: 'Social engineering', body: 'Service-desk vishing against US carriers continues; callers pose as adjusters and agents to reset MFA.' },
+      { heading: 'Payments fraud', body: 'BEC crews are redirecting claim payments to body shops and contractors; payee bank changes are the weak point.' },
+      { heading: 'Third parties', body: 'MFT exploitation and claims-platform vendors keep exposing policyholder data; NAIC #668 and NYDFS 500.17 notice clocks apply.' },
+      { heading: 'Recommendation', body: 'Enforce call-back on payee changes in ClaimCenter, patch the MFT host and bind AgentHub sessions to managed devices.' },
+    ],
+    defence: [
+      { heading: 'Espionage', body: 'APT40 and APT41 are targeting guidance and avionics engineers with fake recruiter approaches and edge-device exploits.' },
+      { heading: 'Pre-positioning', body: 'Volt Typhoon living-off-the-land activity in US critical infrastructure; DIB networks with OT are in scope.' },
+      { heading: 'Supply chain', body: 'Sub-tier machine shops are being ransomed and their drawings published; flow-down of DFARS 7012 incident reporting matters.' },
+      { heading: 'Recommendation', body: 'Keep CUI inside GCC High, watch Teamcenter ITAR exports and rehearse the 72-hour DIBNet report.' },
+    ],
+    pharma: [
+      { heading: 'Espionage', body: 'APT41 tasking seeks biologics process and formulation IP; APT29 continues cloud-identity attacks on research tenants.' },
+      { heading: 'Ransomware', body: 'Black Basta and Qilin are hitting CDMOs and labs; batch release and QC are the operational choke points.' },
+      { heading: 'Clinical data', body: 'CRO data transfers and partner-portal sessions are the main exposure for trial data and unblinding keys.' },
+      { heading: 'Recommendation', body: 'Watch tech-transfer packs in HexaCustody, rehearse the NIS2 24-hour early warning and bind CRO access to managed devices.' },
+    ],
+    sghospital: [
+      { heading: 'Ransomware', body: 'Qilin and LockBit affiliates are active against Southeast Asian hospitals and labs; imaging and LIS are prime targets.' },
+      { heading: 'State actors', body: 'UNC3886 and Mustang Panda remain focused on Singapore critical infrastructure and regional healthcare.' },
+      { heading: 'Medical devices', body: 'Legacy imaging consoles and pump servers stay the soft spot; HSA GL-04 patches lag vendor releases.' },
+      { heading: 'Recommendation', body: 'Rehearse the MOH 2-hour notification, monitor TrakCare privacy with FairWarning and close Citrix session exposure.' },
+    ],
+    studio: [
+      { heading: 'Content leaks', body: 'Pre-release brokers are buying VFX and dubbing vendor access; awards screeners are the most-requested items.' },
+      { heading: 'Extortion', body: 'ShinyHunters and Scattered Spider are vishing into SaaS tenants and resort operators.' },
+      { heading: 'Consumers', body: 'Starfall+ account-checker configs and fake StarPass ticket sales are circulating on fraud forums.' },
+      { heading: 'Recommendation', body: 'Tighten vendor review links, keep ride control isolated and prepare SEC 8-K materiality evidence early.' },
+    ],
   };
-  return { week: `Week ${isoWeek()}, ${isac} + HexaInt`, items: map[c.id] };
+  return { week: `Week ${isoWeek()}, ${isac} + HexaInt`, items: forCustomer(map, c) };
 }
 function isoWeek(): number {
   const d = new Date();
@@ -557,44 +704,68 @@ const GEO: { country: string; lat: number; lon: number }[] = [
   { country: 'Canada', lat: 43.7, lon: -79.4 },
   { country: 'Italy', lat: 45.5, lon: 9.2 },
   { country: 'Vietnam', lat: 21.0, lon: 105.8 },
+  { country: 'Switzerland', lat: 47.0, lon: 7.9 },
+  { country: 'Ireland', lat: 52.5, lon: -7.6 },
+  { country: 'Japan', lat: 34.7, lon: 135.5 },
+  { country: 'Indonesia', lat: -6.2, lon: 106.8 },
 ];
-const HOME_GEO: Record<CustomerId, [string, number][]> = {
+const HOME_GEO: CustomerMap<[string, number][]> = {
   maritime: [['Netherlands', 9], ['Belgium', 5], ['Singapore', 4], ['Brazil', 4], ['Philippines', 4], ['India', 2], ['Poland', 1]],
   finserv: [['United Kingdom', 10], ['India', 4], ['Poland', 2], ['Singapore', 2], ['United States', 2], ['Spain', 1], ['Nigeria', 1]],
   media: [['United States', 8], ['United Kingdom', 6], ['Canada', 3], ['India', 2], ['Brazil', 1], ['Spain', 1]],
   healthcare: [['United States', 14], ['India', 3], ['Philippines', 3], ['Canada', 1], ['Mexico', 1], ['Vietnam', 1]],
   automotive: [['Germany', 9], ['Hungary', 5], ['Mexico', 5], ['Poland', 3], ['India', 2], ['Italy', 2], ['United States', 2], ['Brazil', 1]],
+  insurance: [['United States', 15], ['India', 4], ['Philippines', 3], ['Mexico', 1], ['Canada', 1]],
+  defence: [['United States', 12], ['Mexico', 1]],
+  pharma: [['Switzerland', 8], ['Ireland', 5], ['United States', 5], ['India', 3], ['Germany', 2], ['Poland', 1], ['Italy', 1]],
+  sghospital: [['Singapore', 12], ['Malaysia', 4], ['India', 3], ['Philippines', 2], ['Indonesia', 2]],
+  studio: [['United States', 12], ['United Kingdom', 5], ['Japan', 4], ['Canada', 3], ['India', 2], ['Spain', 1]],
 };
-const SURNAMES: Record<CustomerId, string[]> = {
+const SURNAMES: CustomerMap<string[]> = {
   maritime: ['vermeer', 'okafor', 'lindqvist', 'marino', 'petrov', 'dekker', 'santos', 'tan', 'reyes', 'jansen', 'devries', 'costa'],
   finserv: ['hughes', 'patel', 'clarke', 'khan', 'morgan', 'osei', 'fraser', 'walsh', 'nowak', 'chen', 'bell', 'reid'],
   media: ['rivera', 'cohen', 'blake', 'ito', 'nash', 'ford', 'greene', 'park', 'diaz', 'quinn', 'lowe', 'shah'],
   healthcare: ['miller', 'johnson', 'garcia', 'brooks', 'kim', 'reyes', 'patel', 'hayes', 'cruz', 'nguyen', 'turner', 'ward'],
   automotive: ['mueller', 'schmidt', 'fischer', 'weber', 'kovacs', 'horvath', 'garcia', 'lopez', 'wagner', 'becker', 'szabo', 'hoffmann'],
+  insurance: ['sullivan', 'murphy', 'jackson', 'nguyen', 'rossi', 'oconnor', 'patel', 'harris', 'baker', 'mitchell', 'flores', 'lindgren'],
+  defence: ['hollis', 'pruett', 'barnes', 'mccoy', 'tate', 'jenkins', 'crawford', 'ellis', 'fowler', 'gaines', 'randall', 'sims'],
+  pharma: ['mueller', 'favre', 'zimmermann', 'bonvin', 'kellerhals', 'byrne', 'murphy', 'oconnell', 'kelly', 'sullivan', 'brennan', 'carter'],
+  sghospital: ['tan', 'lim', 'ng', 'wong', 'chua', 'goh', 'abdullah', 'rahman', 'ismail', 'kumar', 'pillai', 'subramaniam'],
+  studio: ['morgan', 'castillo', 'bennett', 'hughes', 'fletcher', 'yamamoto', 'sato', 'nakamura', 'reed', 'okafor', 'shaw', 'kimura'],
 };
-const FUNCTIONAL: Record<CustomerId, string[]> = {
+const FUNCTIONAL: CustomerMap<string[]> = {
   maritime: ['finance', 'helpdesk', 'crewing', 'gate-ops'],
   finserv: ['treasury-ops', 'servicedesk', 'payments-support', 'kyc-team'],
   media: ['post-coord', 'servicedesk', 'publicity', 'screeners'],
   healthcare: ['servicedesk', 'pharmacy', 'revcycle', 'radiology-pacs', 'nursing-float'],
   automotive: ['servicedesk', 'dealer-support', 'ota-release', 'supplier-quality', 'plant-it-gyor'],
+  insurance: ['servicedesk', 'claims-payments', 'agency-support', 'premium-billing', 'siu-intake'],
+  defence: ['servicedesk', 'subcontracts', 'b3-dnc-admin', 'range-ops'],
+  pharma: ['servicedesk', 'qa-batch-release', 'gmp-it-valais', 'pv-intake', 'cro-liaison'],
+  sghospital: ['servicedesk', 'pharmacy', 'patient-billing', 'radiology-pacs', 'biomed'],
+  studio: ['servicedesk', 'screeners', 'post-coord-ldn', 'plus-support', 'ride-ops-orlando'],
 };
 /** Where the stolen logins were used: corporate apps first, then sector SaaS, then personal sites. */
 function credApps(c: CustomerProfile): { app: string; kind: ExposedCred['appKind']; w: number }[] {
   const corp = c.vocab.externalHosts.filter((h) => !/^www\.|careers|press/.test(h)).slice(0, 4).map((app, i) => ({ app, kind: 'Corporate' as const, w: 6 - i }));
-  const sector: Record<CustomerId, string[]> = {
+  const sector: CustomerMap<string[]> = {
     maritime: ['navis.com (N4 TOS portal)', 'inttra.com', 'kongsberg.com (K-Fleet)'],
     finserv: ['swift.com', 'bloomberg.com', 'workday.com'],
     media: ['frame.io', 'box.com', 'pix.com'],
     healthcare: ['userweb.epic.com', 'availity.com', 'workday.com', 'ukg.com (timeclock)'],
     automotive: ['supplier gateway (PLM)', 'service.ariba.com', 'dealercore-dms.com', '3dexperience.3ds.com'],
+    insurance: ['guidewire.net (ClaimCenter)', 'ccc-one.com', 'oneinc.com (payments)', 'lexisnexis.com (risk)'],
+    defence: ['exostar.com (MAG)', 'preveil.com', 'costpointgovcloud.com', 'piee.eb.mil (vendor)'],
+    pharma: ['veevavault.com', 'imedidata.com (Rave)', 'iqvia.com (partner portal)', 'workday.com'],
+    sghospital: ['nehr portal (Synapxe)', 'carelink-telehealth.sg', 'workday.com', 'corppass.gov.sg'],
+    studio: ['frame.io', 'asperafiles.com', 'signiant.com (Media Shuttle)', 'moxion.io'],
   };
   const idp = idpOf(c);
   const sso = idp?.vendor === 'Okta' ? 'okta.com' : 'login.microsoftonline.com';
   return [
     { app: sso, kind: 'Corporate', w: 14 },
     ...corp,
-    ...sector[c.id].map((app) => ({ app, kind: 'Third-party SaaS' as const, w: 4 })),
+    ...forCustomer(sector, c).map((app) => ({ app, kind: 'Third-party SaaS' as const, w: 4 })),
     { app: 'accounts.google.com', kind: 'Third-party SaaS', w: 5 },
     { app: 'github.com', kind: 'Third-party SaaS', w: 3 },
     { app: 'atlassian.net', kind: 'Third-party SaaS', w: 3 },
@@ -615,13 +786,13 @@ export function credExposure(c: CustomerProfile, tenantId = 'all'): { machines: 
   const nMach = h.int.stealerMachines;
   const dom = c.domain;
   const pfx = c.vocab.hostPrefix;
-  const geoW = HOME_GEO[c.id];
+  const geoW = forCustomer(HOME_GEO, c);
   // accounts
   const named = [...c.people.staff.map((p) => p.email), c.people.socLead.email, c.people.admin.email];
   const nAcc = Math.max(4, Math.round(total / 4.2));
   const accounts: { email: string; privileged: boolean; tenantId: string }[] = [];
-  const sur = SURNAMES[c.id];
-  const fn = FUNCTIONAL[c.id];
+  const sur = forCustomer(SURNAMES, c);
+  const fn = forCustomer(FUNCTIONAL, c);
   for (let i = 0; i < nAcc; i++) {
     let email: string;
     if (i % 3 === 2 && Math.floor(i / 3) < fn.length) email = `${fn[Math.floor(i / 3)]}@${dom}`;
@@ -629,7 +800,7 @@ export function credExposure(c: CustomerProfile, tenantId = 'all'): { machines: 
     else email = `${LETTERS[r.int(0, LETTERS.length - 1)]}.${sur[i % sur.length]}${i >= sur.length ? Math.floor(i / sur.length) + 1 : ''}@${dom}`;
     if (accounts.some((a) => a.email === email)) email = `${LETTERS[r.int(0, LETTERS.length - 1)]}.${sur[(i + 5) % sur.length]}${i}@${dom}`;
     const local = email.split('@')[0];
-    accounts.push({ email, privileged: r.chance(0.14) || /servicedesk|helpdesk|ota-release|plant-it/.test(local), tenantId: tenants[i % tenants.length].id });
+    accounts.push({ email, privileged: r.chance(0.14) || /servicedesk|helpdesk|ota-release|plant-it|claims-payments|dnc-admin|gmp-it|biomed|ride-ops/.test(local), tenantId: tenants[i % tenants.length].id });
   }
   // machines
   const families: StealerMachine['malware'][] = ['Lumma', 'RedLine', 'Vidar', 'StealC', 'Raccoon'];
@@ -849,13 +1020,13 @@ export interface SurfaceHost {
 interface HostRule { test: RegExp; ports: [number, string][]; vulns: [string, Severity, boolean][]; tech: string }
 const HOST_RULES: HostRule[] = [
   { test: /^legacy/, ports: [[80, 'http'], [3389, 'ms-wbt-server']], vulns: [['Remote desktop pre-authentication remote code execution', 'critical', true], ['Unsupported web server with directory listing', 'medium', false]], tech: 'IIS 8.5' },
-  { test: /^vpn|citrix/, ports: [[443, 'https'], [80, 'http']], vulns: [['Authentication bypass in VPN appliance web interface', 'critical', true], ['Session token disclosure in gateway memory', 'high', false]], tech: 'SSL-VPN appliance' },
-  { test: /^files|aspera|sharepoint/, ports: [[443, 'https'], [22, 'ssh'], [3306, 'mysql']], vulns: [['Database service reachable from the public internet', 'critical', false], ['SSH allows password authentication', 'medium', false]], tech: 'Managed file transfer' },
+  { test: /^vpn|citrix|^remote\./, ports: [[443, 'https'], [80, 'http']], vulns: [['Authentication bypass in VPN appliance web interface', 'critical', true], ['Session token disclosure in gateway memory', 'high', false]], tech: 'SSL-VPN appliance' },
+  { test: /^files|aspera|sharepoint|^mft|^sftp/, ports: [[443, 'https'], [22, 'ssh'], [3306, 'mysql']], vulns: [['Database service reachable from the public internet', 'critical', false], ['SSH allows password authentication', 'medium', false]], tech: 'Managed file transfer' },
   { test: /^dev|staging/, ports: [[443, 'https'], [8080, 'http-proxy']], vulns: [['Unauthenticated build-job listing in CI server', 'high', false]], tech: 'CI server' },
   { test: /^mail/, ports: [[25, 'smtp'], [587, 'submission'], [443, 'https']], vulns: [['Stored cross-site scripting in webmail message view', 'high', true]], tech: 'Exchange / OWA' },
   { test: /^api|fhir|openbanking/, ports: [[443, 'https']], vulns: [['Broken object-level authorisation on a public API route', 'high', false], ['Verbose error responses disclose framework version', 'low', false]], tech: 'API gateway' },
   { test: /^ota/, ports: [[443, 'https']], vulns: [['Campaign-metadata endpoint exposes build manifests without auth', 'medium', false]], tech: 'OTA backend (CloudFront)' },
-  { test: /^mychart|portal|online|booking|screeners|review|connect|dealer|supplier|crew|trade/, ports: [[443, 'https']], vulns: [['Outdated TLS configuration and missing security headers', 'medium', false]], tech: 'Customer portal' },
+  { test: /^mychart|portal|online|booking|screeners|review|connect|dealer|supplier|crew|trade|agents|claims|hcp|patient|tickets|login|^my\./, ports: [[443, 'https']], vulns: [['Outdated TLS configuration and missing security headers', 'medium', false]], tech: 'Customer portal' },
   { test: /^pay|shop/, ports: [[443, 'https']], vulns: [['Third-party script loaded without integrity check on checkout', 'low', false]], tech: 'Hosted storefront' },
   { test: /^gate|live-ingest|telehealth/, ports: [[443, 'https'], [8443, 'https-alt']], vulns: [['Admin console reachable without allow-listing', 'high', false]], tech: 'Edge appliance' },
 ];
@@ -924,7 +1095,7 @@ export interface WatchedSupplier {
   lastCheckedMin: number;
 }
 type SupSeed = [name: string, domain: string, service: string, tier: WatchedSupplier['tier'], access: string, kinds: SupplierFindingKind[]];
-const SUPPLIERS: Record<CustomerId, SupSeed[]> = {
+const SUPPLIERS: CustomerMap<SupSeed[]> = {
   maritime: [
     ['BlueWake VSAT', 'bluewake-vsat.com', 'Vessel satellite connectivity', 'Critical', 'Remote management of fleet VSAT terminals', ['Leaked credentials', 'Infected machine', 'Leak-site mention']],
     ['PortGate OCR', 'portgate-ocr.io', 'Gate OCR & truck appointment SaaS', 'Critical', 'API into the terminal operating system', ['Leaked credentials', 'Lookalike domain']],
@@ -975,6 +1146,56 @@ const SUPPLIERS: Record<CustomerId, SupSeed[]> = {
     ['Stahlwerk Logistik', 'stahlwerk-logistik.de', 'Inbound JIT logistics', 'High', 'Call-off EDI', []],
     ['FinLease Autobank', 'finlease-autobank.de', 'Captive finance partner', 'Medium', 'Customer finance applications', []],
   ],
+  insurance: [
+    ['One Inc', 'oneinc.com', 'Claims & premium payments platform', 'Critical', 'Claim disbursements and payee bank details', ['Lookalike domain', 'Leaked credentials']],
+    ['EXL', 'exlservice.com', 'Claims & policy-servicing BPO', 'Critical', 'Claims handling via Island browser; policyholder PII', ['Leaked credentials', 'Infected machine']],
+    ['CCC Intelligent Solutions', 'cccis.com', 'Auto claims estimating (STP)', 'High', 'ClaimCenter integration and photo estimates', ['Leaked credentials']],
+    ['Cognizant', 'cognizant.com', 'Application maintenance (Guidewire)', 'High', 'Privileged access via BeyondTrust', ['Infected machine', 'Leaked credentials']],
+    ['Majesco', 'majesco.com', 'Life & annuity policy admin', 'High', 'Life policy and beneficiary data', ['Vendor breach']],
+    ['Cambridge Mobile Telematics', 'cmtelematics.com', 'Usage-based insurance telematics', 'Medium', 'Driving data feeds to the telematics lake', []],
+    ['Broadridge', 'broadridge.com', 'Policyholder print & communications', 'Medium', 'Statements and policy documents', []],
+    ['Munich Re', 'munichre.com', 'Reinsurance', 'Medium', 'Bordereaux via MFT', []],
+  ],
+  defence: [
+    ['Cumberland Precision Machining', 'cumberland-precision.com', 'Overflow machining sub-tier', 'Critical', 'Receives TDPs and CNC programmes (via HexaCustody)', ['Leak-site mention', 'Leaked credentials', 'Infected machine']],
+    ['Desert Sky Telemetry', 'desertskytelemetry.com', 'Range telemetry services (Tucson)', 'High', 'Test data and range network access', ['Leaked credentials', 'Lookalike domain']],
+    ['Valley Anodize & Finishing', 'valleyanodize.com', 'Surface finishing sub-tier', 'High', 'Part drawings (CUI) and travellers', ['Infected machine']],
+    ['Exostar', 'exostar.com', 'Supplier identity & collaboration', 'Critical', 'Prime portal access (MAG) and partner data', ['Lookalike domain']],
+    ['Haas Automation', 'haascnc.com', 'CNC machine-tool OEM service', 'High', 'Vendor remote access to Building 3 (via BeyondTrust)', []],
+    ['Deltek', 'deltek.com', 'Costpoint GovCloud (finance)', 'High', 'DCAA-audited finance and timekeeping', []],
+    ['Siemens Digital Industries Software', 'sw.siemens.com', 'Teamcenter PLM vendor', 'High', 'PLM support with ITAR controls', []],
+    ['Expeditors International', 'expeditors.com', 'Export freight forwarding', 'Medium', 'Export licences and shipment data', []],
+  ],
+  pharma: [
+    ['Parexel', 'parexel.com', 'Contract research organisation', 'Critical', 'Rave EDC and eTMF access for three studies', ['Leaked credentials', 'Infected machine']],
+    ['WuXi AppTec', 'wuxiapptec.com', 'Discovery chemistry & testing', 'High', 'Compound data and assay results', ['Lookalike domain']],
+    ['Samsung Biologics', 'samsungbiologics.com', 'Biologics CDMO', 'Critical', 'Tech-transfer packs (via HexaCustody)', ['Leaked credentials']],
+    ['Catalent', 'catalent.com', 'Clinical supply & packaging', 'High', 'Clinical labels and randomisation-linked kits', ['Vendor breach']],
+    ['Syneos Health', 'syneoshealth.com', 'CRO & commercial services', 'High', 'Site monitoring and HCP data', ['Leaked credentials']],
+    ['Körber Pharma', 'koerber-pharma.com', 'PAS-X MES vendor', 'High', 'Vendor remote access to Valais MES (via BeyondTrust)', []],
+    ['IQVIA', 'iqvia.com', 'CRO & real-world data', 'Critical', 'Trial data management', []],
+    ['DHL Supply Chain', 'dhl.com', 'Cold-chain distribution', 'Medium', 'Serialised shipment data', []],
+  ],
+  sghospital: [
+    ['CareLink Telehealth', 'carelink-telehealth.sg', 'Telehealth & appointment chatbot', 'High', 'Appointment and teleconsult data', ['Leaked credentials', 'Lookalike domain', 'Infected machine']],
+    ['Lion City Pathology Laboratories', 'lioncitypath.com.sg', 'Reference laboratory', 'Critical', 'HL7 orders and results interface', ['Infected machine', 'Leaked credentials']],
+    ['NCS', 'ncs.co', 'IT managed services', 'High', 'Infrastructure admin (via CyberArk)', ['Leaked credentials']],
+    ['Philips', 'philips.com.sg', 'Patient-monitoring vendor service', 'High', 'Remote service to IntelliVue (via Vendor PAM)', []],
+    ['GE HealthCare', 'gehealthcare.com', 'CT service & imaging', 'High', 'Remote service to CT scanners', ['Vendor breach']],
+    ['InterSystems', 'intersystems.com', 'TrakCare EHR vendor', 'Critical', 'Application support for TrakCare and HealthShare', []],
+    ['Synapxe', 'synapxe.sg', 'National HealthTech agency (NEHR)', 'Critical', 'NEHR contribution gateway', []],
+    ['Iron Mountain', 'ironmountain.com.sg', 'Records storage & shredding', 'Medium', 'Paper medical records', []],
+  ],
+  studio: [
+    ['Northlight Pixel (Vancouver)', 'northlightpixel.com', 'VFX vendor', 'Critical', 'Lodestar plates and shots via Aspera', ['Leaked credentials', 'Infected machine', 'Lookalike domain']],
+    ['Bluebird Dubbing Studios', 'bluebirddubbing.com', 'Dubbing & localisation', 'High', 'Scripts and dub stems via Signiant', ['Leak-site mention', 'Leaked credentials']],
+    ['Silverline Trailer Co.', 'silverlinetrailers.com', 'Trailer & marketing editorial', 'High', 'Embargoed trailer cuts', ['Infected machine']],
+    ['Indee', 'indee.tv', 'Screener distribution platform', 'Critical', 'Awards screeners to voters', ['Leaked credentials']],
+    ['Iyuno', 'iyuno.com', 'Subtitling & localisation', 'High', 'Pre-release masters for subtitling', []],
+    ['Company 3', 'company3.com', 'Colour & finishing', 'High', 'Locked cuts and DI', []],
+    ['accesso', 'accesso.com', 'Park ticketing & queuing', 'High', 'StarPass ticketing and guest data', ['Vendor breach']],
+    ['Intamin', 'intamin.com', 'Ride manufacturer', 'High', 'Vendor remote access to ride control (via CyberArk)', []],
+  ],
 };
 function supplierFinding(r: ReturnType<typeof rng>, kind: SupplierFindingKind, s: SupSeed, c: CustomerProfile): SupplierFinding {
   const [name, domain] = s;
@@ -989,7 +1210,7 @@ function supplierFinding(r: ReturnType<typeof rng>, kind: SupplierFindingKind, s
 }
 export function supplierWatch(c: CustomerProfile): WatchedSupplier[] {
   const r = rng(`int-supply-${c.id}`);
-  return SUPPLIERS[c.id].map((s, i) => {
+  return forCustomer(SUPPLIERS, c).map((s, i) => {
     const findings = s[5].map((k) => supplierFinding(r, k, s, c)).sort((a, b) => a.daysAgo - b.daysAgo);
     const hasHigh = findings.some((f) => f.sev === 'high' || f.sev === 'critical');
     return {
@@ -1038,7 +1259,7 @@ function iocSeeds(c: CustomerProfile): IocSeed[] {
   const a0 = c.vocab.threatActors[0];
   const a1 = c.vocab.threatActors[1] ?? a0;
   const a2 = c.vocab.threatActors[2] ?? a0;
-  const sector: Record<CustomerId, IocSeed[]> = {
+  const sector: CustomerMap<IocSeed[]> = {
     maritime: [
       { type: 'Domain', threat: 'Phishing', desc: 'Crew-portal credential harvesting page themed as a VSAT login', attr: 'This organisation', kind: 'Identity', tlp: 'TLP:AMBER+STRICT', seenP: 0.9, creds: true },
       { type: 'IP', threat: 'Reconnaissance', desc: 'Scanner sweeping port-community and TOS login pages', attr: a1, kind: 'Intrusion set', tlp: 'TLP:AMBER', seenP: 0.8 },
@@ -1061,9 +1282,34 @@ function iocSeeds(c: CustomerProfile): IocSeed[] {
       { type: 'Domain', threat: 'Credential theft', desc: 'Stealer-log exfiltration endpoint behind OTA-portal session theft', attr: 'Lumma Stealer', kind: 'Malware', tlp: 'TLP:AMBER', seenP: 0.85, creds: true },
       { type: 'IP', threat: 'Reconnaissance', desc: 'Scraper enumerating vehicle-app API routes (Auto-ISAC shared)', attr: 'API scraping infrastructure', kind: 'Infrastructure', tlp: 'TLP:GREEN', seenP: 0.9 },
     ],
+    insurance: [
+      { type: 'URL', threat: 'Phishing', desc: 'AgentHub login clone sent to independent agents as a "commission statement"', attr: 'This organisation', kind: 'Identity', tlp: 'TLP:AMBER+STRICT', seenP: 0.9, creds: true },
+      { type: 'Domain', threat: 'Credential theft', desc: 'Lookalike of the claims-payments provider used to request payee bank changes', attr: 'BEC crew (claims payments)', kind: 'Intrusion set', tlp: 'TLP:AMBER', seenP: 0.75, creds: true },
+      { type: 'IP', threat: 'Credential theft', desc: 'Credential-stuffing source against the policyholder portal (FS-ISAC shared)', attr: 'Account-takeover infrastructure', kind: 'Infrastructure', tlp: 'TLP:GREEN', seenP: 0.95 },
+    ],
+    defence: [
+      { type: 'URL', threat: 'Phishing', desc: 'Fake recruiter document portal sent to guidance engineers', attr: 'APT40', kind: 'Intrusion set', tlp: 'TLP:AMBER+STRICT', seenP: 0.6, creds: true },
+      { type: 'IP', threat: 'Reconnaissance', desc: 'SOHO-router relay node scanning DIB VPN and NAC portals (DC3 DCISE shared)', attr: 'Volt Typhoon', kind: 'Intrusion set', tlp: 'TLP:AMBER', seenP: 0.7 },
+      { type: 'Domain', threat: 'Phishing', desc: 'Exostar sign-in clone used against supplier-portal users', attr: 'This organisation', kind: 'Identity', tlp: 'TLP:AMBER', seenP: 0.8, creds: true },
+    ],
+    pharma: [
+      { type: 'URL', threat: 'Phishing', desc: 'Partner-portal login clone sent to CRO monitors as a "site visit report"', attr: 'This organisation', kind: 'Identity', tlp: 'TLP:AMBER+STRICT', seenP: 0.9, creds: true },
+      { type: 'Domain', threat: 'Command and control', desc: 'C2 used in espionage against biologics research (NCSC Switzerland shared)', attr: 'APT41', kind: 'Intrusion set', tlp: 'TLP:AMBER', seenP: 0.35 },
+      { type: 'IP', threat: 'Credential theft', desc: 'Password spray against Entra ID research tenants (Health-ISAC shared)', attr: 'APT29', kind: 'Intrusion set', tlp: 'TLP:AMBER', seenP: 0.85 },
+    ],
+    sghospital: [
+      { type: 'URL', threat: 'Phishing', desc: 'Patient bill-payment page cloning the Orchid Bay PayNow flow', attr: 'This organisation', kind: 'Identity', tlp: 'TLP:AMBER+STRICT', seenP: 0.9, creds: true },
+      { type: 'IP', threat: 'Credential theft', desc: 'Password-spray source against Citrix (CSA SingCERT shared)', attr: a0, kind: 'Intrusion set', tlp: 'TLP:AMBER', seenP: 0.9 },
+      { type: 'Domain', threat: 'Malware delivery', desc: 'Lure-document host themed as an MOH circular', attr: 'Mustang Panda', kind: 'Intrusion set', tlp: 'TLP:AMBER', seenP: 0.45 },
+    ],
+    studio: [
+      { type: 'URL', threat: 'Phishing', desc: 'Fake screener-review page harvesting awards-voter and vendor logins', attr: 'This organisation', kind: 'Identity', tlp: 'TLP:AMBER+STRICT', seenP: 0.9, creds: true },
+      { type: 'IP', threat: 'Credential theft', desc: 'Account-checker source against Starfall+ sign-in (Akamai shared)', attr: 'Account-takeover infrastructure', kind: 'Infrastructure', tlp: 'TLP:GREEN', seenP: 0.95 },
+      { type: 'Domain', threat: 'Malware delivery', desc: 'Trojanised render-plugin download aimed at VFX artists', attr: 'NullBulge', kind: 'Intrusion set', tlp: 'TLP:AMBER', seenP: 0.5 },
+    ],
   };
   return [
-    ...sector[c.id],
+    ...forCustomer(sector, c),
     { type: 'IP', threat: 'Command and control', desc: `C2 node linked to ${a0} tooling`, attr: a0, kind: 'Intrusion set', tlp: 'TLP:AMBER', seenP: 0.5 },
     { type: 'IP', threat: 'Credential theft', desc: 'Password-spray source in a bulletproof-hosting range', attr: 'Bulletproof hosting AS204915', kind: 'Infrastructure', tlp: 'TLP:GREEN', seenP: 0.85 },
     { type: 'Domain', threat: 'Phishing', desc: 'Staging and credential-harvesting domain', attr: a2, kind: 'Intrusion set', tlp: 'TLP:AMBER', seenP: 0.6, creds: true },
@@ -1178,7 +1424,7 @@ export function osintArticles(c: CustomerProfile): Article[] {
       related: { label: 'See pushed indicators', to: '/int/ioc?threat=Phishing' },
     },
   ];
-  const sector: Record<CustomerId, ArtSeed[]> = {
+  const sector: CustomerMap<ArtSeed[]> = {
     maritime: [
       { cat: 'Incident Report', title: 'Password spray on the terminal VPN, handled by HexaSOC', daysAgo: 12, readMin: 5, summary: 'A spray against vpn.halcyonports.com followed a temporary firewall change that removed geo-restrictions.', sections: [{ heading: 'Incident details', bullets: ['Automated attempts against common crew and shore usernames', 'Sources already present in the HexaInt indicator feed', 'Root cause: emergency rule opened the VPN to all countries'] }, { heading: 'Actions taken', bullets: ['Sources blocked; the rule was reverted to the approved geo-policy', 'Targeted accounts forced to re-authenticate; MFA verified', 'No successful login observed'] }, { heading: 'Recommendations', bullets: ['Route emergency firewall changes through the SOC notification channel', 'Use the pre-approved remote-access fallback template'] }], related: { label: 'Related credentials', to: '/int/exposure' } },
       { cat: 'Advisory', title: `${isac}: GNSS interference cluster in a transit chokepoint`, daysAgo: 4, readMin: 4, summary: 'Spoofing and jamming reports clustered near a major chokepoint; relevant to fleet navigation integrity.', sections: [{ heading: 'Summary', paras: ['Vessels reported position jumps and AIS anomalies over several days. No cyber intrusion is implied; this is radio-frequency interference.'] }, { heading: 'For your fleet', bullets: ['Brief bridge teams on cross-checking GNSS with radar and visual fixes', 'Log integrity alarms to the fleet SOC via the vessel edge'] }] },
@@ -1204,8 +1450,33 @@ export function osintArticles(c: CustomerProfile): Article[] {
       { cat: 'Advisory', title: `${isac}: dealer-software supply-chain attacks`, daysAgo: 4, readMin: 4, summary: 'Attacks on dealer-management SaaS can take sales and service offline across the network.', sections: [{ heading: 'Why it matters', paras: ['A 2024 attack on a dealer-software provider stopped sales at thousands of dealerships for about two weeks.'] }, { heading: 'For Vireo', bullets: ['DealerCore DMS on the supplier watchlist with an open leak-site mention', 'Manual-sales fallback tested with 40 pilot dealers', 'DMS API keys scoped and rotated'] }], related: { label: 'Supply chain watchlist', to: '/int/supply?status=Exposed' } },
       { cat: 'Advisory', title: 'Vehicle-app API scraping wave', daysAgo: 19, readMin: 3, summary: 'Scrapers are enumerating connected-car API routes; the vehicle SOC sees elevated token-replay attempts.', sections: [{ heading: 'Actions taken', bullets: ['Scraper ranges pushed to the API gateway and WAF', 'Rate limits tightened on remote-function endpoints', 'HexaStrike API test scheduled'] }], related: { label: 'Attack surface', to: '/int/surface' } },
     ],
+    insurance: [
+      { cat: 'Incident Report', title: 'Claims-payment redirection attempt stopped before disbursement', daysAgo: 6, readMin: 5, summary: 'A spoofed body-shop email asked a Charlotte adjuster to change the payee bank account on a large auto claim.', sections: [{ heading: 'Incident details', bullets: ['Sender used a lookalike of the body shop’s domain registered four days earlier', 'Request referenced a real claim number taken from an earlier, legitimate email thread', 'Pattern matches the BEC template seen on a Telegram fraud channel'] }, { heading: 'Actions taken', bullets: [`Message pulled from all mailboxes by ${mailN}`, 'Payee change rejected in ClaimCenter; shop confirmed by phone on file', 'One Inc disbursement held and released to the verified account'] }, { heading: 'Recommendations', bullets: ['Require call-back to a known number for every payee bank change', 'Add a 24-hour hold on first payment to a changed account'] }], related: { label: 'See the lookalike', to: '/int/darkweb?view=domains' } },
+      { cat: 'Advisory', title: `${isac}: service-desk vishing wave against US carriers`, daysAgo: 3, readMin: 4, summary: 'Callers posing as adjusters and agents are asking service desks to reset MFA; several carriers saw Okta and VMware takeovers.', sections: [{ heading: 'Why it matters', paras: ['The same crew moved from retail to insurance in 2025; once in Okta they reached hypervisors within hours.'] }, { heading: 'For Kingsbridge', bullets: [`Admin-reset alerts in ${idpN} tightened`, 'Service-desk script now requires manager approval for privileged resets', 'NYDFS 500.17 72-hour notice playbook rehearsed with Legal'] }], related: { label: 'Related indicators', to: '/int/ioc?threat=Credential%20theft' } },
+      { cat: 'Phishing', title: 'Commission-statement lure aimed at independent agents', daysAgo: 15, readMin: 3, summary: 'Agents received fake commission statements linking to an AgentHub login clone.', sections: [{ heading: 'Actions taken', bullets: ['Takedown requested for the clone', 'Seven agency sessions revoked and re-enrolled', 'Agency-support bulletin issued to 1,900 agencies'] }], related: { label: 'Credential records', to: '/int/exposure?source=Infostealer' } },
+    ],
+    defence: [
+      { cat: 'Incident Report', title: 'Fake recruiter approach to a guidance engineer', daysAgo: 7, readMin: 5, summary: 'An engineer was invited to a paid "consulting interview" and asked to download a design-challenge document.', sections: [{ heading: 'Incident details', bullets: ['Persona claimed to recruit for a European aerospace firm', 'Document link pointed to a newly registered file-sharing domain', 'Tradecraft matches APT40 reporting from DC3 DCISE'] }, { heading: 'Actions taken', bullets: [`Domain blocked in ${mailN} and Zscaler`, 'Engineer’s endpoint checked by Defender XDR; nothing executed', 'FSO informed; no CUI involved, so no DFARS 7012 report required'] }, { heading: 'Recommendations', bullets: ['Brief engineering on recruiter lures and reporting to the FSO', 'Keep engineers’ public profiles free of programme names'] }], related: { label: 'Related indicators', to: '/int/ioc?threat=Phishing' } },
+      { cat: 'Advisory', title: `${isac}: Volt Typhoon relay infrastructure scanning DIB edges`, daysAgo: 4, readMin: 4, summary: 'Compromised home routers are being used to scan VPN and NAC portals at defence suppliers.', sections: [{ heading: 'Why it matters', paras: ['Pre-positioning in networks with OT gives the actor a way to disrupt production later; small suppliers are an easier route in.'] }, { heading: 'For Sentry Peak', bullets: ['Relay IPs pushed to Palo Alto and Sentinel', 'Cisco ISE patched; POA&M updated in HexaComply', 'Building 3 jump host reviewed for unusual sign-ins'] }], related: { label: 'Attack surface', to: '/int/surface' } },
+      { cat: 'Advisory', title: 'Sub-tier machine shop ransomed with drawings published', daysAgo: 18, readMin: 3, summary: 'A sub-tier supplier of the type Sentry Peak uses for overflow work had drawings posted on a leak site.', sections: [{ heading: 'Actions taken', bullets: ['TDPs held by Cumberland Precision Machining listed from HexaCustody', 'Supplier asked to confirm scope under the DFARS 7012 flow-down', 'Prime contracting officers briefed'] }], related: { label: 'Supply chain watchlist', to: '/int/supply?status=Exposed' } },
+    ],
+    pharma: [
+      { cat: 'Incident Report', title: 'CRO monitor’s partner-portal session found in a stealer log', daysAgo: 8, readMin: 5, summary: 'A CRO monitor’s infected laptop leaked sessions for the partner portal and Veeva Vault eTMF.', sections: [{ heading: 'Incident details', bullets: ['Infostealer on a CRO-managed laptop outside Rhenara control', 'Sessions for connect.rhenara.com and an eTMF account', 'No unblinded data access possible from the account’s role'] }, { heading: 'Actions taken', bullets: [`Sessions revoked in ${idpN}; account re-enrolled`, 'Rave and eTMF audit trails reviewed; no unusual exports', 'CRO asked to reimage the device under the quality agreement'] }, { heading: 'Recommendations', bullets: ['Require managed devices for CRO access to clinical systems', 'Alert on eTMF bulk downloads by partner accounts'] }], related: { label: 'Open the credential records', to: '/int/exposure?source=Infostealer' } },
+      { cat: 'Advisory', title: `${isac}: APT41 tasking against biologics process development`, daysAgo: 3, readMin: 4, summary: 'Espionage actors are seeking cell-line and purification process documents from European manufacturers.', sections: [{ heading: 'Why it matters', paras: ['Process IP for biologics takes years to develop and is hard to protect once copied; tech-transfer packs to CDMOs are a known exposure.'] }, { heading: 'For Rhenara', bullets: ['Tech-transfer pack to Samsung Biologics under HexaCustody watch', 'R&D share bulk-access alerts added in Varonis and Sentinel', 'NIS2 early-warning (24 h) and Swissmedic contacts confirmed'] }], related: { label: 'Threat actors', to: '/int/osint' } },
+      { cat: 'Phishing', title: 'Fake GMP audit request aimed at Valais quality staff', daysAgo: 21, readMin: 3, summary: 'Quality staff received a "regulatory inspection pre-read" linking to a credential-harvesting page.', sections: [{ heading: 'Actions taken', bullets: [`Lure domains blocked in ${mailN}`, 'Two users reset; no MES or LIMS access from the sessions', 'GxP data-integrity awareness module re-issued'] }], related: { label: 'See pushed indicators', to: '/int/ioc?threat=Phishing' } },
+    ],
+    sghospital: [
+      { cat: 'Incident Report', title: 'Visiting consultant’s Citrix session found in a stealer log', daysAgo: 5, readMin: 5, summary: 'A visiting consultant’s home PC leaked Citrix cookies and a TrakCare launch link.', sections: [{ heading: 'Incident details', bullets: ['Infostealer on a personal device used for remote reviews', 'Citrix session cookies and saved TrakCare launch link', 'FairWarning showed no unusual record access from the account'] }, { heading: 'Actions taken', bullets: [`Sessions revoked in ${idpN}; MFA re-registered`, 'Assessed against MOH and PDPA thresholds: not a notifiable incident', 'Consultant moved to a managed device via Imprivata'] }, { heading: 'Recommendations', bullets: ['Require device posture for Citrix from personal devices', 'Brief visiting consultants on home-device hygiene'] }], related: { label: 'Open the credential records', to: '/int/exposure?source=Infostealer' } },
+      { cat: 'Advisory', title: `${isac}: ransomware groups targeting Singapore healthcare`, daysAgo: 2, readMin: 4, summary: 'Qilin and LockBit affiliates are hitting hospitals and labs in the region; indicators are live across your estate.', sections: [{ heading: 'Why it matters', paras: ['Attacks on lab and imaging providers have forced hospitals in the region to divert patients and run manual processes for weeks.'] }, { heading: 'For Orchid Bay', bullets: ['MOH 2-hour notification decision tree rehearsed', 'Lion City Pathology interface credentials rotated', 'Indicators pushed to Sentinel and CrowdStrike'] }], related: { label: 'Supply chain watchlist', to: '/int/supply' } },
+      { cat: 'Phishing', title: 'Fake PayNow bill lure sent to patients', daysAgo: 12, readMin: 3, summary: 'Patients received SMS messages linking to a clone of the Orchid Bay bill-payment page.', sections: [{ heading: 'Actions taken', bullets: ['Takedown requested for the clone', 'Reported to ScamShield and SingCERT', 'Patient-app banner warns that Orchid Bay never sends payment links by SMS'] }], related: { label: 'See the lookalike', to: '/int/darkweb?view=domains' } },
+    ],
+    studio: [
+      { cat: 'Incident Report', title: 'VFX vendor artist’s Aspera session found in a stealer log', daysAgo: 6, readMin: 5, summary: 'An artist at Northlight Pixel leaked sessions for the Starfall Aspera share and Okta.', sections: [{ heading: 'Incident details', bullets: ['Infostealer on a vendor workstation outside Starfall control', 'Session cookies for aspera.starfallent.com and Okta', 'Share scope limited to Lodestar plates batch 58'] }, { heading: 'Actions taken', bullets: [`Sessions revoked in ${idpN}; share keys rotated`, 'Aspera transfer logs reviewed; no downloads after the capture date', 'Vendor asked to reimage the workstation under the TPN agreement'] }, { heading: 'Recommendations', bullets: ['Route vendor access through Island browser only', 'Watermark every plate batch sent to vendors'] }], related: { label: 'Open the credential records', to: '/int/exposure?source=Infostealer' } },
+      { cat: 'Advisory', title: `${isac}: vishing against studio SaaS tenants`, daysAgo: 3, readMin: 4, summary: 'Callers posing as IT are persuading vendor and studio staff to approve rogue SaaS connections.', sections: [{ heading: 'Why it matters', paras: ['Recent extortion cases started with a phone call and ended with subscriber data resold; materiality decisions for an SEC 8-K followed within days.'] }, { heading: 'For Starfall', bullets: ['Connected-app approvals restricted to admins', 'Starfall+ subscriber export alerts added', 'SEC 8-K materiality evidence pack prepared in advance'] }], related: { label: 'Related indicators', to: '/int/ioc?threat=Credential%20theft' } },
+      { cat: 'Phishing', title: 'Fake awards-screener invitations', daysAgo: 16, readMin: 3, summary: 'Awards voters and talent reps received invitations to a cloned screener portal.', sections: [{ heading: 'Actions taken', bullets: [`Lure domains blocked in ${mailN}`, 'Indee notified; real screener links re-issued with device binding', 'Three voters’ sessions revoked'] }], related: { label: 'See the lookalike', to: '/int/darkweb?view=domains' } },
+    ],
   };
-  return [...sector[c.id], ...shared]
+  return [...forCustomer(sector, c), ...shared]
     .map((a, i) => ({ ...a, id: `ART-${c.id.slice(0, 3).toUpperCase()}-${i + 1}`, author: a.cat === 'Incident Report' ? 'HexaShield SOC' : 'HexaInt analyst team' }))
     .sort((a, b) => a.daysAgo - b.daysAgo);
 }

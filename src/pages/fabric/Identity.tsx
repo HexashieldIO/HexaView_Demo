@@ -7,7 +7,7 @@ import { useApp, rangeDays } from '../../state/AppContext';
 import type { Severity } from '../../data/types';
 import {
   identitySummary, identitySources, mfaMethods, riskySignins, itdrDetections, serviceAccounts,
-  sodConflicts, riskyIdentities, connShort, techName,
+  sodConflicts, sodMeta, standingAdminNote, riskyIdentities, connShort, techName,
   type RiskyIdentity, type ItdrDetection,
 } from '../../data/modules/fabric';
 import { Card, KpiStrip, Badge, Btn, Callout, KV, Chip, SevBadge } from '../../components/ui';
@@ -28,6 +28,7 @@ export default function FabricIdentity() {
   const itdr = useMemo(() => itdrDetections(c, tenantId, days), [c, tenantId, days]);
   const svc = useMemo(() => serviceAccounts(c, tenantId), [c, tenantId]);
   const sod = useMemo(() => sodConflicts(c, tenantId), [c, tenantId]);
+  const sodInfo = sodMeta(c);
   const risky = useMemo(() => riskyIdentities(c, tenantId), [c, tenantId]);
   const [sel, setSel] = useState<RiskyIdentity | null>(null);
   const [det, setDet] = useState<ItdrDetection | null>(null);
@@ -61,7 +62,7 @@ export default function FabricIdentity() {
           { label: 'Privileged', value: fmtNum(sum.privileged), hint: `${sum.standing} standing admin`, toneColor: 'var(--sev-medium)', onClick: () => showRisky('privileged'), source: srcs.filter((k) => k.category === 'PAM').map(connShort).join(' · ') || idSrc },
           { label: 'Dormant / stale', value: fmtNum(sum.dormant), toneColor: 'var(--sev-medium)', onClick: () => showRisky('dormant'), source: `${idSrc} · last sign-in` },
           { label: 'Risky now', value: sum.risky, hint: 'high + medium', toneColor: 'var(--sev-high)', onClick: () => showRisky('high'), source: `${idSrc} · HexaInt leaked credentials` },
-          ...(sum.sod !== null ? [{ label: 'SoD conflicts', value: sum.sod, hint: 'SailPoint', toneColor: 'var(--bad)', onClick: () => scrollToId('fab-sod'), source: 'SailPoint IdentityIQ · z/OS RACF' }] : []),
+          ...(sum.sod !== null ? [{ label: 'SoD conflicts', value: sum.sod, hint: sodInfo?.hint ?? 'SailPoint', toneColor: 'var(--bad)', onClick: () => scrollToId('fab-sod'), source: sodInfo?.source ?? 'SailPoint' }] : []),
         ]}
       />
 
@@ -81,7 +82,7 @@ export default function FabricIdentity() {
             <Stat value={fmtNum(sum.guests)} label="Guests / external" onClick={() => showRisky('vendor')} source={idSrc} />
             <Stat value={sum.oldSecrets} label="Service secrets > 1 yr" color="var(--sev-medium)" onClick={() => scrollToId('fab-svc')} source={idSrc} />
           </div>
-          <Callout kind="warn"><b>{sum.standing} standing admin accounts</b> should move to just-in-time elevation. {c.id === 'finserv' ? 'Tier 0 is close to zero-standing already.' : c.id === 'healthcare' ? 'Most are biomedical OEM accounts outside CyberArk.' : c.id === 'automotive' ? 'Most are robot-OEM jump items in BeyondTrust.' : 'Removing them is a top Resilience Index driver.'}</Callout>
+          <Callout kind="warn"><b>{sum.standing} standing admin accounts</b> should move to just-in-time elevation. {standingAdminNote(c)}</Callout>
         </Card>
 
         <Card title="Risky sign-ins over time" sub={`High / medium / low · ${timeRange}`}>
@@ -131,7 +132,7 @@ export default function FabricIdentity() {
       </div>
 
       {sod.length > 0 && (
-        <Card title={<><Fingerprint size={15} style={{ verticalAlign: -2, color: 'var(--m-core)' }} /> <span id="fab-sod">Segregation-of-duties conflicts</span></>} sub="Toxic entitlement combinations from SailPoint — regulated financial controls" flush>
+        <Card title={<><Fingerprint size={15} style={{ verticalAlign: -2, color: 'var(--m-core)' }} /> <span id="fab-sod">Segregation-of-duties conflicts</span></>} sub={sodInfo?.sub ?? 'Toxic entitlement combinations'} flush>
           <DataTable
             rows={sod}
             rowKey={(s) => s.rule}

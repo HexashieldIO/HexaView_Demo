@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { FlowMap, type FlowColumn, type FlowLink } from '../../components/FlowMap';
 import { RecordsDrawer, scrollToId } from '../insurance/viz';
 import { useApp } from '../../state/AppContext';
-import { attackPaths, chokePoints, techName, type AttackPath, type PathNode, type PathNodeKind } from '../../data/modules/fabric';
+import { attackPaths, chokePoints, pathsIntroNote, techName, type AttackPath, type PathNode, type PathNodeKind } from '../../data/modules/fabric';
 import { Card, KpiStrip, Badge, Btn, Callout, KV, Chip } from '../../components/ui';
 
 import { Drawer } from '../../components/Overlay';
@@ -80,7 +80,7 @@ export default function FabricPaths() {
   return (
     <div style={toneStyle()}>
       <p className="page-intro">
-        <b>{c.name}</b> · attack paths computed across the unified graph — from entry points (internet-facing hosts, phished users, vendor remote access) through identities and hosts to crown jewels{c.id === 'maritime' ? ', including IT→OT routes to the crane PLCs' : ''}. {paths.length} material paths; fixing a choke point cuts several at once.
+        <b>{c.name}</b> · attack paths computed across the unified graph — from entry points (internet-facing hosts, phished users, vendor remote access) through identities and hosts to crown jewels{pathsIntroNote(c)}. {paths.length} material paths; fixing a choke point cuts several at once.
       </p>
 
       <KpiStrip

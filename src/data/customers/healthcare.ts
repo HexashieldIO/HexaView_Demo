@@ -5,6 +5,7 @@ import type { CustomerProfile } from '../types';
 // (IoMT) are the OT. HIPAA, HITRUST and the HHS cyber performance goals bite.
 export const healthcare: CustomerProfile = {
   id: 'healthcare',
+  dataKey: 'healthcare',
   name: 'Mercy Ridge Health',
   short: 'Mercy Ridge',
   initials: 'MR',
@@ -93,6 +94,21 @@ export const healthcare: CustomerProfile = {
       { name: 'Grace Nguyen', role: 'Charge Nurse, ICU', email: 'grace.nguyen@mercyridgehealth.org' },
       { name: 'Ben Carter', role: 'Radiology PACS Administrator', email: 'ben.carter@mercyridgehealth.org' },
     ],
+  },
+  rolePeople: {
+    master: { name: 'Hannah Kowalski', role: 'Security Platform Administrator', email: 'hannah.kowalski@mercyridgehealth.org' },
+    executive: { name: 'Dr. James Whitfield', role: 'President & Chief Executive Officer', email: 'james.whitfield@mercyridgehealth.org', vip: true },
+    ciso: { name: 'Dr. Maya Okonkwo', role: 'Chief Information Security Officer', email: 'maya.okonkwo@mercyridgehealth.org' },
+    finance: { name: 'Michael Dunn', role: 'Chief Financial Officer', email: 'michael.dunn@mercyridgehealth.org', vip: true },
+    socmanager: { name: 'Tyler Brennan', role: 'Security Operations Manager', email: 'tyler.brennan@mercyridgehealth.org' },
+    analyst: { name: 'Keisha Robinson', role: 'Senior SOC Analyst', email: 'keisha.robinson@mercyridgehealth.org' },
+    threat: { name: 'Andrew Kowal', role: 'Threat Intelligence Analyst', email: 'andrew.kowal@mercyridgehealth.org' },
+    grc: { name: 'Linda Castellano', role: 'GRC & Privacy Director', email: 'linda.castellano@mercyridgehealth.org' },
+    risk: { name: 'Diane Mercer', role: 'VP Enterprise Risk & Emergency Management', email: 'diane.mercer@mercyridgehealth.org' },
+    privacy: { name: 'Samuel Ortega', role: 'Chief Privacy Officer (HIPAA)', email: 'samuel.ortega@mercyridgehealth.org' },
+    ot: { name: 'Raj Venkataraman', role: 'Director of Clinical Engineering (Biomed)', email: 'raj.venkataraman@mercyridgehealth.org' },
+    cloud: { name: 'Megan Albright', role: 'Cloud & Infrastructure Security Lead', email: 'megan.albright@mercyridgehealth.org' },
+    admin: { name: 'Corey Lindstrom', role: 'Security Platform Engineer', email: 'corey.lindstrom@mercyridgehealth.org' },
   },
   thirdParties: [
     { name: 'Epic Systems', category: 'Electronic health record', tier: 1, access: 'Hosted support access, Clarity', rating: 86, country: 'US' },

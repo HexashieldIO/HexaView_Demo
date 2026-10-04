@@ -4,7 +4,7 @@ import { Building2, ChevronDown, ChevronRight, Server, Plug, KeyRound, ShieldChe
 import { useApp, rangeDays, rangeLabel } from '../../state/AppContext';
 import { headlines } from '../../data/core';
 import { scopedTenants, scopedConnectors, isStale } from '../../data/customers';
-import { adminUsers, supportSessions, idpFor, extraPeople, HV_ROLES, signingKey, type AdminUser, type HvRole, type SupportSession } from '../../data/modules/ops';
+import { adminUsers, supportSessions, idpFor, extraPeople, HV_ROLES, signingKey, ssoDefaults, type AdminUser, type HvRole, type SupportSession } from '../../data/modules/ops';
 import { Card, KpiStrip, Badge, StatusBadge, Btn, Callout, KV, HealthBadge, Chip, Freshness } from '../../components/ui';
 import { DataTable } from '../../components/DataTable';
 import { fmtAgo, fmtCompact, fmtNum, fmtDate, daysAgo, daysAhead } from '../../lib/format';
@@ -31,7 +31,8 @@ function AdminInner() {
   const roleFilter = (roleP ?? 'all') as 'all' | HvRole;
   const setRoleFilter = (r: 'all' | HvRole) => setRoleP(r === 'all' ? null : r);
   const nav = useNavigate();
-  const [sso, setSso] = useState({ enforce: true, scim: true, phishingResistant: c.id === 'finserv' || c.id === 'automotive', stepUp: true, sessionH: c.id === 'finserv' ? 8 : 12 });
+  const ssoDef = ssoDefaults(c);
+  const [sso, setSso] = useState({ enforce: true, scim: true, phishingResistant: ssoDef.phishingResistant, stepUp: true, sessionH: ssoDef.sessionH });
   const [wl, setWl] = useState({ name: account === 'partner' ? `${extraPeople(c).partner} Resilience` : 'HexaView', colour: account === 'partner' ? '#0f766e' : '#3b5bdb', partner: extraPeople(c).partner });
   const partner = account === 'partner';
 
@@ -190,7 +191,7 @@ function AdminInner() {
                 ['Residency', c.residency],
                 ['Key model', c.byok ? <Badge color="var(--good)">BYOK · customer-held KEK</Badge> : <Badge color="var(--sev-info)">Platform-managed</Badge>],
                 ['Key store', kek],
-                ['Key status', c.byok ? <span><Badge color="var(--good)" dot>Active</Badge> <span className="muted">rotated {fmtDate(daysAgo(c.id === 'finserv' ? 41 : 63))} · next {fmtDate(daysAhead(c.id === 'finserv' ? 324 : 302))}</span></span> : <span className="muted">Rotated automatically every 90 days</span>],
+                ['Key status', c.byok ? <span><Badge color="var(--good)" dot>Active</Badge> <span className="muted">rotated {fmtDate(daysAgo(ssoDef.keyRotatedDaysAgo))} · next {fmtDate(daysAhead(ssoDef.keyNextDays))}</span></span> : <span className="muted">Rotated automatically every 90 days</span>],
                 ['Action signing', <span className="mono" style={{ fontSize: 11 }}>{signingKey(c)}</span>],
                 ['Ledger anchors', `ES256 · every 5 min · last ${h.ops.lastAnchorMin} min ago`],
               ]}

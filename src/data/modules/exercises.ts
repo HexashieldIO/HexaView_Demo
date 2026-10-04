@@ -1,7 +1,8 @@
-import type { CustomerId, CustomerProfile } from '../types';
+import type { CustomerProfile } from '../types';
 import { rng } from '../../lib/rng';
 import { NOW } from '../../lib/format';
 import { resilienceIndex } from '../core';
+import { forCustomer, type CustomerMap } from '../customerMap';
 
 /* =====================================================================
    Crisis Exercises: a quarterly programme of tabletop, technical, OT/site,
@@ -129,7 +130,7 @@ const inj = (rows: InjSeed[]): Inject[] => rows.map(([t, from, title, prompt, ca
 /* =====================================================================
    Regulatory drivers per customer
    ===================================================================== */
-const DRIVERS: Record<CustomerId, Driver[]> = {
+const DRIVERS: CustomerMap<Driver[]> = {
   maritime: [
     { id: 'isps', name: 'ISPS Code', requirement: 'Part A/18.5–18.6 · drills every 3 months, exercises yearly (cyber annex)', perYear: 3, note: 'Port facilities and ships; PFSO and CSO attend' },
     { id: 'nis2', name: 'NIS2 Art. 21(2)(c)', requirement: 'Business continuity and crisis management, tested', perYear: 2, note: 'Maasvlakte and Antwerp as essential entities' },
@@ -175,7 +176,7 @@ const DRIVERS: Record<CustomerId, Driver[]> = {
    ===================================================================== */
 function scenarioSeeds(c: CustomerProfile): Scenario[] {
   const p = c.people;
-  switch (c.id) {
+  switch (c.dataKey) {
     case 'maritime':
       return [
         {
@@ -753,16 +754,16 @@ function scenarioSeeds(c: CustomerProfile): Scenario[] {
 }
 
 export function scenarios(c: CustomerProfile): Scenario[] {
-  return scenarioSeeds(c);
+  return forCustomer(SCENARIO_SETS, c)(c);
 }
 export function drivers(c: CustomerProfile): Driver[] {
-  return DRIVERS[c.id];
+  return forCustomer(DRIVERS, c);
 }
 
 /* =====================================================================
    Regulatory and contractual clocks for the live run (sim minutes)
    ===================================================================== */
-const CLOCKS: Record<CustomerId, RegClock[]> = {
+const CLOCKS: CustomerMap<RegClock[]> = {
   maritime: [
     { name: 'PFSO / port authority', body: 'ISPS security incident: report without delay', dueMin: 120 },
     { name: 'NACSA initial (NCII)', body: 'Cyber Security Act 2024: 6 h', dueMin: 360 },
@@ -795,14 +796,14 @@ const CLOCKS: Record<CustomerId, RegClock[]> = {
   ],
 };
 export function regClocks(c: CustomerProfile): RegClock[] {
-  return CLOCKS[c.id];
+  return forCustomer(CLOCKS, c);
 }
 
 /* =====================================================================
    The programme: this year's calendar, statuses, scores and actions
    ===================================================================== */
 type PlanSeed = [scenarioId: string, month: number, day: number, overdue?: boolean];
-const PLAN: Record<CustomerId, PlanSeed[]> = {
+const PLAN: CustomerMap<PlanSeed[]> = {
   maritime: [['MX-RD-06', 0, 22], ['MX-OT-07', 1, 18], ['MX-TE-02', 3, 9], ['MX-SC-04', 4, 27], ['MX-OT-03', 6, 15], ['MX-TT-01', 8, 4], ['MX-OT-07', 8, 24, true], ['MX-RW-05', 9, 21], ['MX-RD-06', 10, 12], ['MX-TT-01', 11, 2]],
   finserv: [['FS-RD-06', 0, 28], ['FS-TE-02', 1, 24], ['FS-TT-01', 2, 19], ['FS-SC-04', 4, 13], ['FS-OT-03', 5, 17], ['FS-TE-07', 7, 26], ['FS-RW-05', 8, 16, true], ['FS-TT-01', 9, 14], ['FS-RD-06', 10, 4], ['FS-SC-04', 11, 9]],
   media: [['MD-RD-06', 1, 3], ['MD-TE-02', 2, 12], ['MD-OT-03', 4, 6], ['MD-SC-04', 5, 23], ['MD-TT-01', 7, 19], ['MD-RW-05', 8, 10, true], ['MD-TT-07', 9, 16], ['MD-OT-03', 10, 20], ['MD-RD-06', 11, 8]],
@@ -826,7 +827,7 @@ export function programme(c: CustomerProfile, tenantId = 'all'): Exercise[] {
   const ri = resilienceIndex(c).value;
   const people = exercisePeople(c);
   const owners = [c.people.ciso.name, c.people.socLead.name, c.people.grcLead.name, c.people.otLead?.name ?? c.people.admin.name, c.people.admin.name, ...c.people.staff.slice(0, 4).map((s) => s.name)];
-  const out: Exercise[] = PLAN[c.id].map(([sid, m, d, overdue], idx) => {
+  const out: Exercise[] = forCustomer(PLAN, c).map(([sid, m, d, overdue], idx) => {
     const s = byId.get(sid) ?? scs[0];
     const r = rng(`ex-${c.id}-${sid}-${idx}`);
     const date = new Date(year, m, d, 9 + (idx % 3), 30);
@@ -863,7 +864,7 @@ export function programme(c: CustomerProfile, tenantId = 'all'): Exercise[] {
 
 /** Exercises the programme needs this year (sum of distinct driver requirements, at least the plan size minus slack). */
 export function requiredThisYear(c: CustomerProfile): number {
-  return Math.max(PLAN[c.id].length - 1, Math.ceil(DRIVERS[c.id].reduce((s, d) => s + d.perYear, 0) * 0.85));
+  return Math.max(forCustomer(PLAN, c).length - 1, Math.ceil(forCustomer(DRIVERS, c).reduce((s, d) => s + d.perYear, 0) * 0.85));
 }
 
 export function driverProgress(ds: Driver[], exs: Exercise[]): { d: Driver; done: number; planned: number; exercises: Exercise[] }[] {
@@ -876,3 +877,513 @@ export function driverProgress(ds: Driver[], exs: Exercise[]): { d: Driver; done
 export function quarterLabel(q: number): string {
   return `Q${q} ${NOW.getFullYear()}`;
 }
+
+/* =====================================================================
+   Second-wave customers: drivers, scenario libraries, clocks and plans.
+   ===================================================================== */
+DRIVERS.insurance = [
+  { id: 'nydfs', name: 'NYDFS 500.16(d)', requirement: 'Incident response and BCDR plans tested at least annually, with senior officers and the CISO', perYear: 2, note: 'Evidence feeds the 15 April certification' },
+  { id: 'naic', name: 'NAIC #668 §4H / CT IDSL', requirement: 'Written incident response plan, exercised and updated', perYear: 1, note: 'Domiciliary state examiners sample it' },
+  { id: 'mar', name: 'NAIC Model Audit Rule', requirement: 'Recovery of financial reporting systems (claims, reserving) tested', perYear: 1, note: 'External auditor ITGC walkthroughs in November' },
+  { id: 'pci', name: 'PCI DSS 12.10.2', requirement: 'Incident response plan reviewed and tested every 12 months', perYear: 1, note: 'Premium payment CDE' },
+  { id: 'soc2', name: 'SOC 2 CC7.4–7.5', requirement: 'Incident response and recovery tested (agent portal & claims platform)', perYear: 1, note: 'Type II period ends 31 Dec' },
+];
+DRIVERS.defence = [
+  { id: 'cmmc', name: 'CMMC IR.L2-3.6.3', requirement: 'Test the organisational incident response capability', perYear: 2, note: 'C3PAO will ask for exercise records in February' },
+  { id: 'dfars', name: 'DFARS 252.204-7012(c)–(g)', requirement: '72-hour DIBNet reporting, malware submission and 90-day image preservation rehearsed', perYear: 1, note: 'Primes ask for evidence in supplier reviews' },
+  { id: 'nist171', name: 'NIST SP 800-171 3.6.1–3.6.3', requirement: 'Incident handling capability established, tracked and tested', perYear: 1, note: 'SSP section 3.6' },
+  { id: 'itar', name: 'ITAR 22 CFR 127.12', requirement: 'Voluntary disclosure decision process exercised for data spills', perYear: 1, note: 'Empowered Official leads' },
+  { id: 'prime', name: 'Prime supplier quality clauses', requirement: 'Business continuity for delivery commitments demonstrated', perYear: 1, note: 'RTX and Lockheed supplier scorecards' },
+];
+DRIVERS.pharma = [
+  { id: 'nis2', name: 'NIS2 Art. 21(2)(c)', requirement: 'Business continuity and crisis management, tested', perYear: 2, note: 'Cork and Dublin as essential entities in Ireland' },
+  { id: 'gmp', name: 'EU GMP Annex 11 §16', requirement: 'Business continuity for computerised systems supporting critical processes, tested', perYear: 1, note: 'Swissmedic and HPRA inspectors ask for drill records' },
+  { id: 'gcp', name: 'ICH E6(R3) / EU CTR Art. 52', requirement: 'Serious breach handling and emergency unblinding exercised', perYear: 1, note: 'EMA GCP inspection in January' },
+  { id: 'iso', name: 'ISO 27001 A.5.24–A.5.30', requirement: 'Incident management and ICT readiness for business continuity', perYear: 1, note: 'Surveillance audit samples exercises' },
+  { id: 'gdpr', name: 'GDPR Art. 33 / revDSG', requirement: '72-hour breach notification process rehearsed', perYear: 1, note: 'DPO owns the decision' },
+];
+DRIVERS.sghospital = [
+  { id: 'hia', name: 'HIA CS/DS Essentials', requirement: 'Incident response plan exercised, incl. the 2-hour MOH notification and 14-day report', perYear: 2, note: 'MOH compliance declaration in March' },
+  { id: 'jci', name: 'JCI FMS emergency management', requirement: 'Emergency management plan tested at least twice a year, incl. IT downtime', perYear: 2, note: 'Triennial survey in May 2027' },
+  { id: 'ce', name: 'CSA Cyber Essentials (Respond)', requirement: 'Incident response plan in place and tested', perYear: 1, note: 'Mark renewal in December' },
+  { id: 'pdpa', name: 'PDPA Part 6A', requirement: 'Data breach management: assess within 30 days, notify PDPC within 3 days', perYear: 1, note: 'DPO owns the assessment' },
+  { id: 'ct', name: 'CSA Cyber Trust', requirement: 'Business continuity and incident response tested (risk-based tier)', perYear: 1, note: 'Assessment targeted for June 2027' },
+];
+DRIVERS.studio = [
+  { id: 'tpn', name: 'TPN Gold Shield', requirement: 'Incident response plan tested yearly with evidence for the assessor', perYear: 1, note: 'London VFX re-assessment in November' },
+  { id: 'mpa', name: 'MPA CSBP · IR', requirement: 'Content security incident response tested, including leak scenarios', perYear: 1, note: 'Licensors request evidence' },
+  { id: 'sec', name: 'SEC 8-K Item 1.05 / Reg S-K 106', requirement: 'Materiality determination and disclosure controls exercised', perYear: 1, note: 'Disclosure committee and audit committee' },
+  { id: 'pci', name: 'PCI DSS 12.10.2', requirement: 'Incident response plan tested every 12 months', perYear: 1, note: 'Starfall+, ticketing and park retail' },
+  { id: 'soc2', name: 'SOC 2 CC7.4–7.5', requirement: 'Incident response and recovery tested (Starfall+)', perYear: 1, note: 'Type II period closes in December' },
+  { id: 'iec', name: 'IEC 62443-2-1', requirement: 'Incident response exercised for ride and show control', perYear: 1, note: 'Orlando and Osaka resorts' },
+];
+
+function insuranceScenarios(c: CustomerProfile): Scenario[] {
+  const p = c.people;
+  return [
+    { id: 'IN-TT-01', title: 'Board tabletop: ransomware during a hurricane landfall week', kind: 'tabletop', tenantId: 'all', difficulty: 'Intermediate', durationMin: 150,
+      summary: 'A ransomware affiliate encrypts the Guidewire integration tier and the claims document repository as a hurricane makes landfall. FNOL volume is four times normal and a leak site posts claimant files.',
+      objectives: ['Test escalation from claims operations to the executive crisis team', 'Agree how claims keep being paid without ClaimCenter', 'Rehearse the NYDFS 72-hour notice and agent messaging'],
+      audience: `${p.board.name} (CEO), CFO, ${p.ciso.name}, Chief Claims Officer, General Counsel, communications`, controls: ['CTL-BKP-10', 'CTL-EDR-06'], frameworks: ['NYDFS 500', 'NAIC #668'], drivers: ['nydfs', 'naic'],
+      injects: inj([
+        [0, 'Claims operations', 'Adjusters cannot open claim files; FNOL queue at 6,800 and rising', 'Outage or cyber incident? Who declares?', 'detect'],
+        [20, 'HexaSOC', 'Same encryptor found on two integration servers', 'Declare a major incident and isolate the integration tier?', 'detect'],
+        [45, 'Agency relations', '400 agents ask how to report claims for their clients', 'What do agents and policyholders hear, and from whom?', 'communicate'],
+        [70, 'HexaInt', 'Leak site posts 2,000 claimant files', 'Does this change the NYDFS and state notification analysis?', 'notify'],
+        [100, 'CFO', 'Manual cheque run possible for 4,100 urgent claims', 'Approve manual disbursement with dual sign-off?', 'recover'],
+      ]),
+      lessons: [
+        ['The crisis team took 52 min to convene because the call tree still listed retired executives', 'Refresh the crisis call tree quarterly from Workday and test it', 'decide'],
+        ['No pre-approved agent and policyholder holding statements existed for a cyber event', 'Pre-approve agent, broker and policyholder holding statements', 'communicate'],
+        ['The NYDFS notice was drafted at hour 30 with no named owner', 'Name the NYDFS notice owner and keep the portal access tested', 'notify'],
+      ] },
+    { id: 'IN-TE-02', title: 'SOC/IR: help-desk MFA reset to adjuster takeover and payee fraud', kind: 'technical', tenantId: 'claims', difficulty: 'Advanced', durationMin: 150,
+      summary: 'A caller persuades the help desk to reset an adjuster MFA. Within an hour the account changes payees on three total-loss claims and exports a claims queue.',
+      objectives: ['Validate detection of T1621 / T1098 on Okta and Entra ID', 'Exercise payee-change fraud containment with SIU', 'Test session revocation across identity providers'],
+      audience: `${p.socLead.name}, SIU, service desk, claims supervisors, HexaShield IR`, controls: ['CTL-HD-02', 'CTL-IAM-01', 'CTL-EML-12'], frameworks: ['NYDFS 500.12', 'SOC 2'], drivers: ['nydfs', 'soc2'],
+      injects: inj([
+        [0, 'Service desk', 'Caller with a convincing story asks for an MFA reset', 'What does the verification procedure require?', 'detect'],
+        [25, 'HexaSOC', 'New MFA device registered, then sign-in from a VPS provider', 'Revoke sessions now or keep watching?', 'detect'],
+        [50, 'SIU', 'Three payee changes on total-loss claims in 10 minutes', 'Freeze disbursements for this adjuster? Who approves?', 'decide'],
+        [80, 'Claims supervisor', 'Claims queue export of 2,300 records detected', 'Is this a reportable cybersecurity event?', 'notify'],
+      ]),
+      lessons: [
+        ['The help desk accepted knowledge-based answers found on social media', 'Require a video or manager call-back before any MFA reset for claims staff', 'detect'],
+        ['Disbursement freeze needed three approvers who were not on call', 'Give SIU on-call authority to freeze an adjuster disbursement queue', 'decide'],
+      ] },
+    { id: 'IN-OT-03', title: 'Data-centre site: UPS and cooling failure during a cyber event', kind: 'ot', tenantId: 'group', difficulty: 'Intermediate', durationMin: 120,
+      summary: 'A suspicious change on the building management system coincides with a UPS battery alarm at the primary data centre hosting the mainframe and print plant.',
+      objectives: ['Test facilities and security joint triage', 'Rehearse controlled mainframe shutdown and recovery-site switchover', 'Confirm read-only monitoring evidence for facilities OT'],
+      audience: `${p.otLead?.name ?? 'Facilities lead'}, mainframe operations, HexaSOC, facilities vendor`, controls: ['CTL-BKP-10', 'CTL-MF-14'], frameworks: ['NYDFS 500.16', 'NAIC MAR'], drivers: ['mar', 'nydfs'],
+      injects: inj([
+        [0, 'HexaOT', 'BMS setpoint changed outside a change window', 'Who owns this alert: facilities or security?', 'detect'],
+        [15, 'Facilities', 'UPS on a degraded battery string', 'Start a controlled mainframe shutdown?', 'decide'],
+        [45, 'Mainframe operations', 'Batch premium run 60% complete', 'Let it finish or switch to the recovery LPAR?', 'recover'],
+        [80, 'External auditor', 'Auditor asks for evidence of financial system recovery', 'What evidence do you capture now?', 'communicate'],
+      ]),
+      lessons: [
+        ['BMS alerts went to a facilities mailbox nobody watched out of hours', 'Route BMS change alerts to HexaSOC as well as facilities', 'detect'],
+        ['The recovery LPAR switchover runbook pre-dated the z/OS upgrade', 'Update and re-test the LPAR switchover runbook', 'recover'],
+      ] },
+    { id: 'IN-SC-04', title: 'Third party: MFT zero-day at a claims BPO exposes NPI', kind: 'supply', tenantId: 'claims', difficulty: 'Intermediate', durationMin: 120,
+      summary: 'A claims outsourcer reports that its managed file transfer server was exploited; Kingsbridge bordereaux and claimant files from the last 90 days may be affected.',
+      objectives: ['Test third-party incident intake under NYDFS 500.11', 'Decide notification duties when NPI is held by a provider', 'Exercise contract and evidence requests'],
+      audience: `${p.grcLead.name}, vendor management, privacy, legal, claims operations`, controls: ['CTL-TPA-04', 'CTL-MFT-05'], frameworks: ['NYDFS 500.11', 'GLBA'], drivers: ['nydfs', 'naic'],
+      injects: inj([
+        [0, 'EXL account manager', 'Provider confirms MFT exploitation; scope unknown', 'What do you ask for in the first hour?', 'detect'],
+        [30, 'Privacy office', 'Files include claimant names, policy numbers and medical bills', 'Is this NPI under NYDFS and state law?', 'notify'],
+        [60, 'Legal', 'Contract requires notice within 72 h; provider has taken 4 days', 'Escalate contractually now?', 'decide'],
+        [90, 'Communications', 'Trade press asks whether Kingsbridge is affected', 'What do you say?', 'communicate'],
+      ]),
+      lessons: [
+        ['The provider notice window (72 h) was longer than our own NYDFS clock allows', 'Tighten provider notice to 24 h at renewal for all NPI holders', 'notify'],
+        ['Nobody had a list of files sent to the provider in the last 90 days', 'Track provider file transfers in HexaCustody', 'detect'],
+      ] },
+    { id: 'IN-RW-05', title: 'Ransomware on the mainframe batch and Guidewire integration tier', kind: 'ransomware', tenantId: 'group', difficulty: 'Advanced', durationMin: 180,
+      summary: 'Black Basta affiliates encrypt Windows servers that schedule mainframe batch and broker Guidewire integrations; premium billing and renewals stop.',
+      objectives: ['Test recovery order for policy, billing and claims', 'Rehearse clean-room restore from immutable backups', 'Exercise the ransom-payment decision framework'],
+      audience: `${p.ciso.name}, ${p.socLead.name}, infrastructure, mainframe, CFO, General Counsel`, controls: ['CTL-BKP-10', 'CTL-EDR-06', 'CTL-PAM-03'], frameworks: ['NYDFS 500.16', 'NIST CSF'], drivers: ['nydfs', 'pci'],
+      injects: inj([
+        [0, 'HexaSOC', 'Mass encryption on batch scheduler hosts', 'Isolate the scheduler network?', 'detect'],
+        [30, 'Billing', 'Premium billing run did not start; 12,600 renewals pending', 'Which service is restored first?', 'decide'],
+        [75, 'Infrastructure', 'Immutable snapshots clean from 36 h ago', 'Accept 36 h of data loss for integrations?', 'recover'],
+        [120, 'Threat actor', 'Ransom note with a 72-hour deadline', 'Who decides on payment and on what criteria?', 'decide'],
+      ]),
+      lessons: [
+        ['Recovery order was argued for 40 minutes', 'Agree a board-approved recovery order: claims, billing, policy, then reporting', 'recover'],
+        ['The ransom decision framework had no OFAC screening step', 'Add sanctions screening and law-enforcement contact to the ransom framework', 'decide'],
+      ] },
+    { id: 'IN-RD-06', title: 'NYDFS 72-hour notice and state insurance department drill', kind: 'regulator', tenantId: 'personal', difficulty: 'Foundation', durationMin: 90,
+      summary: 'A confirmed compromise of the policyholder portal exposes driver records for 18,000 New York and Ohio policyholders. The team must file the NYDFS notice and state notices on time.',
+      objectives: ['File the NYDFS 500.17 notice within 72 hours', 'Coordinate Connecticut, Ohio and New York notices', 'Prepare policyholder letters and call-centre scripts'],
+      audience: `${p.grcLead.name}, privacy, legal, ${p.ciso.name}, contact centre`, controls: ['CTL-LOG-07', 'CTL-NPI-09'], frameworks: ['NYDFS 500.17', 'NAIC #668'], drivers: ['nydfs', 'naic'],
+      injects: inj([
+        [0, 'HexaSOC', 'Portal compromise confirmed; 18,000 records accessed', 'When does the NYDFS clock start?', 'notify'],
+        [30, 'Legal', 'Ohio and Connecticut deadlines differ', 'Which notices go first and who signs them?', 'notify'],
+        [60, 'Contact centre', 'Policyholders calling after a news report', 'Is the script ready?', 'communicate'],
+      ]),
+      lessons: [
+        ['The notification matrix did not list Ohio and Iowa insurance department contacts', 'Add every domiciliary state contact to the notification matrix', 'notify'],
+      ] },
+  ];
+}
+
+function defenceScenarios(c: CustomerProfile): Scenario[] {
+  const p = c.people;
+  return [
+    { id: 'DF-TT-01', title: 'Exec tabletop: CUI exfiltration found two weeks before the C3PAO assessment', kind: 'tabletop', tenantId: 'all', difficulty: 'Advanced', durationMin: 150,
+      summary: 'Sentinel flags bulk downloads of a seeker gimbal drawing set from the GCC High enclave to an unknown cloud service. The C3PAO assessment is in two weeks and RTX is waiting on a TDP delivery.',
+      objectives: ['Test the decision to report through DIBNet', 'Agree what to tell primes and the C3PAO', 'Rehearse ITAR voluntary disclosure decision-making'],
+      audience: `${p.board.name} (CEO), CFO, ${p.ciso.name}, ${p.grcLead.name}, Empowered Official, Facility Security Officer`, controls: ['CTL-CUI-01', 'CTL-IR-06'], frameworks: ['DFARS 7012', 'CMMC L2', 'ITAR'], drivers: ['dfars', 'cmmc', 'itar'],
+      injects: inj([
+        [0, 'HexaSOC', 'Bulk download from Teamcenter by an engineer account at 02:10', 'Who decides whether this is a cyber incident affecting CUI?', 'detect'],
+        [20, 'Purview', 'Files carry CUI//SP-EXPT labels; destination is an unsanctioned file-sharing site', 'Is the 72-hour DIBNet clock running?', 'notify'],
+        [50, 'Empowered Official', 'Recipient location unknown; possible export without a licence', 'Start the voluntary disclosure assessment?', 'decide'],
+        [80, 'VP Programs', 'RTX expects the TDP next week', 'What do you tell the prime, and when?', 'communicate'],
+        [110, 'Director of Compliance', 'C3PAO assessment in 14 days', 'Postpone or proceed and disclose?', 'decide'],
+      ]),
+      lessons: [
+        ['Nobody had a medium-assurance certificate for DIBNet out of hours', 'Issue DIBNet access certificates to two on-call staff and test them quarterly', 'notify'],
+        ['The ITAR and DFARS processes ran separately and gave conflicting advice', 'Merge the CUI spill, DIBNet and voluntary disclosure decisions into one playbook', 'decide'],
+        ['Prime notification wording had to be written from scratch', 'Pre-approve prime and C3PAO holding statements', 'communicate'],
+      ] },
+    { id: 'DF-TE-02', title: 'SOC/IR: phished engineer and GCC High token theft', kind: 'technical', tenantId: 'engineering', difficulty: 'Advanced', durationMin: 150,
+      summary: 'An engineer enters credentials on a fake prime RFQ portal. The attacker replays a session token against the GCC High tenant and searches SharePoint for guidance documents.',
+      objectives: ['Validate detection of token replay and risky sign-ins in GCC High', 'Exercise session revocation and YubiKey re-issue', 'Scope CUI access from audit logs'],
+      audience: `${p.socLead.name}, cloud security, ${p.grcLead.name}, HexaShield IR`, controls: ['CTL-IAM-02', 'CTL-AU-04', 'CTL-EML-13'], frameworks: ['CMMC L2', 'NIST 800-171'], drivers: ['cmmc', 'nist171'],
+      injects: inj([
+        [0, 'Proofpoint', 'Clicked link to a look-alike prime portal', 'Did anyone enter credentials?', 'detect'],
+        [25, 'Entra ID', 'Session from a new ASN without a FIDO2 challenge', 'Revoke sessions for the user now?', 'detect'],
+        [50, 'Purview audit', 'SharePoint searches for guidance and seeker terms', 'Which CUI was viewed?', 'decide'],
+        [90, 'CISO', 'Scope confirmed: 14 CUI files viewed, none downloaded', 'Is this reportable under DFARS 7012?', 'notify'],
+      ]),
+      lessons: [
+        ['A legacy app password let the token bypass FIDO2 enforcement', 'Disable legacy authentication paths in the enclave', 'detect'],
+        ['Audit log search took 70 min because retention queries were slow', 'Pre-build CUI access hunting queries in Sentinel', 'recover'],
+      ] },
+    { id: 'DF-OT-03', title: 'Building 3: unauthorised CNC programme change on an ITAR part', kind: 'ot', tenantId: 'manufacturing', difficulty: 'Intermediate', durationMin: 120,
+      summary: 'Armis sees a programme transfer to a five-axis mill from a laptop that is not the DNC server, while the mill is cutting a guidance housing for an ITAR programme.',
+      objectives: ['Test read-only OT detection to safe-stop decision', 'Exercise quarantine of suspect parts and first-article re-inspection', 'Confirm evidence capture without touching controllers'],
+      audience: `${p.otLead?.name ?? 'OT lead'}, CNC programming lead, quality, HexaShield OT IR`, controls: ['CTL-OT-08', 'CTL-OT-09'], frameworks: ['CMMC L2', 'AS9100D'], drivers: ['cmmc', 'prime'],
+      injects: inj([
+        [0, 'Armis', 'Programme transfer to Mill 4 from an unknown laptop', 'Is there an approved engineering change?', 'detect'],
+        [15, 'CNC programming lead', 'Laptop belongs to a Haas field engineer', 'Stop the mill mid-cut?', 'decide'],
+        [40, 'Quality', '12 parts machined since the change', 'Quarantine and re-inspect against the drawing?', 'recover'],
+        [70, 'Programs', 'Prime delivery due in 9 days', 'What do you tell the prime about possible non-conforming parts?', 'communicate'],
+      ]),
+      lessons: [
+        ['The OEM laptop connected directly instead of through BeyondTrust', 'Enforce NAC so only the DNC server can send programmes to machines', 'detect'],
+        ['Quarantine criteria for suspect parts were unclear', 'Add a cyber trigger to the non-conforming product procedure', 'recover'],
+      ] },
+    { id: 'DF-SC-04', title: 'Sub-tier machine shop ransomware with ITAR drawings', kind: 'supply', tenantId: 'programs', difficulty: 'Intermediate', durationMin: 120,
+      summary: 'Cumberland Precision Machining reports ransomware. It holds 40 ITAR drawings released by Sentry Peak in the last six months and has no SPRS score.',
+      objectives: ['Test sub-tier incident intake and DFARS flow-down duties', 'Decide on DIBNet reporting for CUI held by a sub-tier', 'Plan alternate sourcing for affected parts'],
+      audience: `${p.grcLead.name}, subcontracts, Empowered Official, programs, quality`, controls: ['CTL-SUP-12'], frameworks: ['DFARS 7012', 'ITAR'], drivers: ['dfars', 'itar'],
+      injects: inj([
+        [0, 'Cumberland', 'Shop systems encrypted; drawings may be stolen', 'What must the sub-tier report, and to whom?', 'notify'],
+        [30, 'HexaCustody', '40 TDPs released to Cumberland in 6 months', 'Can you revoke access to any of them?', 'recover'],
+        [60, 'Empowered Official', 'Unknown whether drawings left the US', 'Voluntary disclosure assessment?', 'decide'],
+        [90, 'Programs', 'Two prime deliveries depend on Cumberland parts', 'Move work to another qualified shop?', 'decide'],
+      ]),
+      lessons: [
+        ['The sub-tier did not know it had to report through DIBNet itself', 'Add DIBNet reporting steps to the sub-tier flow-down pack', 'notify'],
+      ] },
+    { id: 'DF-RW-05', title: 'Ransomware on the commercial tenant and Costpoint at month end', kind: 'ransomware', tenantId: 'corporate', difficulty: 'Intermediate', durationMin: 150,
+      summary: 'LockBit affiliates encrypt corporate file servers on the commercial side during month-end close; Costpoint timekeeping is unavailable and DCAA-relevant records are at risk.',
+      objectives: ['Confirm the enclave boundary held', 'Test DCAA-compliant manual timekeeping', 'Exercise restore from immutable backups'],
+      audience: `${p.ciso.name}, CFO, IT infrastructure, contracts`, controls: ['CTL-BKP-14', 'CTL-EDR-05'], frameworks: ['NIST 800-171', 'DFARS 7019'], drivers: ['cmmc', 'prime'],
+      injects: inj([
+        [0, 'HexaSOC', 'Encryption on corporate file servers', 'Has anything crossed into GCC High?', 'detect'],
+        [30, 'Finance', 'Costpoint unreachable on the last day of the month', 'Start paper timesheets with supervisor sign-off?', 'recover'],
+        [70, 'Contracts', 'Primes ask whether CUI is affected', 'What evidence shows the enclave was not reached?', 'communicate'],
+      ]),
+      lessons: [
+        ['Proving the enclave was untouched took 5 hours of log searches', 'Build a boundary-integrity report in Sentinel for incident use', 'communicate'],
+      ] },
+    { id: 'DF-RD-06', title: 'DIBNet 72-hour report, DC3 malware submission and 90-day preservation', kind: 'regulator', tenantId: 'programs', difficulty: 'Foundation', durationMin: 90,
+      summary: 'A confirmed compromise of an enclave workstation must be reported through DIBNet within 72 hours, with malware sent to DC3 and images preserved for 90 days.',
+      objectives: ['Complete the DIBNet incident collection form', 'Submit a malware sample to DC3', 'Preserve and hash images for 90 days'],
+      audience: `${p.ciso.name}, ${p.socLead.name}, ${p.grcLead.name}, contracts`, controls: ['CTL-IR-06'], frameworks: ['DFARS 7012'], drivers: ['dfars', 'nist171'],
+      injects: inj([
+        [0, 'HexaSOC', 'Compromise of SPD workstation confirmed', 'Start the 72-hour clock: who owns the report?', 'notify'],
+        [30, 'Contracts', 'Which contracts and contracting officers are affected?', 'Do you have the contract numbers to hand?', 'notify'],
+        [60, 'Forensics', 'Image capture complete', 'Where is it stored and who can access it for 90 days?', 'recover'],
+      ]),
+      lessons: [
+        ['Contract numbers for the DIBNet form had to be found in Costpoint during the drill', 'Keep a current list of DFARS 7012 contracts in the IR runbook', 'notify'],
+      ] },
+  ];
+}
+
+function pharmaScenarios(c: CustomerProfile): Scenario[] {
+  const p = c.people;
+  return [
+    { id: 'PH-TT-01', title: 'Board tabletop: batch release halted at both plants', kind: 'tabletop', tenantId: 'all', difficulty: 'Intermediate', durationMin: 150,
+      summary: 'Ransomware reaches the shared SAP and LabWare environment. Batch release at Valais and Cork stops, a biologic is on allocation in two EU markets and a leak site claims process IP.',
+      objectives: ['Test escalation to the executive crisis team', 'Decide on paper batch records and QP release', 'Rehearse NIS2, Swissmedic and supply-shortage communication'],
+      audience: `${p.board.name} (CEO), CFO, ${p.ciso.name}, Head of Global Manufacturing & Supply, QPs, communications`, controls: ['CTL-BKP-10', 'CTL-OT-05'], frameworks: ['NIS2', 'EU GMP Annex 11'], drivers: ['nis2', 'gmp'],
+      injects: inj([
+        [0, 'QC Valais', 'LabWare unavailable; results for 64 batches cannot be reviewed', 'IT outage or cyber incident? Who declares?', 'detect'],
+        [25, 'HexaSOC', 'Encryptor on SAP application servers in Basel', 'Isolate plant networks from the corporate WAN?', 'decide'],
+        [55, 'Supply', 'Biologic stock covers 9 days in two markets', 'Notify regulators of a potential shortage?', 'notify'],
+        [85, 'QP Valais', 'Paper batch records possible under the contingency SOP', 'Release on paper, and who accepts the risk?', 'recover'],
+        [120, 'HexaInt', 'Leak site claims biologics process files', 'What do you tell partners and investors?', 'communicate'],
+      ]),
+      lessons: [
+        ['Plant isolation took 70 minutes because the decision owner was unclear', 'Give site heads authority to isolate plant networks', 'decide'],
+        ['Shortage notification duties were not in the incident plan', 'Add medicine-shortage reporting to the incident notification matrix', 'notify'],
+        ['Paper batch reconciliation took three days', 'Rehearse the contingency SOP twice a year at each plant', 'recover'],
+      ] },
+    { id: 'PH-TE-02', title: 'SOC/IR: CRO partner account abuse and trial data access', kind: 'technical', tenantId: 'clinops', difficulty: 'Advanced', durationMin: 150,
+      summary: 'A CRO monitor account federated through Okta signs in from a new country and browses unblinded safety listings in Medidata for Phase III RHN-4471.',
+      objectives: ['Validate detection of anomalous partner access', 'Exercise partner session revocation and CRO coordination', 'Assess unblinding impact on the trial'],
+      audience: `${p.socLead.name}, clinical systems, Head of Clinical Operations, DPO, HexaShield IR`, controls: ['CTL-UNB-08', 'CTL-SUP-11', 'CTL-IAM-01'], frameworks: ['ICH E6(R3)', 'GDPR'], drivers: ['gcp', 'gdpr'],
+      injects: inj([
+        [0, 'HexaSOC', 'Partner sign-in from a new country with impossible travel', 'Revoke now or call the CRO first?', 'detect'],
+        [20, 'Medidata audit trail', 'Unblinded safety listings opened', 'Does this compromise the blind?', 'decide'],
+        [50, 'IQVIA', 'CRO confirms the monitor is on leave', 'Who reports a serious breach of the protocol, and when?', 'notify'],
+        [80, 'DPO', 'Listings contain pseudonymised patient data', 'GDPR 72-hour notification?', 'notify'],
+      ]),
+      lessons: [
+        ['Partner accounts lacked phishing-resistant MFA', 'Enforce FIDO2 for every CRO account federated through Okta', 'detect'],
+        ['The study team and security assessed unblinding impact separately', 'Add the study statistician to partner-access incidents', 'decide'],
+      ] },
+    { id: 'PH-OT-03', title: 'Plant: GxP batch-record integrity in doubt after a DeltaV change', kind: 'ot', tenantId: 'valais', difficulty: 'Advanced', durationMin: 120,
+      summary: 'An unapproved recipe parameter change appears in the DeltaV event chronicle during a bioreactor run, made through an OEM remote session with no linked change ticket.',
+      objectives: ['Test OT detection to GxP impact assessment', 'Exercise batch hold and deviation handling', 'Confirm evidence capture for the inspector'],
+      audience: `${p.otLead?.name ?? 'OT lead'}, MES & automation, QA, QP, HexaShield OT IR`, controls: ['CTL-OT-06', 'CTL-OT-04', 'CTL-AT-03'], frameworks: ['EU GMP Annex 11', 'Part 11'], drivers: ['gmp', 'iso'],
+      injects: inj([
+        [0, 'DeltaV event chronicle', 'Recipe setpoint changed on bioreactor B2', 'Is there an approved GxP change?', 'detect'],
+        [15, 'Emerson', 'OEM engineer says the change was diagnostic', 'Hold the batch?', 'decide'],
+        [45, 'QA', 'Audit trail shows the change; PAS-X batch record does not', 'Is batch-record integrity compromised?', 'recover'],
+        [80, 'QP', 'Batch value CHF 6M', 'Deviation, investigation and what evidence for Swissmedic?', 'communicate'],
+      ]),
+      lessons: [
+        ['OEM sessions were not reconciled to change control', 'Require a change ticket before BeyondTrust approves OEM sessions', 'detect'],
+        ['DeltaV and PAS-X audit trails disagreed', 'Reconcile DCS and MES audit trails daily for critical batches', 'recover'],
+      ] },
+    { id: 'PH-SC-04', title: 'CMO breach exposes a biologics tech-transfer pack', kind: 'supply', tenantId: 'corporate', difficulty: 'Intermediate', durationMin: 120,
+      summary: 'A contract manufacturer reports a breach of its document system. A tech-transfer pack with process recipes and cell-line data was shared with it two months ago.',
+      objectives: ['Test CMO incident intake under the quality agreement', 'Assess IP loss and regulatory impact', 'Exercise custody revocation'],
+      audience: `${p.grcLead.name}, business development, legal, QA, supply`, controls: ['CTL-IP-07', 'CTL-SUP-11'], frameworks: ['NIS2', 'ISO 27001'], drivers: ['nis2', 'iso'],
+      injects: inj([
+        [0, 'CMO quality head', 'Document system breach; scope unknown', 'What does the quality agreement oblige them to tell us?', 'detect'],
+        [30, 'HexaCustody', 'Tech-transfer pack opened by 3 CMO users; last access 9 days ago', 'Revoke access now?', 'recover'],
+        [60, 'Legal', 'Licensing partner asks whether its IP is affected', 'What do you say?', 'communicate'],
+      ]),
+      lessons: [
+        ['The quality agreement had no security incident clause', 'Add security incident notice terms to all CMO quality agreements', 'notify'],
+      ] },
+    { id: 'PH-RW-05', title: 'Ransomware on SAP and serialisation at Cork', kind: 'ransomware', tenantId: 'cork', difficulty: 'Advanced', durationMin: 180,
+      summary: 'Ransomware encrypts the serialisation L3 server and SAP interfaces at Cork; packs cannot be aggregated and shipments to the US and EU stop.',
+      objectives: ['Test recovery order for supply-critical systems', 'Rehearse manual aggregation under QA oversight', 'Exercise the NIS2 early warning to NCSC Ireland'],
+      audience: `${p.ciso.name}, Site Head Cork, serialisation, supply, QA`, controls: ['CTL-BKP-10', 'CTL-EDR-09'], frameworks: ['NIS2', 'EU GMP Annex 11'], drivers: ['nis2', 'gmp'],
+      injects: inj([
+        [0, 'Packaging line', 'Serialisation server unreachable; line stopped', 'Isolate the Cork plant network?', 'detect'],
+        [30, 'Supply', 'US shipments due in 48 h need DSCSA data', 'Manual aggregation with QA oversight?', 'recover'],
+        [70, 'Site Head', 'NCSC Ireland early warning due within 24 h', 'Who submits it?', 'notify'],
+      ]),
+      lessons: [
+        ['The serialisation server had no tested restore', 'Add the serialisation server to quarterly restore tests', 'recover'],
+      ] },
+    { id: 'PH-RD-06', title: 'NIS2 24-hour early warning and GDPR 72-hour drill (Ireland)', kind: 'regulator', tenantId: 'clinops', difficulty: 'Foundation', durationMin: 90,
+      summary: 'A compromise of the Dublin clinical operations file server exposes trial master file exports. The team must send the NIS2 early warning and decide on GDPR notification.',
+      objectives: ['Submit the NIS2 early warning within 24 hours', 'Decide on GDPR Art. 33 notification within 72 hours', 'Coordinate EU CTR serious-breach assessment'],
+      audience: `${p.grcLead.name}, DPO, Head of Clinical Operations, legal`, controls: ['CTL-IP-07'], frameworks: ['NIS2', 'GDPR', 'EU CTR'], drivers: ['nis2', 'gdpr', 'gcp'],
+      injects: inj([
+        [0, 'HexaSOC', 'File server compromise confirmed', 'Is this a significant incident under NIS2?', 'notify'],
+        [30, 'DPO', 'Exports contain pseudonymised patient data', 'Notify the Irish DPC?', 'notify'],
+        [60, 'Clinical operations', 'Does this affect trial integrity?', 'Serious breach notification within 7 days?', 'decide'],
+      ]),
+      lessons: [
+        ['Three regimes were assessed by three teams in parallel', 'Run a single notification decision meeting for NIS2, GDPR and CTR', 'notify'],
+      ] },
+  ];
+}
+
+function sghospitalScenarios(c: CustomerProfile): Scenario[] {
+  const p = c.people;
+  return [
+    { id: 'SG-TT-01', title: 'Board tabletop: TrakCare down 48 hours during a dengue surge', kind: 'tabletop', tenantId: 'all', difficulty: 'Intermediate', durationMin: 150,
+      summary: 'Ransomware forces TrakCare offline at Novena while A&E attendances are 40% above normal. Wards run on downtime procedures and a leak site claims patient records.',
+      objectives: ['Test escalation to the hospital crisis team', 'Decide on A&E diversion and elective postponement', 'Rehearse the MOH 2-hour notification and patient communication'],
+      audience: `${p.board.name} (Group CEO), CMO, CNO, ${p.ciso.name}, CMIO, communications, legal`, controls: ['CTL-BKP-06', 'CTL-IR-13'], frameworks: ['HIA', 'JCI'], drivers: ['hia', 'jci'],
+      injects: inj([
+        [0, 'Ward 7A', 'TrakCare screens frozen; medication orders cannot be viewed', 'IT outage or cyber incident? Who declares?', 'detect'],
+        [20, 'HexaSOC', 'Encryptor found on TrakCare application servers', 'Activate downtime procedures hospital-wide?', 'decide'],
+        [45, 'A&E', 'Waiting time 5 h; ambulances still arriving', 'Request diversion of ambulances?', 'decide'],
+        [75, 'Legal', 'Incident assessed as notifiable at 09:40', 'MOH must hear by 11:40: who sends it?', 'notify'],
+        [110, 'HexaInt', 'Leak site posts records of a well-known patient', 'What do you tell the patient, the press and the PDPC?', 'communicate'],
+      ]),
+      lessons: [
+        ['The MOH notice was sent at 3 h 10 min because the template could not be found', 'Keep the MOH notification template in the downtime binder and the IR runbook', 'notify'],
+        ['Diversion criteria were not linked to EHR downtime', 'Add EHR downtime triggers to the A&E diversion policy', 'decide'],
+        ['VIP patient communication was improvised', 'Pre-approve patient and media statements for a records leak', 'communicate'],
+      ] },
+    { id: 'SG-TE-02', title: 'SOC/IR: service-desk social engineering to TrakCare access', kind: 'technical', tenantId: 'corp', difficulty: 'Advanced', durationMin: 150,
+      summary: 'A caller posing as a consultant persuades the outsourced service desk to reset a password and MFA. The account then searches TrakCare for a celebrity patient.',
+      objectives: ['Validate detection of reset abuse and anomalous record access', 'Exercise session revocation and FairWarning investigation', 'Assess PDPA and HIA notification duties'],
+      audience: `${p.socLead.name}, NCS service desk, TrakCare team, DPO, HexaShield IR`, controls: ['CTL-HD-02', 'CTL-LOG-07'], frameworks: ['HIA', 'PDPA'], drivers: ['hia', 'pdpa'],
+      injects: inj([
+        [0, 'NCS service desk', 'Urgent reset request from a consultant abroad', 'What does verification require?', 'detect'],
+        [25, 'FairWarning', 'Account views a well-known patient record with no care relationship', 'Revoke sessions now?', 'detect'],
+        [60, 'DPO', 'Record includes diagnosis and NRIC', 'Is this notifiable to MOH and PDPC?', 'notify'],
+      ]),
+      lessons: [
+        ['The outsourced desk had no call-back step for clinicians', 'Add a verified call-back for every clinician reset at the NCS desk', 'detect'],
+      ] },
+    { id: 'SG-OT-03', title: 'Biomedical: infusion pump drug-library tampering', kind: 'ot', tenantId: 'obh', difficulty: 'Advanced', durationMin: 120,
+      summary: 'Claroty detects an unexpected drug-library push to Alaris pumps on two wards, outside the pharmacy change window.',
+      objectives: ['Test read-only device detection to clinical safety decision', 'Exercise pump isolation and manual double checks', 'Coordinate with the OEM and HSA'],
+      audience: `${p.otLead?.name ?? 'Head of Biomedical Engineering'}, pharmacy, nursing, HexaShield OT IR`, controls: ['CTL-OT-14', 'CTL-MD-03'], frameworks: ['HSA GL-04', 'JCI'], drivers: ['hia', 'jci'],
+      injects: inj([
+        [0, 'Claroty', 'Drug-library push to 46 pumps on Wards 5B and 6A', 'Was a pharmacy change approved?', 'detect'],
+        [15, 'Pharmacy', 'No approved change', 'Revert pumps to the last library or remove them from use?', 'decide'],
+        [40, 'Nursing', 'High-risk infusions running on 9 patients', 'Manual double checks now?', 'recover'],
+        [70, 'BD', 'OEM can review the server logs in 6 h', 'Report to HSA as a device incident?', 'notify'],
+      ]),
+      lessons: [
+        ['Pump server changes did not alert security', 'Forward Alaris server change events to Sentinel', 'detect'],
+      ] },
+    { id: 'SG-SC-04', title: 'Third party: NEHR gateway outage and a reference lab breach', kind: 'supply', tenantId: 'labimg', difficulty: 'Intermediate', durationMin: 120,
+      summary: 'Lion City Pathology reports a breach of its results portal on the same day the NEHR contribution gateway rejects all messages after a profile change.',
+      objectives: ['Test third-party incident intake', 'Decide on notification for patient data held by a partner', 'Exercise message queueing and replay'],
+      audience: `${p.grcLead.name}, lab director, CMIO, DPO, TrakCare team`, controls: ['CTL-TPR-10', 'CTL-LOG-07'], frameworks: ['HIA', 'PDPA', 'NEHR readiness'], drivers: ['hia', 'pdpa'],
+      injects: inj([
+        [0, 'Lion City Pathology', 'Results portal breached; Orchid Bay patients affected', 'What do you ask for first?', 'detect'],
+        [30, 'Synapxe', 'NEHR messages rejected since 06:00', 'Queue and replay, or stop contribution?', 'recover'],
+        [60, 'DPO', 'Partner holds results for 3,200 Orchid Bay patients', 'Who notifies MOH and the PDPC?', 'notify'],
+      ]),
+      lessons: [
+        ['The lab contract had no 24-hour breach notice clause', 'Add 24-hour notice and MOH cooperation clauses to lab contracts', 'notify'],
+      ] },
+    { id: 'SG-RW-05', title: 'Ransomware with A&E diversion at Novena', kind: 'ransomware', tenantId: 'obh', difficulty: 'Advanced', durationMin: 180,
+      summary: 'Qilin affiliates encrypt Windows servers including PACS and the LIS interface; imaging and lab results stop and A&E considers diversion.',
+      objectives: ['Test recovery order for clinical systems', 'Rehearse clean restore from immutable backups', 'Exercise the 2-hour MOH notification under pressure'],
+      audience: `${p.ciso.name}, ${p.socLead.name}, CMIO, radiology, laboratory, A&E`, controls: ['CTL-BKP-06', 'CTL-EDR-05', 'CTL-IR-13'], frameworks: ['HIA', 'Cyber Essentials'], drivers: ['hia', 'ce'],
+      injects: inj([
+        [0, 'Radiology', 'PACS unavailable; CT images stuck on modalities', 'Read at the modality?', 'recover'],
+        [30, 'HexaSOC', 'Encryption across 60 servers', 'Isolate clinical VLANs from corporate?', 'detect'],
+        [60, 'A&E', 'No lab results for 90 minutes', 'Divert ambulances?', 'decide'],
+        [90, 'CISO', 'Incident assessed as notifiable', 'MOH clock: 2 hours from now', 'notify'],
+      ]),
+      lessons: [
+        ['Recovery order put billing before the LIS', 'Agree a clinically led recovery order', 'recover'],
+      ] },
+    { id: 'SG-RD-06', title: 'MOH 2-hour notification drill (with PDPC 3-day assessment)', kind: 'regulator', tenantId: 'obh', difficulty: 'Foundation', durationMin: 90,
+      summary: 'A misdirected export of 1,200 patient records to an overseas partner is confirmed. The team must assess notifiability, notify MOH within 2 hours and prepare the 14-day report.',
+      objectives: ['Notify MOH within 2 hours of assessment', 'Decide PDPC notification within 3 days', 'Draft the 14-day detailed report outline'],
+      audience: `${p.grcLead.name}, DPO, ${p.ciso.name}, CMIO, legal`, controls: ['CTL-IR-13', 'CTL-DLP-11'], frameworks: ['HIA', 'PDPA'], drivers: ['hia', 'pdpa'],
+      injects: inj([
+        [0, 'International patient services', 'Export sent to the wrong overseas partner', 'Is it notifiable under the HIA?', 'notify'],
+        [20, 'DPO', 'Assessment complete at 14:05', 'MOH notice due by 16:05: who signs it?', 'notify'],
+        [60, 'Legal', 'Partner confirms deletion', 'Does PDPC still need notice?', 'decide'],
+      ]),
+      lessons: [
+        ['The clock start (assessment time) was not recorded', 'Record the assessment time in the incident record as the MOH clock start', 'notify'],
+      ] },
+  ];
+}
+
+function studioScenarios(c: CustomerProfile): Scenario[] {
+  const p = c.people;
+  return [
+    { id: 'SF-TT-01', title: 'Exec tabletop: Crown of Ash leaks three weeks before premiere', kind: 'tabletop', tenantId: 'all', difficulty: 'Intermediate', durationMin: 150,
+      summary: 'A watermarked locked cut of Crown of Ash appears on a piracy site three weeks before the global premiere. Social media is amplifying it and a distributor asks whether to delay.',
+      objectives: ['Test leak response from watermark trace to takedown', 'Decide on the release window', 'Rehearse the SEC materiality decision'],
+      audience: `${p.board.name} (CEO), CFO, ${p.ciso.name}, President of Studios, General Counsel, communications`, controls: ['CTL-CST-01', 'CTL-WAT-07', 'CTL-IR-14'], frameworks: ['TPN', 'SEC 8-K 1.05'], drivers: ['tpn', 'sec'],
+      injects: inj([
+        [0, 'Piracy intelligence', 'Locked cut v22 found on a torrent index', 'Who leads: content security or the CISO?', 'detect'],
+        [20, 'NexGuard', 'Watermark traced to a vendor review session', 'Revoke the vendor now?', 'decide'],
+        [50, 'Distribution', 'A distributor asks whether the release moves', 'What do you tell licensors?', 'communicate'],
+        [90, 'General Counsel', 'Box-office forecast impact estimated at $40M', 'Is this material for an 8-K?', 'notify'],
+      ]),
+      lessons: [
+        ['Content security and the disclosure committee worked on different timelines', 'Add content leaks to the materiality assessment triggers', 'notify'],
+        ['Licensor notification took 20 hours', 'Pre-approve licensor holding statements per tentpole title', 'communicate'],
+      ] },
+    { id: 'SF-TE-02', title: 'SOC/IR: Okta help-desk takeover and Frame.io mass export', kind: 'technical', tenantId: 'studios', difficulty: 'Advanced', durationMin: 150,
+      summary: 'A caller impersonating an editor gets an Okta MFA reset, then exports 2,400 review links from Frame.io for The Hollow Coast season three.',
+      objectives: ['Validate detection of help-desk reset abuse', 'Exercise review-link revocation at scale', 'Coordinate with Adobe and the production'],
+      audience: `${p.socLead.name}, identity team, post-production IT, content security, HexaShield IR`, controls: ['CTL-IAM-02', 'CTL-SAS-08'], frameworks: ['TPN', 'SOC 2'], drivers: ['tpn', 'soc2'],
+      injects: inj([
+        [0, 'Service desk', 'Editor locked out, asks for a reset from a new phone', 'What does verification require?', 'detect'],
+        [25, 'Google SecOps', 'Mass export of review links from Frame.io', 'Revoke all links for the show?', 'decide'],
+        [60, 'Production', 'Revoking links stops the network review tomorrow', 'Re-issue watermarked links only to verified reviewers?', 'recover'],
+      ]),
+      lessons: [
+        ['Okta resets needed only a manager name', 'Require verified video or in-person checks for resets of content users', 'detect'],
+      ] },
+    { id: 'SF-OT-03', title: 'Park: show-control intrusion attempt on a ride in Orlando', kind: 'ot', tenantId: 'parks', difficulty: 'Advanced', durationMin: 120,
+      summary: 'Claroty sees an OEM remote session to a ride show-control system outside the maintenance window during peak Halloween evenings.',
+      objectives: ['Test read-only OT detection to ride safe-state decision', 'Exercise OEM session termination and guest recovery', 'Confirm evidence capture without touching controllers'],
+      audience: `${p.otLead?.name ?? 'Ride & show control lead'}, park operations, guest safety, HexaShield OT IR`, controls: ['CTL-OT-12', 'CTL-OT-13'], frameworks: ['IEC 62443'], drivers: ['iec'],
+      injects: inj([
+        [0, 'Claroty', 'OEM session to show control outside the window', 'Is it approved?', 'detect'],
+        [15, 'Intamin', 'OEM says no engineer is connected', 'Close the attraction and safe-state it?', 'decide'],
+        [40, 'Guest services', '1,800 guests in the queue', 'How do you recover guests?', 'communicate'],
+        [70, 'Ride engineering', 'Inspection needed before reopening', 'Who authorises reopening?', 'recover'],
+      ]),
+      lessons: [
+        ['The OEM path bypassed CyberArk through a legacy VPN', 'Remove the legacy OEM VPN and enforce brokered sessions', 'detect'],
+      ] },
+    { id: 'SF-SC-04', title: 'Vendor chain: dubbing vendor breach exposes scripts', kind: 'supply', tenantId: 'post', difficulty: 'Intermediate', durationMin: 120,
+      summary: 'Bluebird Dubbing Studios reports a breach; scripts for The Hollow Coast season three and dialogue stems for Crown of Ash were on its file server.',
+      objectives: ['Test vendor incident intake', 'Exercise custody revocation across the vendor chain', 'Decide on licensor notification'],
+      audience: `${p.grcLead.name}, localisation operations, legal, content security`, controls: ['CTL-VEN-05', 'CTL-CST-01'], frameworks: ['TPN', 'MPA CSBP'], drivers: ['tpn', 'mpa'],
+      injects: inj([
+        [0, 'Bluebird', 'File server compromised; content may be stolen', 'What do you ask for first?', 'detect'],
+        [30, 'HexaCustody', 'Vendor holds 140 items; 12 not custody-tracked', 'Revoke keys to everything now?', 'recover'],
+        [60, 'Legal', 'Talent agency asks whether scripts leaked', 'What do you say?', 'communicate'],
+      ]),
+      lessons: [
+        ['Twelve items had been sent by email, outside custody', 'Block email delivery of scripts to localisation vendors', 'detect'],
+      ] },
+    { id: 'SF-RW-05', title: 'Ransomware on the London render farm and NEXIS', kind: 'ransomware', tenantId: 'post', difficulty: 'Advanced', durationMin: 180,
+      summary: 'Ransomware encrypts render nodes and Avid NEXIS in Soho during final VFX delivery for Lodestar.',
+      objectives: ['Test recovery order for finishing', 'Rehearse restore from immutable masters', 'Exercise burst rendering to cloud'],
+      audience: `${p.ciso.name}, Head of Post & VFX, infrastructure, production`, controls: ['CTL-BKP-11', 'CTL-EDR-06'], frameworks: ['ISO 27001', 'TPN'], drivers: ['tpn', 'soc2'],
+      injects: inj([
+        [0, 'Post IT', 'NEXIS volumes unreadable', 'Isolate the content network?', 'detect'],
+        [40, 'Production', 'Final VFX delivery due in 6 days', 'Restore or re-render in cloud?', 'recover'],
+        [90, 'Threat actor', 'Claims to hold Lodestar plates', 'Does this become a leak incident too?', 'decide'],
+      ]),
+      lessons: [
+        ['NEXIS restore took 16 h against a 12 h objective', 'Add parallel restore streams for NEXIS volumes', 'recover'],
+      ] },
+    { id: 'SF-RD-06', title: 'Breach notification drill: Starfall+ subscribers (CCPA, state AGs, 8-K)', kind: 'regulator', tenantId: 'play', difficulty: 'Foundation', durationMin: 90,
+      summary: 'A misconfigured support export exposes email addresses and viewing history for 410,000 Starfall+ subscribers.',
+      objectives: ['Decide on California and other state notices', 'Run the materiality assessment', 'Prepare subscriber communication'],
+      audience: `${p.grcLead.name}, Chief Privacy Officer, General Counsel, President of Starfall+`, controls: ['CTL-SAS-08', 'CTL-IR-14'], frameworks: ['CCPA/CPRA', 'SEC 8-K 1.05'], drivers: ['sec', 'soc2'],
+      injects: inj([
+        [0, 'HexaSOC', 'Export reachable from a vendor ticket', 'Who owns the decision?', 'detect'],
+        [30, 'Privacy', 'Viewing history counts as sensitive in some states', 'Which state notices are needed?', 'notify'],
+        [60, 'Disclosure committee', 'Material or not?', 'Record the rationale', 'decide'],
+      ]),
+      lessons: [
+        ['The materiality rationale was not written down', 'Use a materiality decision template for every reportable incident', 'decide'],
+      ] },
+  ];
+}
+
+const SCENARIO_SETS: CustomerMap<(c: CustomerProfile) => Scenario[]> = {
+  maritime: scenarioSeeds, finserv: scenarioSeeds, media: scenarioSeeds, healthcare: scenarioSeeds, automotive: scenarioSeeds,
+  insurance: insuranceScenarios, defence: defenceScenarios, pharma: pharmaScenarios, sghospital: sghospitalScenarios, studio: studioScenarios,
+};
+
+CLOCKS.insurance = [
+  { name: 'Connecticut Insurance Dept', body: 'Cybersecurity event: 3 business days', dueMin: 4320 },
+  { name: 'NYDFS 500.17', body: 'Cybersecurity event: 72 h', dueMin: 4320 },
+  { name: 'Card brands (via acquirer)', body: 'Payment data: 24 h', dueMin: 1440 },
+  { name: 'Reinsurers & cyber insurer', body: 'Treaty and policy conditions: 48 h', dueMin: 2880 },
+];
+CLOCKS.defence = [
+  { name: 'Prime contractors', body: 'Subcontract clause: prompt notice, target 24 h', dueMin: 1440 },
+  { name: 'DoD via DIBNet', body: 'DFARS 7012: 72 h', dueMin: 4320 },
+  { name: 'DC3 malware submission', body: 'With the DIBNet report', dueMin: 4320 },
+  { name: 'Cyber insurer', body: 'Policy condition: 48 h', dueMin: 2880 },
+];
+CLOCKS.pharma = [
+  { name: 'NIS2 early warning', body: 'NCSC Ireland / BSI: 24 h', dueMin: 1440 },
+  { name: 'GDPR / revDSG', body: 'DPC / FDPIC: 72 h', dueMin: 4320 },
+  { name: 'EU CTR serious breach', body: 'Member states: 7 days', dueMin: 10080 },
+  { name: 'Licensing partners', body: 'Contract notice: 48 h', dueMin: 2880 },
+];
+CLOCKS.sghospital = [
+  { name: 'MOH (Health Information Act)', body: 'Notifiable incident: 2 h from assessment', dueMin: 120 },
+  { name: 'Insurer panel partners', body: 'Contract notice: 24 h', dueMin: 1440 },
+  { name: 'PDPC', body: 'Notifiable data breach: 3 days', dueMin: 4320 },
+  { name: 'MOH detailed report', body: 'Within 14 days', dueMin: 20160 },
+];
+CLOCKS.studio = [
+  { name: 'Licensors & distributors', body: 'Content security incident: 24 h (contract)', dueMin: 1440 },
+  { name: 'Card brands (via acquirer)', body: 'Payment data: 24 h', dueMin: 1440 },
+  { name: 'SEC Form 8-K Item 1.05', body: '4 business days from materiality decision', dueMin: 5760 },
+  { name: 'GDPR (EU subscribers)', body: 'Supervisory authority: 72 h', dueMin: 4320 },
+];
+
+PLAN.insurance = [['IN-RD-06', 0, 21], ['IN-TE-02', 1, 26], ['IN-TT-01', 3, 8], ['IN-SC-04', 4, 20], ['IN-OT-03', 6, 9], ['IN-RW-05', 8, 15, true], ['IN-TT-01', 9, 13], ['IN-RD-06', 10, 5], ['IN-SC-04', 11, 1]];
+PLAN.defence = [['DF-RD-06', 0, 26], ['DF-OT-03', 2, 11], ['DF-TE-02', 3, 22], ['DF-SC-04', 5, 9], ['DF-TT-01', 7, 13], ['DF-RW-05', 8, 18, true], ['DF-RD-06', 9, 20], ['DF-TT-01', 11, 8]];
+PLAN.pharma = [['PH-RD-06', 0, 29], ['PH-OT-03', 1, 19], ['PH-TE-02', 3, 14], ['PH-SC-04', 4, 25], ['PH-TT-01', 6, 2], ['PH-RW-05', 8, 23, true], ['PH-OT-03', 9, 15], ['PH-RD-06', 10, 19], ['PH-TT-01', 11, 3]];
+PLAN.sghospital = [['SG-RD-06', 0, 15], ['SG-TT-01', 2, 18], ['SG-OT-03', 3, 24], ['SG-TE-02', 5, 12], ['SG-SC-04', 6, 21], ['SG-RW-05', 8, 11, true], ['SG-RD-06', 9, 16], ['SG-TT-01', 10, 24], ['SG-OT-03', 11, 10]];
+PLAN.studio = [['SF-RD-06', 0, 23], ['SF-TE-02', 2, 6], ['SF-OT-03', 3, 17], ['SF-SC-04', 5, 4], ['SF-TT-01', 6, 22], ['SF-RW-05', 8, 8, true], ['SF-OT-03', 9, 12], ['SF-TT-01', 10, 13], ['SF-RD-06', 11, 7]];

@@ -10,6 +10,7 @@ import { KpiStrip, Card, Badge, StatusBadge, IcoBox, Legend, Callout } from '../
 import { Chart } from '../../components/Chart';
 import { dayLabels, fmtAgo, fmtDur, fmtNum } from '../../lib/format';
 import { OT_TONE, OtIntro, NoOtState, OtSources, RiskChip, PeakBadge, srcNames } from './parts';
+import { forCustomer } from '../../data/customerMap';
 
 const BANDS: RiskBand[] = ['Very high', 'High', 'Medium', 'Low'];
 const STATUS_COLOR: Record<string, string> = { Open: 'var(--accent)', Acknowledged: 'var(--text-muted)', Closed: 'var(--good)' };
@@ -38,7 +39,7 @@ export default function OtOverview() {
 
   if (!sc.hasOt) return <NoOtState what="The HexaOT overview covers sites that run operational technology." />;
   const h = sc.h;
-  const w = SECTOR[c.id];
+  const w = forCustomer(SECTOR, c);
   const src = srcNames(sc);
   const gap = sc.sites.find((s) => s.airGapped) ? airGappedSite(c) : undefined;
   const gapAge = bundleAgeMin(c);

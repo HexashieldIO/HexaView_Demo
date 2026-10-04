@@ -13,6 +13,12 @@ import { fmtNum } from '../../../lib/format';
 import { MetricBand, Facet } from '../parts';
 import { useContinuityData, useRiskData, useWorkspaceData } from '../useComply';
 import { useQuery, useDeepLink, useLocal, SectionHead, Toggles, CountLine, RecordDrawer, RSec, LinkedRecords, Cia, LEVEL_WORD, ago, ahead } from './shared';
+import { forCustomer, type CustomerMap } from '../../../data/customerMap';
+
+const EQUIPMENT_WORD: CustomerMap<string> = {
+  maritime: 'OT', finserv: 'facilities equipment', media: 'broadcast equipment', healthcare: 'medical devices', automotive: 'OT',
+  insurance: 'data-centre facilities', defence: 'shop-floor OT and test equipment', pharma: 'GMP plant OT', sghospital: 'medical devices', studio: 'ride and show OT',
+};
 
 const tone = MODULE_BY_ID.comply.tone;
 const STATUSES: AssetStatus[] = ['Active', 'Planned', 'Retired', 'Legacy'];
@@ -28,7 +34,7 @@ function subOptions(c: CustomerProfile, cat: AssetCategory | ''): string[] {
     case 'Applications & Databases': return ['Line-of-business application', 'Database', 'Integration / middleware'];
     case 'Documentation': return ['Plan', 'Policy & procedure', 'Design documentation'];
     case 'Hardware': return ['End-user device', 'Network device', 'Server hardware', 'Storage'];
-    case 'IT/Communication & Other Equipment': return [EQUIPMENT_SUB[c.id], 'Telephony & radio', 'Building systems'];
+    case 'IT/Communication & Other Equipment': return [forCustomer(EQUIPMENT_SUB, c), 'Telephony & radio', 'Building systems'];
     case 'Information': return ['Confidential information', 'Personal data', 'Intellectual property'];
     case 'Infrastructure': return ['Server', 'Virtualisation host', 'Cloud account'];
     case 'Outsourced Services': return [...new Set(c.thirdParties.map((t) => t.category))];
@@ -70,7 +76,7 @@ export default function AssetsSection() {
 
   return (
     <>
-      <SectionHead intro={<>Everything <b>{c.name}</b> holds — people, software, hardware, {c.id === 'healthcare' ? 'medical devices' : 'OT'} and information — with CIA levels and business criticality. Records reconcile with the CMDB; risks and business services link back here.</>}
+      <SectionHead intro={<>Everything <b>{c.name}</b> holds — people, software, hardware, {forCustomer(EQUIPMENT_WORD, c)} and information — with CIA levels and business criticality. Records reconcile with the CMDB; risks and business services link back here.</>}
         actions={<Btn primary color={tone} onClick={() => setCreating(true)}><Plus /> New asset</Btn>} />
       <MetricBand tone={tone} items={[
         { ac: 'Assets', word: 'On the register', value: fmtNum(assets.length), unit: `${n((a) => a.status === 'Active')} active`, active: !filtered, onClick: clear, source: src },

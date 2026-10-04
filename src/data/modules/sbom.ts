@@ -15,6 +15,7 @@ import type { CustomerId, CustomerProfile, Health, Severity } from '../types';
 import { rng } from '../../lib/rng';
 import { tpSuppliers } from './tprm';
 import { vrAdvisory, vrAssets } from './vulnresponse';
+import { forCustomer, type CustomerMap } from '../customerMap';
 
 /* =====================================================================
    Types
@@ -122,7 +123,7 @@ const GENERIC: CS[] = [
   { name: 'httpd-embed', ecosystem: 'Embedded C', category: 'Web server', licence: 'MIT', licRisk: 'Permissive', latest: '2.8.1', desc: 'Embedded web server for device management consoles', vulns: [v('CVE-2026-51150', 'high', 8.0, 'Directory traversal in static file handler', '2.8.0')] },
 ];
 
-const SECTOR_LIBS: Record<CustomerId, CS[]> = {
+const SECTOR_LIBS: CustomerMap<CS[]> = {
   maritime: [
     { name: 'nmea-parse', ecosystem: 'C / C++', category: 'Navigation protocol', licence: 'MIT', licRisk: 'Permissive', latest: '2.2.0', desc: 'NMEA 0183 / 2000 sentence parser', vulns: [v('CVE-2026-52407', 'medium', 6.1, 'Checksum bypass accepts spoofed sentences', '2.1.9')] },
     { name: 'aisdecode', ecosystem: 'PyPI', category: 'Navigation protocol', licence: 'BSD-3-Clause', licRisk: 'Permissive', latest: '1.4.1', desc: 'AIS message decoder' },
@@ -149,15 +150,46 @@ const SECTOR_LIBS: Record<CustomerId, CS[]> = {
     { name: 'ota-delta', ecosystem: 'C / C++', category: 'Software update', licence: 'Apache-2.0', licRisk: 'Permissive', latest: '1.8.2', desc: 'Binary delta patching for OTA packages' },
     { name: 'uds-diag', ecosystem: 'Embedded C', category: 'Diagnostics', licence: 'Proprietary (unstated)', licRisk: 'Unknown', latest: '5.2', desc: 'UDS (ISO 14229) diagnostic server' },
   ],
+  insurance: [
+    { name: 'acord-model', ecosystem: 'Maven', category: 'Insurance messaging', licence: 'Apache-2.0', licRisk: 'Permissive', latest: '2.8.5', desc: 'ACORD XML / JSON message model for policy, billing and claims exchange', vulns: [v('CVE-2026-51355', 'high', 7.5, 'Entity expansion in policy attachments exhausts memory', '2.8.4')] },
+    { name: 'ratebook', ecosystem: 'PyPI', category: 'Rating', licence: 'MIT', licRisk: 'Permissive', latest: '3.1.0', desc: 'Rating-table loader and premium calculation helpers' },
+    { name: 'tripcapture-sdk', ecosystem: 'Kotlin / Swift', category: 'Telematics', licence: 'BSD-3-Clause', licRisk: 'Permissive', latest: '3.2.1', desc: 'Phone-sensor trip capture for usage-based insurance', vulns: [v('CVE-2026-52344', 'medium', 6.4, 'Trip data cached unencrypted on the device', '3.2.0')] },
+  ],
+  defence: [
+    { name: 'milbus-frame', ecosystem: 'Embedded C', category: 'Avionics bus', licence: 'MIT', licRisk: 'Permissive', latest: '1.7.4', desc: 'MIL-STD-1553 and ARINC 429 framing helpers', vulns: [v('CVE-2026-53127', 'medium', 6.0, 'Word-count overflow in the 1553 message parser', '1.7.3')] },
+    { name: 'mtconnect-lite', ecosystem: 'C / C++', category: 'Machine-tool protocol', licence: 'Apache-2.0', licRisk: 'Permissive', latest: '2.3.2', desc: 'MTConnect agent and adapter for machine-tool data', vulns: [v('CVE-2026-52783', 'high', 7.5, 'Unbounded asset upload exhausts agent memory', '2.3.1')] },
+    { name: 'detrtos', ecosystem: 'Embedded C', category: 'Real-time OS', licence: 'BSD-3-Clause', licRisk: 'Permissive', latest: '4.0.3', desc: 'Deterministic RTOS kernel for flight and test software' },
+  ],
+  pharma: [
+    { name: 'gs1-epcis', ecosystem: 'Maven', category: 'Serialisation', licence: 'Apache-2.0', licRisk: 'Permissive', latest: '4.2.3', desc: 'GS1 DataMatrix and EPCIS event encoding', vulns: [v('CVE-2026-52519', 'medium', 5.9, 'Malformed EPCIS events accepted without validation', '4.2.2')] },
+    { name: 'molgraph', ecosystem: 'PyPI', category: 'Cheminformatics', licence: 'BSD-3-Clause', licRisk: 'Permissive', latest: '2.5.0', desc: 'Molecular graph and descriptor toolkit' },
+    { name: 'esign-trail', ecosystem: 'Maven', category: 'Electronic signatures', licence: 'MPL-2.0', licRisk: 'Weak copyleft', latest: '2.0.6', desc: 'Electronic-signature manifestation and audit-trail helpers', vulns: [v('CVE-2026-53366', 'high', 7.1, 'Signature meaning can be changed after signing', '2.0.5')] },
+  ],
+  sghospital: [
+    { name: 'hl7v2-kit', ecosystem: 'Maven', category: 'Clinical messaging', licence: 'MPL-2.0', licRisk: 'Weak copyleft', latest: '3.9.3', desc: 'HL7 v2 parser, validator and router', vulns: [v('CVE-2026-52071', 'high', 7.3, 'Escape-sequence handling lets segments be injected', '3.9.2')] },
+    { name: 'dicomweb-js', ecosystem: 'npm', category: 'Imaging', licence: 'MIT', licRisk: 'Permissive', latest: '4.1.0', desc: 'DICOMweb client for browser-based viewers' },
+    { name: 'fhir-r4-model', ecosystem: 'NuGet', category: 'Clinical messaging', licence: 'Apache-2.0', licRisk: 'Permissive', latest: '5.1.2', desc: 'FHIR R4 resource model and validator', vulns: [v('CVE-2026-53604', 'medium', 5.3, 'Validator skips profile constraints on contained resources', '5.1.1')] },
+  ],
+  studio: [
+    { name: 'drmwrap', ecosystem: 'C / C++', category: 'Content protection', licence: 'Proprietary (unstated)', licRisk: 'Unknown', latest: '6.2', desc: 'Multi-DRM licence request wrapper for streaming players' },
+    { name: 'abr-player', ecosystem: 'npm', category: 'Streaming player', licence: 'Apache-2.0', licRisk: 'Permissive', latest: '4.7.3', desc: 'Adaptive-bitrate HLS / DASH player core', vulns: [v('CVE-2026-51932', 'medium', 6.1, 'Manifest URL handling allows script injection in the web player', '4.7.2')] },
+    { name: 'artnet-io', ecosystem: 'Embedded C', category: 'Show-control protocol', licence: 'LGPL-2.1', licRisk: 'Weak copyleft', latest: '1.9.2', desc: 'Art-Net / sACN lighting and show-control I/O', vulns: [v('CVE-2026-53059', 'high', 7.4, 'Unauthenticated packets change universe patching', '1.9.1')] },
+    { name: 'ble-bond', ecosystem: 'Embedded C', category: 'Bluetooth LE', licence: 'BSD-3-Clause', licRisk: 'Permissive', latest: '2.4.1', desc: 'BLE pairing and bonding for wearables', vulns: [v('CVE-2026-52266', 'medium', 6.3, 'Legacy pairing fallback weakens link keys', '2.4.0')] },
+  ],
 };
 
 /** The component behind each customer's headline advisory (see vulnresponse HEADLINE). */
-const ADV_COMP: Record<CustomerId, CS & { module: string; vulnTitle: string }> = {
+const ADV_COMP: CustomerMap<CS & { module: string; vulnTitle: string }> = {
   maritime: { name: 'rlink-agent', ecosystem: 'Embedded C', category: 'Remote access', licence: 'Proprietary (Tessaro OEM licence)', licRisk: 'Unknown', latest: '5.4.3', maintainer: 'Tessaro Industrial', desc: 'Tessaro RemoteLink agent library, licensed to OEMs who build remote diagnostics into their own equipment', module: 'Remote service agent', vulnTitle: 'Authentication bypass in the embedded management service' },
   finserv: { name: 'edgegate-portal-core', ecosystem: 'C / C++', category: 'Remote access', licence: 'Proprietary (Corvane OEM licence)', licRisk: 'Unknown', latest: '9.6.5', maintainer: 'Corvane Networks', desc: 'Corvane EdgeGate portal and tunnel core, licensed to OEMs for built-in remote-access modules', module: 'Remote access module', vulnTitle: 'Pre-authentication memory corruption in the portal service' },
   media: { name: 'filestream-engine', ecosystem: 'Maven', category: 'File transfer', licence: 'Proprietary (Larkspur SDK licence)', licRisk: 'Unknown', latest: '2026.2.4', maintainer: 'Larkspur Software', desc: 'Larkspur FileStream transfer engine SDK, embedded by tools that move media files', module: 'Transfer engine', vulnTitle: 'Unauthenticated injection in the embedded web transfer interface' },
   healthcare: { name: 'interlink-core', ecosystem: 'Maven', category: 'Clinical integration', licence: 'Proprietary (Halden OEM licence)', licRisk: 'Unknown', latest: '7.8.2', maintainer: 'Halden Health Systems', desc: 'Halden InterLink engine core, embedded by device and lab vendors to speak HL7 / FHIR', module: 'Interface engine', vulnTitle: 'Authentication bypass in the embedded administration API' },
   automotive: { name: 'novalink-rs', ecosystem: 'Firmware', category: 'Remote service', licence: 'Proprietary (Strelitz OEM licence)', licRisk: 'Unknown', latest: 'V3.4.2', maintainer: 'Strelitz Automation', desc: 'Strelitz NovaLink remote-service module, embedded in machine builders’ controllers', module: 'Remote-service module', vulnTitle: 'Missing authentication on the remote-service channel' },
+  insurance: { name: 'securexchange-core', ecosystem: 'NuGet', category: 'File transfer', licence: 'Proprietary (Bramwell SDK licence)', licRisk: 'Unknown', latest: '2026.1.5', maintainer: 'Bramwell Software', desc: 'Bramwell SecureXchange transfer core, embedded by claims, recovery and payment platforms that exchange files with partners', module: 'File exchange engine', vulnTitle: 'Unauthenticated injection in the embedded transfer web service' },
+  defence: { name: 'perimeterone-tunnel', ecosystem: 'C / C++', category: 'Remote access', licence: 'Proprietary (Talgarth OEM licence)', licRisk: 'Unknown', latest: '7.5.4', maintainer: 'Talgarth Networks', desc: 'Talgarth PerimeterOne portal and tunnel core, licensed to equipment makers for built-in remote-support access', module: 'Remote support module', vulnTitle: 'Pre-authentication code execution in the embedded portal service' },
+  pharma: { name: 'processbridge-ua', ecosystem: 'C / C++', category: 'Industrial protocol (OPC UA)', licence: 'Proprietary (Velden OEM licence)', licRisk: 'Unknown', latest: '4.6.3', maintainer: 'Velden Systems', desc: 'Velden ProcessBridge OPC UA server stack, embedded by bioreactor, lyophiliser and skid makers to publish process data', module: 'OPC UA server', vulnTitle: 'Authentication bypass in the embedded configuration service' },
+  sghospital: { name: 'routemaster-dicom', ecosystem: 'C / C++', category: 'Imaging (DICOM)', licence: 'Proprietary (Sorrell OEM licence)', licRisk: 'Unknown', latest: '6.3.5', maintainer: 'Sorrell Imaging', desc: 'Sorrell RouteMaster DICOM routing core, embedded by dose-monitoring, imaging-AI and workstation vendors', module: 'DICOM router', vulnTitle: 'Authentication bypass in the embedded web administration service' },
+  studio: { name: 'streamport-sdk', ecosystem: 'C / C++', category: 'File transfer', licence: 'Proprietary (Quillon SDK licence)', licRisk: 'Unknown', latest: '5.8.2', maintainer: 'Quillon Media', desc: 'Quillon StreamPort accelerated-transfer SDK, embedded by dailies, review and show-media tools to move large files', module: 'Accelerated transfer', vulnTitle: 'Unauthenticated path traversal in the embedded transfer web service' },
 };
 
 /* =====================================================================
@@ -169,7 +201,7 @@ interface PSeed {
   tags?: SbTag[]; adv?: 'matched' | 'hidden'; sup?: string; req?: SbRequest; reqDays?: number; mods?: string[]; inst?: number; crit?: 1 | 2 | 3 | 4 | 5; note?: string; advVer?: string; advVex?: SbVex;
 }
 
-const PRODUCTS: Record<CustomerId, PSeed[]> = {
+const PRODUCTS: CustomerMap<PSeed[]> = {
   maritime: [
     { n: 'Tessaro RemoteLink OT Gateway', vendor: 'Tessaro Industrial', cat: 'OT remote-access gateway', o: 'V', t: ['rtm', 'ant', 'pkl', 'sts', 'fleet'], s: 'c5', tags: ['ot', 'ship'], adv: 'matched', inst: 18, crit: 5, mods: ['Web management service', 'Cloud relay', 'Firmware base'], advVer: '5.4.2' },
     { n: 'Halvard CraneSight Remote Diagnostics', vendor: 'Halvard Lifting Systems', cat: 'Crane condition monitoring', o: 'V', t: ['rtm', 'ant', 'pkl'], s: 'c6', tags: ['ot'], adv: 'hidden', inst: 46, crit: 5, mods: ['Drive telemetry collector', 'Operator HMI', 'Firmware base'], advVer: '5.3.1', note: 'Installed on every STS crane; vendor diagnostics dial home through the embedded RemoteLink agent.' },
@@ -259,6 +291,99 @@ const PRODUCTS: Record<CustomerId, PSeed[]> = {
     { n: 'MES & engineering tool projects', vendor: 'Siemens Digital Industries', cat: 'PLC, MES & engineering tools', o: 'S', t: ['ingolstadt', 'gyor', 'battery', 'puebla'], s: null, sup: 'Siemens Digital Industries', req: 'Promised', reqDays: 22, tags: ['ot'], inst: 12, crit: 5 },
     { n: 'Dealer management SaaS', vendor: 'DealerCore DMS', cat: 'Dealer management', o: 'S', t: ['retail'], s: null, sup: 'DealerCore DMS', req: 'Declined', reqDays: 33, inst: 1, crit: 3 },
   ],
+  insurance: [
+    { n: 'Bramwell SecureXchange MFT', vendor: 'Bramwell Software', cat: 'Managed file transfer', o: 'V', t: ['group', 'claims', 'personal', 'life', 'commercial'], s: 'c5', adv: 'matched', inst: 7, crit: 5, mods: ['Transfer web service', 'Transfer engine', 'Admin console'], advVer: '2026.1.4' },
+    { n: 'Clarion ClaimsBridge TPA Exchange', vendor: 'Clarion Claims Software', cat: 'TPA & adjuster file exchange', o: 'V', t: ['claims'], s: 'c6', adv: 'hidden', inst: 4, crit: 5, mods: ['Assignment feed', 'Document sync', 'Adjuster portal'], advVer: '2025.4.0', note: 'Sends claim files to independent adjusters and TPAs through an embedded SecureXchange engine.' },
+    { n: 'Sexton Recovery Hub', vendor: 'Sexton Subrogation Systems', cat: 'Subrogation & recovery exchange', o: 'V', t: ['claims', 'commercial'], s: 's2', adv: 'hidden', inst: 2, crit: 4, mods: ['Demand packages', 'Carrier exchange', 'Recovery ledger'], advVer: '2025.2.1', advVex: 'Under investigation', note: 'Inter-carrier demand packages travel through the embedded transfer engine; the vendor has been asked for a VEX statement.' },
+    { n: 'Ledgerfield Premium Lockbox Connector', vendor: 'Ledgerfield Payments', cat: 'Premium payment file exchange', o: 'V', t: ['personal', 'life'], s: 'scan', tags: ['payments'], adv: 'hidden', inst: 2, crit: 5, mods: ['Bank file poller', 'Reconciliation', 'Appliance base'], advVer: '2025.4.0', note: 'SBOM generated by binary analysis of the appliance image; the vendor has not published one.' },
+    { n: 'Kingsbridge Mobile', vendor: 'Kingsbridge Digital', cat: 'In-house policyholder app (iOS / Android)', o: 'I', t: ['personal', 'life'], s: 'c6', tags: ['app', 'payments'], inst: 2, crit: 5, mods: ['App shell', 'Claims FNOL module', 'Payments module'] },
+    { n: 'Kingsbridge AgentHub portal', vendor: 'Kingsbridge Digital', cat: 'In-house agent & broker portal', o: 'I', t: ['personal', 'commercial', 'specialty'], s: 'c6', tags: ['app'], inst: 4, crit: 5, mods: ['Quote & bind API', 'Web front end', 'Commission statements'] },
+    { n: 'DriveWise telematics SDK', vendor: 'Kingsbridge Telematics Engineering', cat: 'In-house telematics SDK (UBI)', o: 'I', t: ['personal'], s: 'c6', tags: ['app'], inst: 2, crit: 4, mods: ['Trip capture', 'Scoring client', 'Upload service'] },
+    { n: 'Claims photo-estimating integration', vendor: 'Kingsbridge Claims Engineering', cat: 'In-house integration (ClaimCenter to CCC)', o: 'I', t: ['claims'], s: 'c6', inst: 3, crit: 4, mods: ['Assignment service', 'Photo upload relay', 'Estimate import'] },
+    { n: 'Premium payment gateway', vendor: 'Kingsbridge Payments Engineering', cat: 'In-house payment service (CDE)', o: 'I', t: ['personal', 'commercial'], s: 's2', tags: ['payments'], inst: 4, crit: 5, mods: ['Tokenisation client', 'Payment API', 'Settlement jobs'] },
+    { n: 'Pennant AgentGate Portal Server', vendor: 'Pennant Labs', cat: 'Agent & broker portal gateway', o: 'V', t: ['personal', 'commercial', 'specialty'], s: 'c5', inst: 3, crit: 4, mods: ['Quote API', 'Session service'] },
+    { n: 'Larch Telematics Ingest Broker', vendor: 'Larch Analytics', cat: 'Telematics data ingestion', o: 'V', t: ['personal'], s: 'scan', inst: 2, crit: 4, mods: ['Ingest API', 'Trip normaliser'] },
+    { n: 'Holbrook PrintStream Composer', vendor: 'Holbrook Systems', cat: 'Document composition (policy print)', o: 'V', t: ['group'], s: 'c5', inst: 2, crit: 3, mods: ['Template engine', 'Spool manager'] },
+    { n: 'Ardley PowerNet UPS card', vendor: 'Ardley Power', cat: 'UPS network management card (data centre)', o: 'V', t: ['group'], s: 'c6', tags: ['ot'], inst: 6, crit: 3, mods: ['Web server', 'SNMP agent', 'Firmware base'] },
+    { n: 'PolicyCenter, ClaimCenter & BillingCenter', vendor: 'Guidewire', cat: 'Core insurance platform (SaaS)', o: 'S', t: ['personal', 'commercial', 'claims'], s: null, sup: 'Guidewire', req: 'Promised', reqDays: 24, inst: 1, crit: 5 },
+    { n: 'Specialty policy admin (OnDemand)', vendor: 'Duck Creek Technologies', cat: 'Policy admin (Specialty E&S)', o: 'S', t: ['specialty'], s: null, sup: 'Duck Creek Technologies', req: 'Requested', reqDays: 9, inst: 1, crit: 4 },
+    { n: 'Life & annuity policy admin', vendor: 'Majesco', cat: 'Life & annuity policy admin', o: 'S', t: ['life'], s: null, sup: 'Majesco', req: 'Not requested', inst: 1, crit: 4 },
+    { n: 'Telematics platform & sensor SDK', vendor: 'Cambridge Mobile Telematics', cat: 'Usage-based insurance telematics', o: 'S', t: ['personal'], s: 'c5', sup: 'Cambridge Mobile Telematics', inst: 1, crit: 4, mods: ['Sensor SDK', 'Trip API'] },
+    { n: 'Premium payments & disbursements', vendor: 'One Inc', cat: 'Premium payments & claims disbursements', o: 'S', t: ['personal', 'commercial', 'claims'], s: null, sup: 'One Inc', req: 'Declined', reqDays: 38, tags: ['payments'], inst: 1, crit: 5 },
+  ],
+  defence: [
+    { n: 'Talgarth PerimeterOne VPN', vendor: 'Talgarth Networks', cat: 'VPN / remote-access gateway', o: 'V', t: ['programs', 'engineering', 'corporate', 'tucson'], s: 'c5', adv: 'matched', inst: 5, crit: 5, mods: ['Portal service', 'Tunnel daemon', 'Admin console'], advVer: '7.5.3' },
+    { n: 'Gresham Spindle Monitor Edge', vendor: 'Gresham Machine Analytics', cat: 'Spindle condition monitoring', o: 'V', t: ['manufacturing'], s: 'c6', tags: ['ot'], adv: 'hidden', inst: 9, crit: 4, mods: ['Vibration collector', 'Edge analytics', 'Firmware base'], advVer: '7.4.1', note: 'Edge units on each machining centre give the maker remote support through an embedded PerimeterOne module.' },
+    { n: 'Albright Environmental Chamber Controller', vendor: 'Albright Test Equipment', cat: 'Environmental test chamber control', o: 'V', t: ['tucson'], s: 's2', tags: ['ot'], adv: 'hidden', inst: 4, crit: 4, mods: ['Profile runner', 'Chamber HMI', 'Firmware base'], advVer: '7.3.0', advVex: 'Under investigation', note: 'Chamber remote diagnostics run over an embedded PerimeterOne tunnel; the maker has been asked for a VEX statement.' },
+    { n: 'Moraine CMM Controller', vendor: 'Moraine Metrology', cat: 'CMM controller', o: 'V', t: ['manufacturing'], s: 'scan', tags: ['ot'], adv: 'hidden', inst: 2, crit: 4, mods: ['Measurement runtime', 'Programme import', 'Firmware base'], advVer: '7.4.1', note: 'SBOM generated by binary analysis of the controller image; the remote-support module was found inside.' },
+    { n: 'Guidance subsystem flight software', vendor: 'Sentry Peak Avionics Engineering', cat: 'In-house flight software (DO-178C)', o: 'I', t: ['engineering', 'programs'], s: 'c6', inst: 3, crit: 5, mods: ['Navigation filter', 'Actuator control', 'Built-in test'] },
+    { n: 'ATE test executive & sequences', vendor: 'Sentry Peak Test Engineering', cat: 'In-house automated test software', o: 'I', t: ['tucson', 'engineering'], s: 'c6', tags: ['ot'], inst: 14, crit: 5, mods: ['Sequence engine', 'Instrument drivers', 'Results logger'] },
+    { n: 'DNC gateway (Teamcenter to shop floor)', vendor: 'Sentry Peak Manufacturing Systems', cat: 'In-house release integration', o: 'I', t: ['manufacturing', 'engineering'], s: 'c6', tags: ['ot'], inst: 2, crit: 5, mods: ['Release listener', 'Checksum service', 'DNC push client'] },
+    { n: 'Range telemetry decoder', vendor: 'Sentry Peak Test Engineering', cat: 'In-house telemetry processing', o: 'I', t: ['tucson'], s: 's2', inst: 2, crit: 4, mods: ['Frame sync', 'Decommutation', 'Display export'] },
+    { n: 'Corlis DNC Programme Server', vendor: 'Corlis Machine Data', cat: 'DNC programme distribution', o: 'V', t: ['manufacturing'], s: 'c5', tags: ['ot'], inst: 4, crit: 5, mods: ['Programme upload service', 'Cell controller agent'] },
+    { n: 'Ravelin Telemetry Ground Station', vendor: 'Ravelin Data', cat: 'Range telemetry processing', o: 'V', t: ['tucson'], s: 'scan', tags: ['ot'], inst: 2, crit: 4, mods: ['Web console', 'Stream processor'] },
+    { n: 'Teamcenter PLM & NX CAM', vendor: 'Siemens Digital Industries Software', cat: 'PLM & CAD tooling', o: 'S', t: ['engineering', 'programs'], s: 'c5', sup: 'Siemens Digital Industries Software', inst: 2, crit: 5, mods: ['PLM server', 'CAM post-processors'] },
+    { n: 'CNC control software', vendor: 'Haas Automation', cat: 'CNC machine OEM', o: 'S', t: ['manufacturing'], s: null, sup: 'Haas Automation', req: 'Requested', reqDays: 10, tags: ['ot'], inst: 14, crit: 5 },
+    { n: 'Costpoint GovCloud', vendor: 'Deltek', cat: 'ERP SaaS (Costpoint GovCloud)', o: 'S', t: ['corporate', 'programs'], s: null, sup: 'Deltek', req: 'Promised', reqDays: 19, inst: 1, crit: 4 },
+    { n: 'Managed Access Gateway', vendor: 'Exostar', cat: 'Supplier identity & collaboration portal', o: 'S', t: ['programs', 'corporate'], s: null, sup: 'Exostar', req: 'Not requested', inst: 1, crit: 3 },
+    { n: 'Range telemetry receivers', vendor: 'Desert Sky Telemetry', cat: 'Range telemetry services', o: 'S', t: ['tucson'], s: null, sup: 'Desert Sky Telemetry', req: 'Declined', reqDays: 41, tags: ['ot'], inst: 3, crit: 4 },
+    { n: 'Simulation suite (on-prem licence)', vendor: 'Ansys', cat: 'Simulation software', o: 'S', t: ['engineering'], s: 's2', sup: 'Ansys', inst: 1, crit: 3, mods: ['Solver', 'Licence client'] },
+  ],
+  pharma: [
+    { n: 'Velden ProcessBridge OPC UA Gateway', vendor: 'Velden Systems', cat: 'OT data gateway (OPC UA)', o: 'V', t: ['valais', 'cork'], s: 'c5', tags: ['ot'], adv: 'matched', inst: 15, crit: 5, mods: ['Configuration service', 'UA server', 'Historian bridge'], advVer: '4.6.2' },
+    { n: 'Lindqvist BioCtrl Bioreactor Controller', vendor: 'Lindqvist Bioprocess', cat: 'Single-use bioreactor controller', o: 'V', t: ['valais'], s: 'c6', tags: ['ot'], adv: 'hidden', inst: 8, crit: 5, mods: ['Control runtime', 'Batch interface', 'Firmware base'], advVer: '4.5.1', note: 'Publishes batch data to PAS-X and PI through an embedded ProcessBridge UA server.' },
+    { n: 'Ostmark Lyophiliser HMI', vendor: 'Ostmark Pharmatech', cat: 'Lyophiliser control HMI', o: 'V', t: ['cork'], s: 's2', tags: ['ot'], adv: 'hidden', inst: 4, crit: 5, mods: ['HMI runtime', 'Recipe manager', 'OS image'], advVer: '4.2.0', advVex: 'Under investigation', note: 'Lyophiliser data reaches the Cork historian through the HMI’s embedded UA server; the OEM is confirming whether the configuration service is enabled.' },
+    { n: 'Arneson CIP/SIP Skid Controller', vendor: 'Arneson Process Systems', cat: 'Clean-in-place skid control', o: 'V', t: ['valais', 'cork'], s: 'scan', tags: ['ot'], adv: 'hidden', inst: 6, crit: 4, mods: ['Sequence runtime', 'Skid HMI', 'Gateway image'], advVer: '4.5.1', note: 'SBOM generated by binary analysis of the skid gateway image; the vendor has not published one.' },
+    { n: 'PAS-X MES integrations', vendor: 'Rhenara Manufacturing IT', cat: 'In-house MES interfaces (PAS-X to SAP & DCS)', o: 'I', t: ['valais', 'cork'], s: 'c6', tags: ['ot'], inst: 6, crit: 5, mods: ['SAP order bridge', 'DCS recipe bridge', 'Batch record export'] },
+    { n: 'Rhenara Connect patient-support app', vendor: 'Rhenara Digital', cat: 'In-house patient-support app (iOS / Android)', o: 'I', t: ['commercial'], s: 'c6', tags: ['app'], inst: 2, crit: 4, mods: ['App shell', 'Dose reminders', 'Nurse appointment booking'] },
+    { n: 'RhenaPen connected autoinjector', vendor: 'Rhenara Device Engineering', cat: 'In-house combination-product firmware', o: 'I', t: ['commercial', 'rnd'], s: 'c6', tags: ['device', 'app'], inst: 46000, crit: 5, mods: ['Dose sensor', 'BLE link', 'Bootloader'] },
+    { n: 'MolGen platform', vendor: 'Rhenara Computational Chemistry', cat: 'In-house generative chemistry platform', o: 'I', t: ['rnd'], s: 'c6', inst: 3, crit: 5, mods: ['Model service', 'Compound registry sync', 'Notebook front end'] },
+    { n: 'Serialisation master-data service', vendor: 'Rhenara Supply Chain IT', cat: 'In-house serialisation software (EU FMD / DSCSA)', o: 'I', t: ['cork', 'commercial'], s: 's2', inst: 2, crit: 5, mods: ['Serial number allocator', 'EMVS / DSCSA reporter', 'GS1 encoder'] },
+    { n: 'Aldwych LabView Reporting Client', vendor: 'Aldwych Informatics', cat: 'LIMS web reporting client', o: 'V', t: ['corporate', 'cork', 'valais'], s: 'c5', inst: 3, crit: 4, mods: ['Report server', 'Bulk-edit API'] },
+    { n: 'Brisco SerialLink Line Controller', vendor: 'Brisco Serialisation', cat: 'Serialisation & aggregation (Level 3)', o: 'V', t: ['cork'], s: 'scan', tags: ['ot'], inst: 3, crit: 5, mods: ['Line-master API', 'Aggregation engine'] },
+    { n: 'DeltaV DCS', vendor: 'Emerson', cat: 'DCS OEM (DeltaV)', o: 'S', t: ['valais'], s: 'c5', sup: 'Emerson', tags: ['ot'], inst: 2, crit: 5, mods: ['Controller firmware', 'ProPlus workstation'] },
+    { n: 'PAS-X MES (vendor core)', vendor: 'Körber Pharma', cat: 'MES vendor (Werum PAS-X)', o: 'S', t: ['valais', 'cork'], s: null, sup: 'Körber Pharma', req: 'Promised', reqDays: 18, tags: ['ot'], inst: 2, crit: 5 },
+    { n: 'SIMATIC PCS 7 & PLC firmware', vendor: 'Siemens', cat: 'Automation OEM (PCS 7, PLCs)', o: 'S', t: ['valais'], s: null, sup: 'Siemens', req: 'Requested', reqDays: 7, tags: ['ot'], inst: 1, crit: 5 },
+    { n: 'Rave EDC & RTSM', vendor: 'Medidata (Dassault Systèmes)', cat: 'EDC & randomisation (RTSM)', o: 'S', t: ['clinops'], s: null, sup: 'Medidata (Dassault Systèmes)', req: 'Requested', reqDays: 12, inst: 1, crit: 5 },
+    { n: 'Vault QMS, eTMF & CRM', vendor: 'Veeva Systems', cat: 'Quality, clinical & CRM SaaS', o: 'S', t: ['corporate', 'clinops', 'commercial'], s: null, sup: 'Veeva Systems', req: 'Not requested', inst: 1, crit: 4 },
+    { n: 'Contract fill-finish line software', vendor: 'Catalent', cat: 'Fill-finish & packaging CMO', o: 'S', t: ['cork'], s: null, sup: 'Catalent', req: 'Declined', reqDays: 35, tags: ['ot'], inst: 1, crit: 3 },
+  ],
+  sghospital: [
+    { n: 'Sorrell RouteMaster DICOM Gateway', vendor: 'Sorrell Imaging', cat: 'Imaging gateway (DICOM / PACS)', o: 'V', t: ['obh', 'labimg', 'specialist', 'daysurg'], s: 'c5', tags: ['device'], adv: 'matched', inst: 11, crit: 5, mods: ['Web administration service', 'Routing engine', 'Study cache'], advVer: '6.3.4' },
+    { n: 'Kallis DoseTrack Monitor', vendor: 'Kallis Radiology Software', cat: 'Radiation dose monitoring', o: 'V', t: ['obh', 'labimg'], s: 'c6', tags: ['device'], adv: 'hidden', inst: 2, crit: 4, mods: ['Dose collector', 'Reporting', 'Listener service'], advVer: '6.3.1', note: 'Collects dose reports from every CT through an embedded RouteMaster router.' },
+    { n: 'Sorvine Chest X-ray Triage Appliance', vendor: 'Sorvine AI', cat: 'Imaging AI appliance', o: 'V', t: ['obh', 'labimg'], s: 's2', tags: ['device'], adv: 'hidden', inst: 2, crit: 4, mods: ['Inference engine', 'Worklist bridge', 'Appliance base'], advVer: '6.2.0', advVex: 'Under investigation', note: 'HSA-registered AI software; the vendor has been asked for a VEX statement under the GL-04 procurement terms.' },
+    { n: 'Halvorsen Ultrasound Workstation', vendor: 'Halvorsen Medical', cat: 'Ultrasound review workstation', o: 'V', t: ['specialist', 'obh'], s: 'scan', tags: ['device'], adv: 'hidden', inst: 9, crit: 3, mods: ['Review software', 'Export service', 'OS image'], advVer: '6.0.2', note: 'SBOM generated by binary analysis of the workstation image; the OEM supplies none for this model, which also runs an unsupported Windows build.' },
+    { n: 'Orchid Bay patient app', vendor: 'Orchid Bay Digital', cat: 'In-house patient app (iOS / Android)', o: 'I', t: ['corp', 'obh'], s: 'c6', tags: ['app'], inst: 2, crit: 4, mods: ['App shell', 'Appointments', 'Bill payment'] },
+    { n: 'TrakCare integrations (HealthShare interfaces)', vendor: 'Orchid Bay Clinical Applications', cat: 'In-house interface code (TrakCare, LIS, PACS)', o: 'I', t: ['obh', 'specialist', 'daysurg', 'labimg'], s: 'c6', inst: 6, crit: 5, mods: ['ADT feeds', 'Results routing', 'Orders interface'] },
+    { n: 'NEHR contribution adapter', vendor: 'Orchid Bay Clinical Applications', cat: 'In-house NEHR submission service', o: 'I', t: ['obh', 'specialist', 'daysurg', 'labimg'], s: 's2', inst: 2, crit: 5, mods: ['Record mapper', 'HealthConnect client', 'Reconciliation'] },
+    { n: 'Ashcombe ClinView Portal', vendor: 'Ashcombe Health', cat: 'Clinician web portal', o: 'V', t: ['obh', 'specialist'], s: 'c5', inst: 3, crit: 3, mods: ['Portal API', 'SSO bridge'] },
+    { n: 'Wynford DoseLib Sync', vendor: 'Wynford Medical', cat: 'Infusion drug-library distribution', o: 'V', t: ['obh'], s: 'scan', tags: ['device'], inst: 2, crit: 5, mods: ['Library service', 'Pump sync'] },
+    { n: 'TrakCare EHR (IRIS platform)', vendor: 'InterSystems', cat: 'Electronic health record (TrakCare)', o: 'S', t: ['obh', 'specialist', 'daysurg', 'labimg'], s: null, sup: 'InterSystems', req: 'Promised', reqDays: 27, inst: 1, crit: 5 },
+    { n: 'Alaris infusion system & pump server', vendor: 'BD (Becton Dickinson)', cat: 'Infusion pumps', o: 'S', t: ['obh', 'specialist', 'daysurg'], s: 'c5', sup: 'BD (Becton Dickinson)', tags: ['device'], inst: 3, crit: 5, mods: ['Pump server', 'Drug library editor'] },
+    { n: 'Agilia pumps & Vigilant software', vendor: 'Fresenius Kabi', cat: 'Infusion pumps (Agilia)', o: 'S', t: ['obh', 'daysurg'], s: null, sup: 'Fresenius Kabi', req: 'Requested', reqDays: 8, tags: ['device'], inst: 2, crit: 5 },
+    { n: 'IntelliVue monitoring & PACS', vendor: 'Philips', cat: 'Patient monitoring & PACS', o: 'S', t: ['obh', 'specialist'], s: null, sup: 'Philips', req: 'Requested', reqDays: 14, tags: ['device'], inst: 4, crit: 5 },
+    { n: 'CT modality software', vendor: 'GE HealthCare', cat: 'Imaging OEM (CT, MRI)', o: 'S', t: ['obh', 'labimg'], s: 's2', sup: 'GE HealthCare', tags: ['device'], inst: 4, crit: 5, mods: ['Acquisition software', 'Remote service agent'] },
+    { n: 'MRI & lab automation software', vendor: 'Siemens Healthineers', cat: 'Imaging & lab automation', o: 'S', t: ['labimg', 'obh'], s: null, sup: 'Siemens Healthineers', req: 'Not requested', tags: ['device'], inst: 3, crit: 4 },
+    { n: 'Telehealth & chatbot platform', vendor: 'CareLink Telehealth', cat: 'Telehealth & patient chatbot platform', o: 'S', t: ['corp', 'daysurg'], s: null, sup: 'CareLink Telehealth', req: 'Declined', reqDays: 33, tags: ['app'], inst: 1, crit: 3 },
+  ],
+  studio: [
+    { n: 'Quillon StreamPort Transfer Server', vendor: 'Quillon Media', cat: 'Accelerated file transfer', o: 'V', t: ['studios', 'post', 'play', 'corp'], s: 'c5', adv: 'matched', inst: 9, crit: 5, mods: ['Transfer web service', 'Transfer engine', 'Admin console'], advVer: '5.8.1' },
+    { n: 'Delmar DIT Offload Station', vendor: 'Delmar Camera Systems', cat: 'On-set offload & dailies upload', o: 'V', t: ['studios'], s: 'c6', adv: 'hidden', inst: 26, crit: 5, mods: ['Offload engine', 'Checksum verifier', 'Upload client'], advVer: '5.7.2', note: 'Every DIT cart pushes camera originals to the pre-release vault through an embedded StreamPort SDK.' },
+    { n: 'Vantaggio Conform & Review Server', vendor: 'Vantaggio Post Systems', cat: 'Conform & remote review', o: 'V', t: ['post'], s: 's2', adv: 'hidden', inst: 6, crit: 4, mods: ['Review session server', 'Conform engine', 'Vendor sync'], advVer: '5.6.0', advVex: 'Under investigation' },
+    { n: 'Lumenline Show Media Server', vendor: 'Lumenline Show Systems', cat: 'Projection & LED media server', o: 'V', t: ['parks', 'parksasia'], s: 'scan', tags: ['ot'], adv: 'hidden', inst: 18, crit: 5, mods: ['Playback engine', 'Content ingest', 'Firmware base'], advVer: '5.6.0', note: 'SBOM generated by binary analysis; nightly show-content updates arrive through the embedded StreamPort SDK.' },
+    { n: 'Starfall+ iOS app', vendor: 'Starfall+ Engineering', cat: 'In-house streaming app (iOS / iPadOS)', o: 'I', t: ['play'], s: 'c6', tags: ['app', 'payments'], inst: 2, crit: 5, mods: ['Player', 'Downloads', 'Account & billing'] },
+    { n: 'Starfall+ Android & TV apps', vendor: 'Starfall+ Engineering', cat: 'In-house streaming apps (Android, TV platforms)', o: 'I', t: ['play'], s: 'c6', tags: ['app'], inst: 5, crit: 5, mods: ['Player', 'Catalogue UI', 'DRM client'] },
+    { n: 'Starfall+ DRM licence service', vendor: 'Starfall+ Engineering', cat: 'In-house DRM licence service', o: 'I', t: ['play'], s: 'c6', inst: 12, crit: 5, mods: ['Licence API', 'Key service', 'Entitlement check'] },
+    { n: 'StarPass wearable firmware', vendor: 'Starfall Parks Technology', cat: 'In-house wearable band firmware', o: 'I', t: ['parks', 'parksasia'], s: 'c6', tags: ['app', 'payments'], inst: 410000, crit: 4, mods: ['BLE stack', 'NFC payment applet', 'Bootloader'] },
+    { n: 'StarPass app', vendor: 'Starfall Parks Technology', cat: 'In-house resort app (iOS / Android)', o: 'I', t: ['parks', 'parksasia'], s: 'c6', tags: ['app', 'payments'], inst: 2, crit: 4, mods: ['Tickets & virtual queue', 'Wearable pairing', 'Checkout'] },
+    { n: 'Thornbury FlexKey Licence Server', vendor: 'Thornbury Licensing', cat: 'Floating licence server (VFX tools)', o: 'V', t: ['post', 'studios'], s: 'c5', inst: 3, crit: 4, mods: ['Vendor daemon', 'Licence manager'] },
+    { n: 'Corbin CueMaster Show Controller', vendor: 'Corbin Show Systems', cat: 'Show control system', o: 'V', t: ['parksasia'], s: 'scan', tags: ['ot'], inst: 3, crit: 5, mods: ['Cue API', 'Timeline engine'] },
+    { n: 'Ride control firmware (safety PLC)', vendor: 'Intamin', cat: 'Ride manufacturer (OEM)', o: 'S', t: ['parks', 'parksasia'], s: null, sup: 'Intamin', req: 'Requested', reqDays: 11, tags: ['ot'], inst: 46, crit: 5 },
+    { n: 'Projection systems firmware', vendor: 'Christie Digital', cat: 'Projection systems OEM', o: 'S', t: ['parks', 'parksasia'], s: 's2', sup: 'Christie Digital', tags: ['ot'], inst: 120, crit: 4, mods: ['Projector firmware', 'Network control'] },
+    { n: 'Ticketing & virtual queue platform', vendor: 'accesso', cat: 'Ticketing & queueing', o: 'S', t: ['parks', 'parksasia'], s: null, sup: 'accesso', req: 'Promised', reqDays: 16, tags: ['payments'], inst: 1, crit: 5 },
+    { n: 'Screener platform (SaaS)', vendor: 'Indee', cat: 'Screener platform', o: 'S', t: ['studios'], s: null, sup: 'Indee', req: 'Not requested', inst: 1, crit: 4 },
+    { n: 'VFX pipeline toolkit', vendor: 'Northlight Pixel (Vancouver)', cat: 'VFX vendor', o: 'S', t: ['post'], s: null, sup: 'Northlight Pixel (Vancouver)', req: 'Declined', reqDays: 29, inst: 1, crit: 4 },
+  ],
 };
 
 /* =====================================================================
@@ -267,7 +392,7 @@ const PRODUCTS: Record<CustomerId, PSeed[]> = {
 const has = (p: SbProduct, ...t: SbTag[]) => t.some((x) => p.tags.includes(x));
 const inT = (p: SbProduct, ...ids: string[]) => p.tenants.some((x) => ids.includes(x));
 
-const REGS: Record<CustomerId, SbReg[]> = {
+const REGS: CustomerMap<SbReg[]> = {
   maritime: [
     { id: 'e27', name: 'IACS UR E27 rev.1', short: 'IACS E27', ask: 'System suppliers deliver a software inventory and a security update plan for every computer-based system on ships contracted from July 2024.', scopeLabel: 'Ship systems', test: (p) => has(p, 'ship') },
     { id: 'e26', name: 'IACS UR E26 rev.1', short: 'IACS E26', ask: 'Owners keep a vessel asset inventory down to the software and firmware versions of each CBS.', scopeLabel: 'Fleet software', test: (p) => inT(p, 'fleet') },
@@ -298,6 +423,36 @@ const REGS: Record<CustomerId, SbReg[]> = {
     { id: 'iso21434', name: 'ISO/SAE 21434 cl. 8 & 15', short: 'ISO 21434', ask: 'Continuous cybersecurity monitoring of components, including open-source and supplier software.', scopeLabel: 'Vehicle software', test: (p) => has(p, 'vehicle') },
     { id: 'cra', name: 'EU Cyber Resilience Act', short: 'CRA', ask: 'Connected products outside type approval (app, home charger) need an SBOM and vulnerability handling.', scopeLabel: 'App & charger', test: (p) => p.origin === 'In-house' && has(p, 'app') },
     { id: 'iec62443', name: 'IEC 62443 / TISAX', short: 'IEC 62443', ask: 'Plant automation suppliers disclose components and patch status; vendor remote access controlled.', scopeLabel: 'Plant OT', test: (p) => has(p, 'ot') },
+  ],
+  insurance: [
+    { id: 'nydfs', name: 'NYDFS 23 NYCRR 500.13 & 500.11', short: 'NYDFS 500', ask: 'A complete asset inventory covering software, owner and support status, and oversight of the security of what third-party service providers supply.', scopeLabel: 'All systems', test: () => true },
+    { id: 'naic', name: 'NAIC Data Security Model Law (#668) §4', short: 'NAIC #668', ask: 'Risk assessment of every system holding nonpublic information, including oversight of third-party service providers and the software they run for Kingsbridge.', scopeLabel: 'NPI systems', test: (p) => inT(p, 'personal', 'commercial', 'claims', 'life') },
+    { id: 'pci', name: 'PCI DSS v4.0.1 req. 6.3.2', short: 'PCI DSS', ask: 'Keep an inventory of bespoke and custom software and the third-party components in it, to manage vulnerabilities in the premium payment flows.', scopeLabel: 'Premium payments (CDE)', test: (p) => has(p, 'payments') },
+    { id: 'clients', name: 'Commercial client & agency security schedules', short: 'Client terms', ask: 'Large commercial policyholders and agency partners ask for component disclosure and patch timelines for software that holds or exchanges their data.', scopeLabel: 'Client-facing systems', test: (p) => inT(p, 'commercial', 'specialty') || has(p, 'app') },
+  ],
+  defence: [
+    { id: 'dfars', name: 'DFARS 252.204-7012 / NIST SP 800-171 (3.4.1, 3.11.2, 3.14.1)', short: 'DFARS 7012', ask: 'Baseline configurations and inventories for systems that process CUI, with vulnerabilities scanned and flaws fixed in a timely way.', scopeLabel: 'CUI systems', test: (p) => inT(p, 'programs', 'engineering', 'manufacturing') },
+    { id: 'cmmc', name: 'CMMC Level 2 (32 CFR Part 170)', short: 'CMMC L2', ask: 'Assessors expect evidence of software inventory and flaw remediation for every in-scope asset, including OT handled as specialised assets.', scopeLabel: 'CMMC assessment scope', test: (p) => !inT(p, 'corporate') || p.tenants.length > 1 },
+    { id: 'ssdf', name: 'EO 14028 / NIST SSDF (SP 800-218) attestation', short: 'SSDF', ask: 'Producers of software delivered to the US Government attest to secure development practices and provide an SBOM on request.', scopeLabel: 'Delivered software', test: (p) => p.origin === 'In-house' },
+    { id: 'flowdown', name: 'Prime flow-downs (Lockheed Martin, RTX)', short: 'Prime flow-downs', ask: 'Subcontract terms ask for SBOMs and vulnerability notice within 72 hours for software and firmware delivered in, or used to build and test, deliverables.', scopeLabel: 'Deliverable & production software', test: (p) => inT(p, 'engineering', 'manufacturing', 'tucson') },
+  ],
+  pharma: [
+    { id: 'cra', name: 'EU Cyber Resilience Act', short: 'CRA', ask: 'Products with digital elements placed on the EU market (patient-support app, connected autoinjector) need an SBOM and vulnerability handling for their support period.', scopeLabel: 'Connected products', test: (p) => p.origin === 'In-house' && has(p, 'app', 'device') },
+    { id: 'fda524b', name: 'FDA 524B · combination-product cyber devices', short: 'FDA 524B', ask: 'Premarket submissions for a cyber device include an SBOM and a plan to monitor and fix vulnerabilities after release (RhenaPen autoinjector).', scopeLabel: 'Connected combination products', test: (p) => has(p, 'device') },
+    { id: 'annex11', name: 'EU GMP Annex 11 / 21 CFR Part 11', short: 'Annex 11', ask: 'Validated computerised systems keep an up-to-date inventory of components and suppliers, with change control and impact assessment for every update.', scopeLabel: 'GxP systems', test: (p) => inT(p, 'valais', 'cork') || has(p, 'ot') },
+    { id: 'nis2', name: 'NIS2 Art. 21(2)(d)–(e)', short: 'NIS2', ask: 'Supply-chain security and vulnerability handling for the software suppliers provide to an essential manufacturing entity.', scopeLabel: 'EU operations', test: (p) => !inT(p, 'commercial') || p.tenants.length > 1 },
+  ],
+  sghospital: [
+    { id: 'hsa', name: 'HSA GL-04 medical device cybersecurity', short: 'HSA GL-04', ask: 'Connected medical devices come with an SBOM, a vulnerability-disclosure route and a support end date; Orchid Bay makes this a procurement condition.', scopeLabel: 'Medical devices', test: (p) => has(p, 'device') },
+    { id: 'imdrf', name: 'IMDRF N73 (SBOM for medical devices)', short: 'IMDRF', ask: 'Healthcare providers use manufacturers’ SBOMs to assess new vulnerabilities across the device life cycle.', scopeLabel: 'Vendor medical devices', test: (p) => has(p, 'device') && p.origin === 'Vendor' },
+    { id: 'hia', name: 'HIA · MOH Cybersecurity & Data Security Essentials', short: 'HIA CS/DS', ask: 'Keep an inventory of systems holding health information, with software versions and vendor support status, and patch within MOH timelines.', scopeLabel: 'Health-information systems', test: (p) => inT(p, 'obh', 'specialist', 'daysurg', 'labimg') },
+    { id: 'ct', name: 'CSA Cyber Trust mark (asset & supplier management)', short: 'Cyber Trust', ask: 'Identify hardware and software assets and require suppliers to manage vulnerabilities in what they deliver.', scopeLabel: 'All systems', test: () => true },
+  ],
+  studio: [
+    { id: 'cra', name: 'EU Cyber Resilience Act', short: 'CRA', ask: 'Starfall+ apps and the StarPass wearable offered in the EU need an SBOM and vulnerability handling for their support period.', scopeLabel: 'Connected consumer products', test: (p) => p.origin === 'In-house' && has(p, 'app') },
+    { id: 'tpn', name: 'TPN Gold Shield (MPA CSBP)', short: 'TPN', ask: 'Tools that touch pre-release content are inventoried, supported and patched, and vendor applications are assessed.', scopeLabel: 'Content-handling tools', test: (p) => inT(p, 'studios', 'post') },
+    { id: 'pci', name: 'PCI DSS v4.0.1 req. 6.3.2 & 6.4.3', short: 'PCI DSS', ask: 'Inventory bespoke software and its components, and authorise every script on payment pages (Starfall+, StarPass, ticketing).', scopeLabel: 'Payment flows', test: (p) => has(p, 'payments') },
+    { id: 'iec62443', name: 'IEC 62443-2-4 / 4-1 (ride & show)', short: 'IEC 62443', ask: 'Ride and show suppliers disclose components and patch status; updates go through the ride safety change process.', scopeLabel: 'Parks OT', test: (p) => has(p, 'ot') },
   ],
 };
 
@@ -331,12 +486,12 @@ function build(c: CustomerProfile): Base {
   if (hit) return hit;
   const r = rng(`sbom-${c.id}`);
   const adv = vrAdvisory(c);
-  const ac = ADV_COMP[c.id];
+  const ac = forCustomer(ADV_COMP, c);
   const advComp: SbComponent = {
     id: slug(ac.name), name: ac.name, ecosystem: ac.ecosystem, category: ac.category, licence: ac.licence, licRisk: ac.licRisk, latest: ac.latest, maintainer: ac.maintainer ?? adv.vendor, desc: ac.desc, advisory: true,
     vulns: [{ id: adv.cve, sev: 'critical', cvss: adv.cvss, title: ac.vulnTitle, fixedIn: ac.latest, advisory: true }],
   };
-  const comps: SbComponent[] = [advComp, ...[...GENERIC, ...SECTOR_LIBS[c.id]].map((s) => ({ ...s, id: slug(s.name), maintainer: s.maintainer ?? 'Open-source community', vulns: s.vulns ?? [] }))];
+  const comps: SbComponent[] = [advComp, ...[...GENERIC, ...forCustomer(SECTOR_LIBS, c)].map((s) => ({ ...s, id: slug(s.name), maintainer: s.maintainer ?? 'Open-source community', vulns: s.vulns ?? [] }))];
   const byId = new Map(comps.map((x) => [x.id, x]));
   const pool = comps.filter((x) => !x.advisory);
   const clean = pool.filter((x) => !x.vulns.length);
@@ -345,7 +500,7 @@ function build(c: CustomerProfile): Base {
 
   const pickVex = (pr: ReturnType<typeof rng>): SbVex => pr.weighted([['Affected', 3], ['Not affected', 4], ['Under investigation', 2], ['Fixed', 2]] as const);
 
-  const products: SbProduct[] = PRODUCTS[c.id].map((s) => {
+  const products: SbProduct[] = forCustomer(PRODUCTS, c).map((s) => {
     const pr = rng(`sbom-${c.id}-${s.n}`);
     const origin: SbOrigin = s.o === 'I' ? 'In-house' : 'Vendor';
     const tags = s.tags ?? [];
@@ -393,7 +548,7 @@ function build(c: CustomerProfile): Base {
     };
   });
 
-  const base: Base = { products, comps, byId, regs: REGS[c.id], advComp };
+  const base: Base = { products, comps, byId, regs: forCustomer(REGS, c), advComp };
   CACHE.set(c.id, base);
   return base;
 }

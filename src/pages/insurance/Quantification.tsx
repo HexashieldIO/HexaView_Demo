@@ -12,14 +12,19 @@ import { Drawer, Modal } from '../../components/Overlay';
 import { fmtNum } from '../../lib/format';
 import { ControlStatusBadge, Intro, TenantNote, INS_TONE, INS_HEX, money } from './parts';
 import { MarkerScale, SegRows, RecordsDrawer, scrollToId } from './viz';
-import type { CustomerId } from '../../data/types';
+import { forCustomer, type CustomerMap } from '../../data/customerMap';
 
-const TOWER_ADVICE: Record<CustomerId, string> = {
+const TOWER_ADVICE: CustomerMap<string> = {
   finserv: 'Options: a 4th excess layer, or a higher dependent BI sublimit for critical ICT providers.',
   maritime: 'Options: a $15M excess layer, or reducing the OT and wiper tail with segmentation.',
   media: 'Options: a $10M excess layer, or the leak buy-back extension.',
   healthcare: 'Options: a $20M excess layer, or cutting the ransomware-with-diversion tail with segmentation and faster Epic recovery.',
   automotive: 'Options: a 4th excess layer of €100M, or a captive for plant BI above €120M.',
+  insurance: 'Options: a $25M excess layer above the Travelers layer, or cutting the catastrophe-week ransomware tail with tested ClaimCenter recovery.',
+  defence: 'Options: a $5M excess layer, or a CUI incident response endorsement to cover DIBNet forensics and image preservation.',
+  pharma: 'Options: a CHF 50M excess layer, or reducing the batch-release BI tail with plant segmentation and paper-batch drills.',
+  sghospital: 'Options: a S$10M excess layer, or cutting the ransomware-with-diversion tail with TrakCare recovery under 4 h.',
+  studio: 'Options: a $100M excess layer, or the leak buy-back extension for tentpole titles.',
 };
 
 const MIX_LABEL = { bi: 'Business interruption', response: 'Response & forensics', extortion: 'Extortion', liability: 'Liability & regulatory', fraud: 'Fraud loss' } as const;
@@ -172,7 +177,7 @@ export default function InsuranceQuantification() {
           />
           {gap > 0 ? (
             <Callout kind="warn">
-              A 1-in-100 year loss of <b>{money(h.tailLossM, c)}</b> exceeds the limit by <b>{money(gap, c)}</b>. The limit is exhausted roughly once every {fmtNum(limitRp)} years. {TOWER_ADVICE[c.id]}
+              A 1-in-100 year loss of <b>{money(h.tailLossM, c)}</b> exceeds the limit by <b>{money(gap, c)}</b>. The limit is exhausted roughly once every {fmtNum(limitRp)} years. {forCustomer(TOWER_ADVICE, c)}
             </Callout>
           ) : (
             <Callout kind="good">The limit covers a 1-in-100 year loss with {money(-gap, c)} headroom.</Callout>
@@ -347,7 +352,7 @@ export default function InsuranceQuantification() {
           onClose={() => setRec(null)}
           rows={sc.slice().sort((a, b) => b.max - a.max).map((s) => ({ key: s.id, title: s.name, sub: `Worst case ${money(s.max, c)} · ${s.cover}`, right: money(s.max, c), badge: s.max > limit ? <Badge color="var(--bad)">Exceeds limit</Badge> : <Badge color="var(--good)">Within limit</Badge>, onClick: () => { setRec(null); setOpen(s); } }))}
         >
-          <Callout kind={gap > 0 ? 'warn' : 'good'}>{gap > 0 ? TOWER_ADVICE[c.id] : 'The programme covers a 1-in-100 year loss.'}</Callout>
+          <Callout kind={gap > 0 ? 'warn' : 'good'}>{gap > 0 ? forCustomer(TOWER_ADVICE, c) : 'The programme covers a 1-in-100 year loss.'}</Callout>
         </RecordsDrawer>
       )}
       {rec === 'whatif' && (

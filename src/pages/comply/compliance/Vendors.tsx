@@ -6,6 +6,8 @@ import { headlines } from '../../../data/core';
 import { scopedConnectors } from '../../../data/customers';
 import { MODULE_BY_ID } from '../../../modules/registry';
 import type { VendorRec, VendorClass, RecordedRisk, Clauses, RegStatus } from '../../../data/modules/complyRegisters';
+import { VENDOR_INFO_TYPES } from '../../../data/modules/comply';
+import { forCustomer } from '../../../data/customerMap';
 import { Card, Badge, Btn, StatusBadge } from '../../../components/ui';
 import { Modal } from '../../../components/Overlay';
 import { DataTable } from '../../../components/DataTable';
@@ -126,7 +128,7 @@ export default function VendorsSection() {
 function NewVendorModal({ c, count, onClose, onSave }: { c: import('../../../data/types').CustomerProfile; count: number; onClose: () => void; onSave: (v: VendorRec) => void }) {
   const [f, setF] = useState({ name: '', services: '', contact: '', email: '', classification: 'Internal' as VendorClass, info: [] as string[], clauses: 'In contract' as Clauses, tier: '2', end: '', review: '' });
   const up = <K extends keyof typeof f>(k: K, val: (typeof f)[K]) => setF((x) => ({ ...x, [k]: val }));
-  const infos = c.id === 'healthcare' ? ['PHI', 'Personal data', 'Medical device', 'Confidential'] : c.id === 'media' ? ['Pre-release', 'Personal data', 'Payments', 'Confidential'] : c.id === 'automotive' ? ['Prototype', 'Personal data', 'OT', 'Confidential'] : c.id === 'finserv' ? ['Personal data', 'Payments', 'Confidential', 'Market data'] : ['OT', 'Personal data', 'Commercial', 'Confidential'];
+  const infos = forCustomer(VENDOR_INFO_TYPES, c);
   const missing = [f.name.trim(), f.services.trim()].filter((x) => !x).length;
   const save = () => {
     if (missing) return;

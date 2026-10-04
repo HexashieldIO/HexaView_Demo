@@ -4,6 +4,7 @@ import type { CustomerProfile } from '../types';
 // intermittent vessel connectivity, customer-hosted and on-prem data planes.
 export const maritime: CustomerProfile = {
   id: 'maritime',
+  dataKey: 'maritime',
   name: 'Halcyon Ports & Shipping',
   short: 'Halcyon',
   initials: 'HP',
@@ -99,6 +100,21 @@ export const maritime: CustomerProfile = {
       { name: 'Femke Bakker', role: 'Customs & Documentation', email: 'f.bakker@halcyonports.com' },
       { name: 'Daniel Okafor', role: 'Service Desk Analyst', email: 'd.okafor@halcyonports.com' },
     ],
+  },
+  rolePeople: {
+    master: { name: 'Sofie Claes', role: 'Platform Administrator', email: 's.claes@halcyonports.com' },
+    executive: { name: 'Hendrik Visser', role: 'Group CEO', email: 'h.visser@halcyonports.com', vip: true },
+    ciso: { name: 'Adel Haddad', role: 'Group Head of InfoSec & GRC', email: 'a.haddad@halcyonports.com' },
+    finance: { name: 'Marta Kowalska', role: 'CFO', email: 'm.kowalska@halcyonports.com', vip: true },
+    socmanager: { name: 'Ingrid de Vries', role: 'Security Operations Manager', email: 'i.devries@halcyonports.com' },
+    analyst: { name: 'Daan Bakker', role: 'Senior SOC Analyst', email: 'd.bakker@halcyonports.com' },
+    threat: { name: 'Nur Aisyah Rahman', role: 'Threat Intelligence Lead', email: 'n.rahman@halcyonports.com' },
+    grc: { name: 'Pieter Janssens', role: 'GRC & Assurance Lead', email: 'p.janssens@halcyonports.com' },
+    risk: { name: 'Charlotte Dubois', role: 'Head of Enterprise Risk & Port Resilience', email: 'c.dubois@halcyonports.com' },
+    privacy: { name: 'Lars Vermeulen', role: 'Group Data Protection Officer', email: 'l.vermeulen@halcyonports.com' },
+    ot: { name: 'Rahul Menon', role: 'OT Security Lead', email: 'r.menon@halcyonports.com' },
+    cloud: { name: 'Tomás Ferreira', role: 'Cloud & Infrastructure Security Lead', email: 't.ferreira@halcyonports.com' },
+    admin: { name: 'Bram Wouters', role: 'Security Platform Engineer', email: 'b.wouters@halcyonports.com' },
   },
   thirdParties: [
     { name: 'Konecranes Remote Services', category: 'OT vendor remote access', tier: 1, access: 'STS crane PLCs via jump host', rating: 64, country: 'FI' },

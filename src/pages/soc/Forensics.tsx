@@ -35,7 +35,7 @@ export default function SocForensics() {
     <>
       <p className="page-intro">
         <b>{scopeLabel}</b> · evidence-grade acquisition and analysis by HexaSOC DFIR, collected through {tools.edrShort}, {tools.idpShort} and cloud APIs
-        {c.id === 'maritime' ? ', plus VDR and ECDIS extracts from vessels' : ''}. Every item is hashed at source and sealed in an immutable vault in {region}.
+        {c.dataKey === 'maritime' ? ', plus VDR and ECDIS extracts from vessels' : ''}. Every item is hashed at source and sealed in an immutable vault in {region}.
       </p>
 
       <KpiStrip

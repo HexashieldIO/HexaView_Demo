@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { RingLegend, RecordsDrawer, scrollToId } from '../insurance/viz';
 import { Plus, Play, Pause, RefreshCw, AlertTriangle, CheckCircle2, ArrowUpRight, Search } from 'lucide-react';
 import { useApp } from '../../state/AppContext';
@@ -84,7 +84,7 @@ export default function FabricIntegrations() {
 
       <div className="grid g-3-2">
         <Card title={<span id="fab-board">Connector health board</span>} sub="LLD 6.5 · grouped by category · click a tile for health, manifest and contract tests"
-          actions={<Btn sm primary color={TONE} onClick={() => setMkt(true)}><Plus size={14} /> Add integration</Btn>}>
+          actions={<><Link to="/fabric/marketplace" className="btn sm ghost">Browse the Marketplace →</Link><Btn sm primary color={TONE} onClick={() => setMkt(true)}><Plus size={14} /> Add integration</Btn></>}>
           <div className="row wrap" style={{ gap: 8, marginBottom: 12 }}>
             <label className="search" style={{ flex: '0 1 220px' }}>
               <Search size={14} />

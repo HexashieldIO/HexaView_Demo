@@ -10,7 +10,8 @@ import type { CustomerId, CustomerProfile, ConnectorCategory, FrameworkScope } f
 import { rng } from '../../lib/rng';
 import { headlines, type Headlines } from '../core';
 import { lastPenTest } from './ops';
-import { fmtDate, daysAgo } from '../../lib/format';
+import { fmtDate, daysAgo, currencySymbol } from '../../lib/format';
+import { forCustomer, type CustomerMap } from '../customerMap';
 
 /* ---------------- Vocabulary ---------------- */
 export type TrDomain =
@@ -34,7 +35,7 @@ export const TR_DOMAINS: { id: TrDomain; code: string; color: string }[] = [
 ];
 export const TR_DOMAIN_COLOR = Object.fromEntries(TR_DOMAINS.map((d) => [d.id, d.color])) as Record<TrDomain, string>;
 
-const SECTOR_LABEL: Record<CustomerId, string> = {
+const SECTOR_LABEL: CustomerMap<string> = {
   maritime: 'OT, terminal & vessel security',
   finserv: 'DORA, payments & SWIFT',
   media: 'Content security (TPN / MPA)',
@@ -42,7 +43,7 @@ const SECTOR_LABEL: Record<CustomerId, string> = {
   automotive: 'Vehicle, OTA & plant security',
 };
 export function trDomainLabel(c: CustomerProfile, d: TrDomain): string {
-  return d === 'Sector' ? SECTOR_LABEL[c.id] : d;
+  return d === 'Sector' ? forCustomer(SECTOR_LABEL, c) : d;
 }
 
 export type TrStatus = 'Received' | 'Drafting' | 'In review' | 'Approved' | 'Sent';
@@ -58,7 +59,8 @@ export const TR_STATUS_COLOR = Object.fromEntries(TR_STATUSES.map((s) => [s.id, 
 export type TrQState = 'Needs input' | 'Drafted' | 'Flagged' | 'Approved';
 export const TR_QSTATE_COLOR: Record<TrQState, string> = { 'Needs input': '#f8646f', Drafted: '#4f8cff', Flagged: '#f0a338', Approved: '#2dd4bf' };
 
-export type TrFormatId = 'sig-lite' | 'sig-core' | 'caiq' | 'iso' | 'custom' | 'dora' | 'hipaa' | 'dspt' | 'tisax' | 'tpn' | 'bimco';
+export type TrFormatId = 'sig-lite' | 'sig-core' | 'caiq' | 'iso' | 'custom' | 'dora' | 'hipaa' | 'dspt' | 'tisax' | 'tpn' | 'bimco'
+  | 'nydfs-tpsp' | 'reins' | 'cmmc' | 'dfars' | 'gxp' | 'hia' | 'insurer-sg';
 export interface TrFormat { id: TrFormatId; name: string; short: string; file: 'XLSX' | 'Portal' | 'DOCX' | 'PDF'; range: [number, number]; blurb: string; sector?: CustomerId }
 export const TR_FORMATS: TrFormat[] = [
   { id: 'sig-lite', name: 'SIG Lite (2025)', short: 'SIG Lite', file: 'XLSX', range: [118, 132], blurb: 'Standardised information-gathering questionnaire, lite tier' },
@@ -72,10 +74,19 @@ export const TR_FORMATS: TrFormat[] = [
   { id: 'tisax', name: 'VDA ISA 6.0 self-assessment (TISAX)', short: 'VDA ISA', file: 'XLSX', range: [78, 104], blurb: 'Information security, prototype protection and data protection modules', sector: 'automotive' },
   { id: 'tpn', name: 'TPN content security questionnaire (MPA CSBP)', short: 'TPN', file: 'Portal', range: [142, 188], blurb: 'Trusted Partner Network shield questionnaire for pre-release content', sector: 'media' },
   { id: 'bimco', name: 'BIMCO cyber clause & IACS UR E26/E27 annex', short: 'BIMCO / IACS', file: 'XLSX', range: [58, 84], blurb: 'Charter-party cyber clause plus class cyber-resilience annex', sector: 'maritime' },
+  { id: 'nydfs-tpsp', name: 'NYDFS 500.11 third-party service provider questionnaire', short: 'NYDFS TPSP', file: 'XLSX', range: [64, 92], blurb: 'Due diligence on providers holding NPI: MFA, encryption, notice and access', sector: 'insurance' },
+  { id: 'reins', name: 'Reinsurer and broker cyber underwriting questionnaire', short: 'Reinsurer cyber', file: 'Portal', range: [48, 70], blurb: 'Treaty renewal and cyber underwriting submission via the broker', sector: 'insurance' },
+  { id: 'cmmc', name: 'Prime supplier CMMC / NIST SP 800-171 assessment', short: 'CMMC / 800-171', file: 'Portal', range: [110, 134], blurb: 'Prime contractor flow-down: SPRS score, CMMC level, POA&M and SSP evidence', sector: 'defence' },
+  { id: 'dfars', name: 'DFARS 7012 flow-down and incident reporting affirmation', short: 'DFARS 7012', file: 'DOCX', range: [22, 36], blurb: 'Safeguarding, 72-hour reporting, media preservation and sub-tier flow-down', sector: 'defence' },
+  { id: 'gxp', name: 'GxP supplier quality and data integrity questionnaire', short: 'GxP / Annex 11', file: 'XLSX', range: [86, 120], blurb: 'Computerised system validation, audit trails and quality agreement terms', sector: 'pharma' },
+  { id: 'hia', name: 'HIA cybersecurity and data security assurance questionnaire', short: 'HIA CS/DS', file: 'XLSX', range: [60, 82], blurb: 'MOH essentials across cybersecurity, data security and common practices', sector: 'sghospital' },
+  { id: 'insurer-sg', name: 'Insurer panel and partner cyber assurance questionnaire', short: 'Insurer panel', file: 'Portal', range: [40, 58], blurb: 'Panel hospital assurance for insurers and medical-tourism partners', sector: 'sghospital' },
 ];
 export const TR_FORMAT_BY_ID = Object.fromEntries(TR_FORMATS.map((f) => [f.id, f])) as Record<TrFormatId, TrFormat>;
 export function trFormatsFor(c: CustomerProfile): TrFormat[] {
-  return TR_FORMATS.filter((f) => !f.sector || f.sector === c.id);
+  // A customer's own sector formats; customers without any read their template's.
+  const own = TR_FORMATS.some((f) => f.sector === c.id);
+  return TR_FORMATS.filter((f) => !f.sector || f.sector === (own ? c.id : c.dataKey));
 }
 
 /* ---------------- Evidence catalogue ---------------- */
@@ -106,7 +117,7 @@ function ctx(c: CustomerProfile): Ctx {
   const h = headlines(c);
   const pt = lastPenTest(c);
   const certs = c.frameworks.filter((f) => f.kind === 'Certification' || f.kind === 'Attestation' || f.kind === 'Industry programme');
-  const sym = c.currency === 'GBP' ? '£' : c.currency === 'EUR' ? '€' : '$';
+  const sym = currencySymbol(c.currency);
   return {
     c, h, pt, ptDate: fmtDate(daysAgo(pt.daysAgo)), certs, certList: certs.map((f) => f.short).join(', '),
     siem: tool(c, 'SIEM', 'the group SIEM'), edr: tool(c, 'EDR / XDR', 'EDR'), idp: tool(c, 'Identity', 'the corporate IdP'), pam: tool(c, 'PAM', 'the PAM vault'),
@@ -115,7 +126,7 @@ function ctx(c: CustomerProfile): Ctx {
   };
 }
 
-const SECTOR_EV: Record<CustomerId, { key: string; label: string; detail: (x: Ctx) => string; to: string; kind: TrEvKind }[]> = {
+const SECTOR_EV: CustomerMap<{ key: string; label: string; detail: (x: Ctx) => string; to: string; kind: TrEvKind }[]> = {
   maritime: [
     { key: 'sec:ot', kind: 'Platform', label: 'HexaOT · terminals & vessels', detail: (x) => `${x.h.ot.otAssets.toLocaleString('en-GB')} OT assets across ${x.h.ot.sites} sites, ${x.h.ot.purdueCoveragePct}% Purdue coverage`, to: '/ot/visibility' },
     { key: 'sec:e26', kind: 'Control', label: 'CTL-OT-02 · vendor remote access via PAM', detail: () => 'IACS UR E26 4.2.2 · IEC 62443 SR 1.13', to: '/comply/caas?section=frameworks&framework=iacs' },
@@ -173,7 +184,7 @@ export function trEvidence(c: CustomerProfile): Record<string, TrEvidence> {
   add({ key: 'res', kind: 'Platform', label: 'Data planes & residency', detail: `${c.dataPlanes.length} data planes · ${x.residency}${c.byok ? ' · BYOK' : ''}`, source: 'HexaCore', to: '/fabric/dataplanes' }, 0);
   add({ key: 'ai', kind: 'Platform', label: 'AI inventory & guardrails', detail: `${x.h.ai.aiSystems} AI systems, ${x.h.ai.shadowAi} shadow AI apps under review`, source: 'HexaAI Governance', to: '/ai-governance/inventory' }, r.int(0, 7));
   add({ key: 'loop', kind: 'Platform', label: 'Closed-loop assurance', detail: 'Control → evidence → detection → validation, proven live', source: 'HexaView', to: '/loop' }, 0);
-  SECTOR_EV[c.id].forEach((e) => add({ key: e.key, kind: e.kind, label: e.label, detail: e.detail(x), source: e.kind === 'Platform' ? 'HexaView' : 'HexaComply', to: e.to }));
+  forCustomer(SECTOR_EV, c).forEach((e) => add({ key: e.key, kind: e.kind, label: e.label, detail: e.detail(x), source: e.kind === 'Platform' ? 'HexaView' : 'HexaComply', to: e.to }));
   EV_CACHE.set(c.id, out);
   return out;
 }
@@ -263,7 +274,7 @@ const GENERIC: Tpl[] = [
     a: () => 'Yes. Background screening proportionate to role and local law is completed before access is granted, and all staff and contractors sign confidentiality agreements as part of their contract.' },
 ];
 
-const SECTOR_TPL: Record<CustomerId, Tpl[]> = {
+const SECTOR_TPL: CustomerMap<Tpl[]> = {
   maritime: [
     { key: 'm-e26', domain: 'Sector', owner: 'ot', ev: (x) => ['sec:e26', ...fwEv(x, 'iacs')],
       qs: ['Are newbuild and retrofitted vessels compliant with IACS UR E26 and E27?', 'Describe how cyber resilience of onboard systems is maintained across the fleet.'],
@@ -391,8 +402,8 @@ export function trLibrary(c: CustomerProfile): TrLibAnswer[] {
   if (hit) return hit;
   const x = ctx(c);
   const r = rng(`tr-lib-${c.id}`);
-  const tpls = [...GENERIC, ...SECTOR_TPL[c.id]];
-  const staleKeys = new Set(r.pickN(Object.keys(STALE_REASONS), c.id === 'finserv' ? 3 : 4));
+  const tpls = [...GENERIC, ...forCustomer(SECTOR_TPL, c)];
+  const staleKeys = new Set(r.pickN(Object.keys(STALE_REASONS), c.dataKey === 'finserv' ? 3 : 4));
   const editors = [c.people.grcLead.name, c.people.ciso.name, c.people.socLead.name, c.people.admin.name];
   const out = tpls.map((t, i) => {
     const stale = staleKeys.has(t.key);
@@ -435,7 +446,7 @@ export interface TrQuestionnaire {
 }
 
 type ReqSeed = [string, string, string, TrFormatId, number]; // name, kind, tenant, format, deal value in M
-const REQUESTERS: Record<CustomerId, ReqSeed[]> = {
+const REQUESTERS: CustomerMap<ReqSeed[]> = {
   maritime: [
     ['Northwind Container Line', 'Shipping line (berth contract)', 'rtm', 'bimco', 6.4],
     ['Meridian Reefer Logistics', 'Shipper (reefer cargo)', 'fleet', 'sig-lite', 1.2],
@@ -528,7 +539,7 @@ export function trQuestionnairesBase(c: CustomerProfile): TrQuestionnaire[] {
   const r = rng(`tr-qn-${c.id}`);
   const statuses: TrStatus[] = ['Received', 'Drafting', 'In review', 'In review', 'Approved', 'Sent', 'Sent', 'Sent', 'Drafting', 'In review', 'Sent', 'Received', 'Sent', 'In review'];
   const owners = [c.people.grcLead.name, c.people.grcLead.name, c.people.ciso.name, c.people.admin.name];
-  const out = REQUESTERS[c.id].map(([name, kind, tenant, format, dealM], i) => {
+  const out = forCustomer(REQUESTERS, c).map(([name, kind, tenant, format, dealM], i) => {
     const f = TR_FORMAT_BY_ID[format];
     const status = statuses[i % statuses.length];
     const received = status === 'Sent' ? r.int(6, 80) : status === 'Received' ? r.int(0, 1) : r.int(1, 6);
@@ -682,14 +693,14 @@ export function trRequestsBase(c: CustomerProfile): TrRequest[] {
   const r = rng(`tr-req-${c.id}`);
   const docs = trDocuments(c).filter((d) => d.gate !== 'Public');
   const qns = trQuestionnairesBase(c);
-  const EXTRA: Record<CustomerId, [string, string][]> = {
+  const EXTRA: CustomerMap<[string, string][]> = {
     maritime: [['Port of Callisto Authority', 'Port authority (prospect)'], ['Saltcrest Charterers', 'Charterer (prospect)'], ['Atlas Marine Underwriters', 'Insurer']],
     finserv: [['Wexford Building Society', 'Prospect (payments)'], ['Grafton Mutual', 'Prospect (BaaS)'], ['Ashcombe Audit LLP', 'External auditor']],
     media: [['Nimbus Kids Studios', 'Prospect (co-production)'], ['Ember Sound Post', 'Vendor onboarding'], ['Quarry Lane Distribution', 'Prospect (distribution)']],
     healthcare: [['Ridgeline Behavioral Health', 'Prospect (affiliation)'], ['Pinecrest Senior Living', 'Prospect (care partner)'], ['Ohio Hospital Risk Pool', 'Insurer']],
     automotive: [['Sudmark Logistik GmbH', 'Prospect (fleet)'], ['Orbiq Mobility BV', 'Prospect (car-sharing)'], ['Hanseatic Fleet Insurance', 'Insurer']],
   };
-  const extra = EXTRA[c.id];
+  const extra = forCustomer(EXTRA, c);
   const orgs: { org: string; kind: string; tenant: string; qnId?: string }[] = [
     ...qns.slice(0, 9).map((q) => ({ org: q.requester, kind: q.requesterKind, tenant: q.tenantId, qnId: q.id })),
     ...extra.map(([o, k]) => ({ org: o, kind: k, tenant: c.tenants[0].id })),
@@ -740,14 +751,14 @@ export function trAccessLogBase(c: CustomerProfile): TrAccess[] {
 }
 
 /* ---------------- Portal & trend stats ---------------- */
-const BASELINE: Record<CustomerId, number> = { maritime: 19, finserv: 27, media: 16, healthcare: 24, automotive: 31 };
+const BASELINE: CustomerMap<number> = { maritime: 19, finserv: 27, media: 16, healthcare: 24, automotive: 31 };
 export function trBaselineDays(c: CustomerProfile): number {
-  return BASELINE[c.id];
+  return forCustomer(BASELINE, c);
 }
 /** Twelve months of mean turnaround (days), HexaView went live five months ago. */
 export function trTurnaroundTrend(c: CustomerProfile): { months: string[]; days: number[]; liveIdx: number } {
   const r = rng(`tr-trend-${c.id}`);
-  const base = BASELINE[c.id];
+  const base = forCustomer(BASELINE, c);
   const liveIdx = 7;
   const days = Array.from({ length: 12 }, (_, i) => (i < liveIdx ? Math.round((base + r.float(-3, 4)) * 10) / 10 : Math.round(Math.max(1, base * [0.32, 0.12, 0.08, 0.07, 0.06][i - liveIdx] + r.float(-0.3, 0.3)) * 10) / 10));
   const now = new Date();
@@ -787,10 +798,10 @@ interface QEdit { state?: TrQState; answer?: string; assignee?: string | null; e
 interface Store {
   q: Record<string, QEdit>; // cid:qn:qid
   qn: Record<string, { sentAt?: number; drafted?: boolean }>; // cid:qn
-  added: Partial<Record<CustomerId, TrQuestionnaire[]>>;
+  added: Partial<CustomerMap<TrQuestionnaire[]>>;
   lib: Record<string, { reviewedAt: number; by: string }>; // cid:ans
   req: Record<string, { status?: TrReqStatus; nda?: TrNda; at: number; by: string; accessDays?: number | null }>; // cid:req
-  acl: Partial<Record<CustomerId, (TrAccess & { at: number })[]>>;
+  acl: Partial<CustomerMap<(TrAccess & { at: number })[]>>;
   log: { cid: CustomerId; at: number; title: string; body?: string; color: string; to: string }[];
 }
 let STORE: Store = { q: {}, qn: {}, added: {}, lib: {}, req: {}, acl: {}, log: [] };
@@ -953,3 +964,177 @@ export function trMarkNdaSigned(c: CustomerProfile, q: TrRequest, by: string) {
   commit((s) => ({ ...s, req: { ...s.req, [`${c.id}:${q.id}`]: { ...s.req[`${c.id}:${q.id}`], nda: 'Signed', at: Date.now(), by } } }));
   log(c, `NDA signed by ${q.org}`, `Countersigned record filed · ${q.contact}`, TR_NDA_COLOR.Signed, `/trust/requests?id=${q.id}`);
 }
+
+/* =====================================================================
+   Second-wave customers: their own entries in the tables above.
+   ===================================================================== */
+const fwPct = (x: Ctx, id: string, fallback: number) => x.c.frameworks.find((f) => f.id === id)?.documented ?? fallback;
+const fwNext = (x: Ctx, id: string, fallback: string) => x.c.frameworks.find((f) => f.id === id)?.nextAudit ?? fallback;
+
+Object.assign(SECTOR_LABEL, {
+  insurance: 'Insurance regulation (NYDFS, NAIC) & NPI',
+  defence: 'CMMC, DFARS & ITAR',
+  pharma: 'GxP, clinical data & plant OT',
+  sghospital: 'Health Information Act, NEHR & medical devices',
+  studio: 'Content security (TPN / MPA) & parks',
+});
+
+SECTOR_EV.insurance = [
+  { key: 'sec:nydfs', kind: 'Certification', label: 'NYDFS 500.17 annual certification', detail: (x) => `Certified for 2025; ${fwPct(x, 'nydfs', 86)}% of Part 500 requirements evidenced for the ${fwNext(x, 'nydfs', 'April')} filing`, to: '/comply/caas?section=frameworks&framework=nydfs' },
+  { key: 'sec:tpsp', kind: 'Control', label: 'CTL-TPA-04 · BPO and TPA access brokered', detail: () => 'NYDFS 500.11 · NAIC #668 §4F · Island browser and BeyondTrust', to: '/comply/tprm' },
+];
+SECTOR_EV.defence = [
+  { key: 'sec:sprs', kind: 'Certification', label: 'SPRS score and CMMC Level 2 status', detail: (x) => `SPRS 88/110, target 104 · C3PAO assessment ${fwNext(x, 'cmmc-l2', 'scheduled')}`, to: '/comply/caas?section=frameworks&framework=cmmc-l2' },
+  { key: 'sec:cui', kind: 'Control', label: 'CTL-CUI-01 · CUI confined to the GCC High enclave', detail: () => 'CMMC AC.L2-3.1.3 · DFARS 7012(b) · Purview CUI labels', to: '/comply/caas?section=frameworks&framework=nist-171' },
+];
+SECTOR_EV.pharma = [
+  { key: 'sec:gxp', kind: 'Control', label: 'CTL-AT-03 · GxP audit trails', detail: () => 'Part 11 11.10(e) · Annex 11 §9 · Vault, Rave, LabWare, PAS-X', to: '/comply/caas?section=frameworks&framework=part11' },
+  { key: 'sec:custody', kind: 'Platform', label: 'HexaCustody · dossiers and trial data', detail: (x) => `${x.h.custody.assetsUnderCustody.toLocaleString('en-GB')} items under custody across ${x.h.custody.vendorsInChain} CRO and CMO partners`, to: '/custody/overview' },
+];
+SECTOR_EV.sghospital = [
+  { key: 'sec:md', kind: 'Platform', label: 'HexaOT · medical device inventory', detail: (x) => `${x.h.ot.otAssets.toLocaleString('en-GB')} connected medical devices, ${x.h.ot.purdueCoveragePct}% segmented`, to: '/ot/visibility' },
+  { key: 'sec:hia', kind: 'Control', label: 'CTL-IR-13 · MOH 2-hour notification', detail: () => 'Health Information Act · notifiable incident triage and 14-day report', to: '/comply/caas?section=frameworks&framework=hia' },
+];
+SECTOR_EV.studio = [
+  { key: 'sec:custody', kind: 'Platform', label: 'HexaCustody · pre-release chain', detail: (x) => `${x.h.custody.assetsUnderCustody.toLocaleString('en-GB')} assets under custody, ${x.h.custody.vendorsInChain} vendors in chain`, to: '/custody/overview' },
+  { key: 'sec:wm', kind: 'Control', label: 'CTL-WAT-07 · forensic watermarking', detail: () => 'MPA CS-4.0 · screeners, dailies and review links', to: '/comply/caas?section=frameworks&framework=mpa' },
+];
+
+SECTOR_TPL.insurance = [
+  { key: 'i-nydfs', domain: 'Sector', owner: 'grc', ev: (x) => ['sec:nydfs', ...fwEv(x, 'nydfs', 'naic')],
+    qs: ['Are you subject to NYDFS 23 NYCRR 500, and did you file the annual certification?', 'Describe your compliance with the NAIC Insurance Data Security Model Law in your domiciliary state.'],
+    a: (x) => `Yes. ${x.c.name} files the NYDFS 500.17 certification each April, signed by the CEO and CISO, and certifies to the Connecticut Insurance Department under the state law based on NAIC #668. ${fwPct(x, 'nydfs', 86)}% of Part 500 requirements are evidenced in HexaComply.` },
+  { key: 'i-npi', domain: 'Sector', owner: 'grc', ev: () => ['pol:crypto', 'sec:tpsp'],
+    qs: ['How is nonpublic information (NPI) protected in transit, at rest and with service providers?', 'Do third-party administrators and BPO staff access policyholder data, and how is that controlled?'],
+    a: () => 'NPI is encrypted at rest and in transit (NYDFS 500.15). Claims BPO and TPA users work through a managed enterprise browser and brokered privileged sessions; every provider holding NPI is assessed under NYDFS 500.11 and must notify us within 24 hours of a cybersecurity event.' },
+  { key: 'i-cat', domain: 'Sector', owner: 'grc', ev: () => ['pol:bcp', 'ctl:bkp'],
+    qs: ['How would claims handling and payments continue during a cyber event that coincides with a catastrophe?', 'What are your recovery objectives for the claims platform?'],
+    a: (x) => `First notice of loss and claims payments target a 4-hour RTO; the contact centre has paper FNOL scripts and a manual disbursement fallback. Guidewire and mainframe data are protected by immutable backups in ${x.backup}, restore-tested quarterly.` },
+  { key: 'i-fraud', domain: 'Sector', owner: 'soc', ev: () => ['ctl:email', 'soc:mdr'],
+    qs: ['What controls prevent fraudulent changes to claim payees or premium refunds?', 'How do you protect against help-desk social engineering?'],
+    a: () => 'Payee changes need a second approver and a call-back on the number on file; the help desk verifies identity before any MFA or password reset. SIU and HexaSOC monitor disbursement anomalies and impersonation attempts.' },
+];
+SECTOR_TPL.defence = [
+  { key: 'd-cmmc', domain: 'Sector', owner: 'grc', ev: (x) => ['sec:sprs', ...fwEv(x, 'cmmc-l2', 'nist-171')],
+    qs: ['What is your current SPRS score and the date of your last NIST SP 800-171 assessment?', 'What is your CMMC Level 2 status, and when is your C3PAO assessment?'],
+    a: (x) => `Our SPRS score is 88 of 110, posted this year, with a POA&M targeting 104 by December. The CMMC Level 2 C3PAO assessment is ${fwNext(x, 'cmmc-l2', 'scheduled')}; ${fwPct(x, 'cmmc-l2', 84)}% of the 110 practices are documented with evidence in HexaComply.` },
+  { key: 'd-7012', domain: 'Sector', owner: 'ciso', ev: (x) => ['pol:ir', ...fwEv(x, 'dfars-7012')],
+    qs: ['Do you comply with DFARS 252.204-7012, including 72-hour cyber incident reporting?', 'Do you flow DFARS 7012 down to sub-tier suppliers that receive CUI?'],
+    a: () => 'Yes. Cyber incidents affecting covered defence information are reported through DIBNet within 72 hours, images are preserved for 90 days and malware is submitted to DC3. The clause is flowed down to every sub-tier receiving CUI, and their SPRS and CMMC status is checked through Exostar.' },
+  { key: 'd-cui', domain: 'Sector', owner: 'admin', ev: () => ['sec:cui', 'res'],
+    qs: ['Where is CUI stored and processed, and does your cloud meet FedRAMP Moderate equivalency?', 'How do you restrict ITAR technical data to US persons?'],
+    a: () => 'CUI is confined to a Microsoft 365 GCC High and Azure Government enclave (FedRAMP High). ITAR technical data in Teamcenter is restricted by a verified US-person attribute and Purview labels; transfers to primes go through PreVeil or custody-tracked TDP releases.' },
+  { key: 'd-supply', domain: 'Sector', owner: 'grc', ev: () => ['tprm'],
+    qs: ['How do you manage cybersecurity risk in your own supply chain (NIST SP 800-171 r3 03.17)?', 'Which sub-tiers receive our technical data packages?'],
+    a: (x) => `All ${x.h.comply.vendors} suppliers are tiered; sub-tiers receiving CUI must show a current SPRS score and the required CMMC level before a TDP is released, and releases are tracked by HexaCustody.` },
+];
+SECTOR_TPL.pharma = [
+  { key: 'r-gxp', domain: 'Sector', owner: 'grc', ev: (x) => ['sec:gxp', ...fwEv(x, 'gmp', 'part11', 'gamp5')],
+    qs: ['Are your computerised systems validated and compliant with EU GMP Annex 11 and 21 CFR Part 11?', 'Describe how audit trails are reviewed for GxP-relevant data.'],
+    a: (x) => `Yes. GxP systems are validated under GAMP 5 with secure, time-stamped audit trails reviewed periodically (Part 11 11.10(e), Annex 11 §9). ${fwPct(x, 'gmp', 82)}% of Annex 11 requirements are evidenced; the next inspection is ${fwNext(x, 'gmp', 'scheduled')}.` },
+  { key: 'r-qa', domain: 'Sector', owner: 'grc', ev: () => ['tprm'],
+    qs: ['Will you sign a quality agreement covering data integrity, change notification and audits?', 'How do you oversee CROs and CMOs that handle our data or materials?'],
+    a: () => 'Yes. Every supplier handling GxP or trial data operates under a quality agreement with data-integrity, audit and change-notification terms. CROs and CMOs are assessed before onboarding, audited on a risk basis and reviewed quarterly for access.' },
+  { key: 'r-trial', domain: 'Sector', owner: 'grc', ev: () => ['sec:custody', 'pol:priv'],
+    qs: ['How are clinical trial data and unblinding information protected?', 'Where is patient-level trial data processed, and under which transfer mechanism?'],
+    a: (x) => `Trial data stays in validated EDC and eTMF systems; unblinding keys and randomisation lists are restricted, logged and custody-tracked. Patient-level data is processed in ${x.residency} under GDPR and revDSG, with SCCs for any transfer.` },
+  { key: 'r-ot', domain: 'Sector', owner: 'ot', ev: () => ['ctl:mfa'],
+    qs: ['How is OEM remote access to manufacturing control systems controlled?', 'Describe IT/OT segmentation at your manufacturing sites.'],
+    a: (x) => `OEM access to DCS, PLCs and filling lines is brokered through ${x.pam} with per-session approval and recording, reconciled to GxP change control. Plants use a Level 3.5 DMZ between IT and OT; OT monitoring is read-only.` },
+];
+SECTOR_TPL.sghospital = [
+  { key: 's-hia', domain: 'Sector', owner: 'grc', ev: (x) => ['sec:hia', ...fwEv(x, 'hia', 'ce')],
+    qs: ['Do you comply with the MOH Cybersecurity and Data Security Essentials under the Health Information Act?', 'Do you hold the CSA Cyber Essentials or Cyber Trust mark?'],
+    a: (x) => `Yes. ${x.c.name} is implementing the MOH essentials across cybersecurity, data security and common practices (${fwPct(x, 'hia', 74)}% evidenced) and holds the CSA Cyber Essentials mark, with Cyber Trust targeted next.` },
+  { key: 's-notify', domain: 'Sector', owner: 'ciso', ev: () => ['pol:ir', 'sec:hia'],
+    qs: ['How quickly do you notify regulators and partners of a cybersecurity incident involving patient data?', 'Describe your incident notification obligations.'],
+    a: () => 'Notifiable incidents are reported to MOH within 2 hours of assessment, followed by a detailed report within 14 days; notifiable personal data breaches are reported to the PDPC within 3 days. Partners whose data is affected are told without undue delay.' },
+  { key: 's-xfer', domain: 'Sector', owner: 'grc', ev: () => ['pol:priv', 'res'],
+    qs: ['Is patient data transferred outside Singapore, for example for second opinions?', 'How do you protect data shared with insurers and medical-tourism partners?'],
+    a: () => 'Patient data is stored in Singapore. Transfers abroad, such as second opinions, follow a PDPA s26 procedure with contractual safeguards; insurer and partner exchanges run through authenticated portals and APIs.' },
+  { key: 's-md', domain: 'Sector', owner: 'ot', ev: () => ['sec:md'],
+    qs: ['How are connected medical devices secured?', 'Do you follow the HSA guidelines on medical device cybersecurity?'],
+    a: (x) => `HexaOT keeps a live inventory of ${x.h.ot.otAssets.toLocaleString('en-GB')} connected medical devices. Devices sit on segmented clinical VLANs, OEM access is brokered and recorded, and tenders follow the HSA medical device cybersecurity guidelines.` },
+];
+SECTOR_TPL.studio = [
+  { key: 'sf-tpn', domain: 'Sector', owner: 'grc', ev: (x) => fwEv(x, 'tpn', 'mpa'),
+    qs: ['Do you hold a current TPN shield, and are your vendor sites assessed?', 'Are you assessed against the MPA Content Security Best Practices?'],
+    a: (x) => `Yes. ${x.c.name} holds TPN Gold Shield status (${fwNext(x, 'tpn', 'annual re-assessment')}) and is assessed against MPA CSBP; ${fwPct(x, 'mpa', 83)}% of in-scope best practices are evidenced in HexaComply. Vendors receiving pre-release content must hold a current shield.` },
+  { key: 'sf-custody', domain: 'Sector', owner: 'grc', ev: () => ['sec:custody', 'sec:wm'],
+    qs: ['How is pre-release content tracked and protected end to end, including at vendors?', 'Are screeners, dailies and review links forensically watermarked?'],
+    a: (x) => `Pre-release content is tracked by HexaCustody agents from ingest to delivery (${x.h.custody.assetsUnderCustody.toLocaleString('en-GB')} assets in custody across ${x.h.custody.vendorsInChain} vendors). Screeners, dailies and review links carry forensic watermarks and expire.` },
+  { key: 'sf-leak', domain: 'Sector', owner: 'soc', ev: () => ['soc:ir', 'sec:custody'],
+    qs: ['Describe your content leak response and how quickly access can be revoked.', 'How do you decide whether a security incident is material for disclosure?'],
+    a: () => 'A content-leak playbook covers watermark extraction, source identification, takedown and licensor notification within 24 hours; HexaCustody revokes access in seconds. A disclosure committee assesses materiality for SEC Form 8-K Item 1.05.' },
+  { key: 'sf-pci', domain: 'Sector', owner: 'grc', ev: (x) => fwEv(x, 'pci', 'soc2'),
+    qs: ['Are Starfall+ and park payments PCI DSS compliant?', 'Do you hold a SOC 2 Type II report for the streaming platform?'],
+    a: (x) => `Yes. Streaming, ticketing and merchandise payments are PCI DSS v4.0.1 Level 1 (next QSA visit ${fwNext(x, 'pci', 'annually')}), and Starfall+ has a SOC 2 Type II report available under NDA.` },
+];
+
+REQUESTERS.insurance = [
+  ['Atlantic Re Partners', 'Reinsurer (property cat treaty)', 'group', 'reins', 4.2],
+  ['Harborview Insurance Brokers', 'Wholesale broker (E&S)', 'specialty', 'nydfs-tpsp', 1.6],
+  ['Greystone Credit Union', 'Affinity partner (auto & home)', 'personal', 'sig-lite', 2.3],
+  ['Meridian Fleet Leasing', 'Commercial auto client', 'commercial', 'custom', 1.1],
+  ['Brookfield Bank of New York', 'Bancassurance partner', 'life', 'nydfs-tpsp', 3.8],
+  ['Northgate Mortgage Corp', 'Lender-placed insurance partner', 'personal', 'sig-core', 2.9],
+  ['Copperline Logistics', 'Commercial lines client', 'commercial', 'iso', 0.8],
+  ['Summit Benefit Advisors', 'Annuity distribution partner', 'life', 'sig-lite', 1.4],
+  ['Pinecrest Property Managers', 'Commercial property client', 'commercial', 'custom', 0.6],
+  ['Lakeshore Retirement Plans', 'Group annuity client', 'life', 'caiq', 1.9],
+  ['Ironbridge Reinsurance', 'Reinsurer (casualty quota share)', 'group', 'reins', 3.1],
+  ['Tidewater Auto Dealers Assoc.', 'Agency partner (auto)', 'personal', 'sig-lite', 0.7],
+];
+REQUESTERS.defence = [
+  ['Lockheed Martin', 'Prime contractor (guidance housing TDP)', 'programs', 'cmmc', 18],
+  ['RTX (Raytheon)', 'Prime contractor (seeker subsystem)', 'programs', 'cmmc', 24],
+  ['Northrop Grumman', 'Prime contractor (test equipment)', 'engineering', 'dfars', 9.5],
+  ['L3Harris Technologies', 'Prime contractor (avionics interface)', 'engineering', 'cmmc', 7.2],
+  ['Aldrich Aerospace Integration', 'Tier-1 integrator', 'manufacturing', 'dfars', 3.4],
+  ['Cumberland Precision Machining', 'Sub-tier supplier (reverse assessment)', 'manufacturing', 'custom', 0.4],
+  ['US Army DEVCOM (via prime)', 'Government programme office', 'tucson', 'dfars', 5.6],
+  ['Pinnacle Space Systems', 'Commercial space customer', 'engineering', 'sig-lite', 2.1],
+  ['Vanguard Missile Integration', 'Prime contractor (new bid)', 'programs', 'cmmc', 12],
+  ['Bluewater Naval Systems', 'Shipbuilder (sensor mounts)', 'manufacturing', 'iso', 1.8],
+];
+REQUESTERS.pharma = [
+  ['Meridian Health Partners', 'US distributor (DSCSA)', 'commercial', 'sig-core', 14],
+  ['Alpenland Kantonsspital Group', 'Hospital tender (CH)', 'corporate', 'custom', 3.2],
+  ['NordBio Contract Research', 'CRO partner (Phase II)', 'clinops', 'gxp', 5.4],
+  ['Celtic Fill & Finish Ltd', 'CMO partner (Cork overflow)', 'cork', 'gxp', 7.8],
+  ['Riverside Specialty Pharmacy', 'Specialty pharmacy (patient services)', 'commercial', 'sig-lite', 2.6],
+  ['Helvetia BioVentures', 'Licensing partner (biologic)', 'rnd', 'caiq', 22],
+  ['Pan-European Health Procurement', 'National tender body', 'corporate', 'iso', 9.1],
+  ['Rheinfracht Cold Chain AG', 'Cold-chain partner', 'cork', 'custom', 1.3],
+  ['Atlas Clinical Imaging', 'Imaging core lab (trials)', 'clinops', 'gxp', 1.7],
+  ['Saint-Rémy Genomics', 'Research collaboration', 'rnd', 'sig-lite', 0.9],
+  ['Transatlantic Payer Alliance', 'US payer (patient support)', 'commercial', 'sig-core', 4.5],
+  ['Dolomiti Vaccine Consortium', 'Co-development partner', 'valais', 'gxp', 11],
+];
+REQUESTERS.sghospital = [
+  ['Great Eastern Life', 'Insurer (integrated shield panel)', 'corp', 'insurer-sg', 6.2],
+  ['AIA Singapore', 'Insurer (panel hospital review)', 'corp', 'insurer-sg', 5.4],
+  ['Prudential Singapore', 'Insurer (direct billing)', 'corp', 'insurer-sg', 4.1],
+  ['Straits Wellness TPA', 'Third-party administrator (HIA assurance)', 'corp', 'hia', 1.1],
+  ['Jakarta Medika Referral Network', 'Medical-tourism partner (Indonesia)', 'specialist', 'custom', 1.8],
+  ['Saigon Care Connect', 'Medical-tourism partner (Vietnam)', 'specialist', 'sig-lite', 0.9],
+  ['Pacific Corporate Health Scheme', 'Corporate health plan', 'obh', 'hia', 1.2],
+  ['NovaTrial Asia', 'Clinical research sponsor', 'specialist', 'caiq', 2.3],
+  ['Lion City Pathology Laboratories', 'Reference lab (reciprocal review)', 'labimg', 'iso', 0.6],
+  ['Embassy Row Health Programme', 'Embassy health programme', 'obh', 'custom', 0.5],
+];
+REQUESTERS.studio = [
+  ['Lumen Arc Streaming', 'Streaming licensee', 'studios', 'tpn', 48],
+  ['Albatross Broadcasting Corp', 'Broadcast licensee', 'studios', 'tpn', 22],
+  ['Saffron Screen Distribution', 'International distributor', 'post', 'tpn', 14],
+  ['Marigold Streaming APAC', 'Streaming licensee (APAC)', 'play', 'caiq', 9.5],
+  ['Harrow & Vine Advertising', 'Ad-tier agency', 'play', 'sig-lite', 3.2],
+  ['Redwing Airlines Inflight', 'Inflight entertainment licensee', 'studios', 'tpn', 4.1],
+  ['Brightwave Toys Inc.', 'Consumer products licensee', 'corp', 'sig-core', 12],
+  ['Osaka Bay Resort Holdings', 'Resort joint-venture partner', 'parksasia', 'iso', 18],
+  ['Celestia Cinemas', 'Theatrical exhibitor', 'studios', 'tpn', 6.8],
+  ['Paragon Travel Group', 'Park ticketing reseller', 'parks', 'sig-lite', 2.7],
+  ['Northshore Telecom', 'Starfall+ bundle partner', 'play', 'caiq', 16],
+  ['Vista Kids Network', 'Kids channel licensee', 'studios', 'tpn', 3.6],
+];
+Object.assign(BASELINE, { insurance: 26, defence: 34, pharma: 29, sghospital: 21, studio: 18 });

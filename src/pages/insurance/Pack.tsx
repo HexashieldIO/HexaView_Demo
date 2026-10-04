@@ -42,7 +42,7 @@ export default function InsurancePack() {
   const high = pack.filter((p) => p.confidence === 'high').length;
   const oldest = pack.reduce((m, p) => Math.max(m, p.refreshedMin), 0);
   const digest = packDigest(c, version);
-  const contact = ({ maritime: 'Account executive, Marsh Marine & Energy', finserv: 'Client director, Aon Financial Services', media: 'Account executive, WTW Media & Entertainment', healthcare: 'Client executive, Gallagher Healthcare', automotive: 'Client director, Aon Automotive' } as Record<string, string>)[c.id];
+  const contact = ({ maritime: 'Account executive, Marsh Marine & Energy', finserv: 'Client director, Aon Financial Services', media: 'Account executive, WTW Media & Entertainment', healthcare: 'Client executive, Gallagher Healthcare', automotive: 'Client director, Aon Automotive', insurance: 'Client executive, Marsh FINPRO', defence: 'Account executive, Marsh McLennan Agency (Aerospace & Defense)', pharma: 'Client director, Marsh Switzerland (Life Sciences)', sghospital: 'Client executive, Marsh Singapore (Healthcare)', studio: 'Client director, Marsh Media & Entertainment' } as Record<string, string>)[c.id] ?? c.insurance.broker;
   const allSources = [...new Map(pack.flatMap((p) => p.sources).map((s) => [s.name, s])).values()];
   const srcNames = allSources.map((s) => s.name).slice(0, 5).join(' · ');
   const token = rng(`ins-share-${c.id}-${version}-${expiry}`).hex(22);

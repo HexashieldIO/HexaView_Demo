@@ -6,13 +6,13 @@ import { hexaMatrix, coverage, matrixTactics, actorTechniques, toolShort, type F
 import { FULL_TACTICS, TACTIC_COLOR, parentId } from '../../data/attackFull';
 import { fmtAgo, fmtNum } from '../../lib/format';
 import { useSoc, ScopeNote, StatTile, Pills, RecordsDrawer, WriteBackModal, useParamFilter, type WriteBack } from './parts';
-import type { CustomerId } from '../../data/types';
+import { forCustomer, type CustomerMap } from '../../data/customerMap';
 
 const LEVEL_LABEL: Record<FullCov, string> = { full: 'Full coverage', partial: 'Partial', none: 'No coverage' };
 const LEVEL_COLOR: Record<FullCov, string> = { full: '#4f8cff', partial: '#f5a83d', none: '#8a9bc0' };
 const EXTRA_TAC = ['#38bdf8', '#34d399', '#a78bfa', '#2dd4bf', '#fbbf24', '#f472b6', '#fb923c', '#22d3ee', '#a3e635', '#818cf8', '#e879f9', '#4ade80', '#60a5fa', '#f87171'];
 
-const OVERLAY: Record<CustomerId, { label: string; techs: string[]; note: string }> = {
+const OVERLAY: CustomerMap<{ label: string; techs: string[]; note: string }> = {
   maritime: {
     label: 'Maritime overlay',
     techs: ['T1133', 'T1078', 'T1219', 'T1199', 'T1190', 'T1486', 'T1490', 'T1566', 'T1657', 'T1091', 'T0886', 'T0883', 'T0847', 'T0843', 'T0855', 'T0832', 'T0836', 'T0814', 'T0826'],
@@ -37,6 +37,31 @@ const OVERLAY: Record<CustomerId, { label: string; techs: string[]; note: string
     label: 'Automotive overlay',
     techs: ['T1078', 'T1195', 'T1190', 'T1133', 'T1219', 'T1567', 'T1213', 'T1565', 'T1657', 'T1486', 'T1490', 'T1550', 'T1552', 'T1566', 'T0843', 'T0886', 'T0866', 'T0847', 'T0855', 'AML.T0051'],
     note: 'Automotive overlay maintained by HexaShield and aligned to Auto-ISAC, UNECE R155 Annex 5 threats and IEC 62443: OTA signing, vehicle APIs, plant ransomware and design IP.',
+  },
+  insurance: {
+    label: 'Insurance overlay',
+    techs: ['T1078', 'T1098', 'T1621', 'T1657', 'T1565', 'T1190', 'T1505', 'T1110', 'T1539', 'T1213', 'T1530', 'T1059', 'T1486', 'T1490', 'T1114', 'AML.T0051'],
+    note: 'Insurance overlay maintained by HexaShield and aligned to FS-ISAC insurance reporting, NYDFS 500 and NAIC #668: help-desk reset abuse, claims payment fraud, MFT exploitation and policyholder data theft.',
+  },
+  defence: {
+    label: 'Defence industrial base overlay',
+    techs: ['T1566', 'T1204', 'T1078', 'T1213', 'T1567', 'T1560', 'T1003', 'T1047', 'T1090', 'T1071', 'T1133', 'T1195', 'T0843', 'T0821', 'T0886', 'T0847'],
+    note: 'DIB overlay maintained by HexaShield and aligned to DC3 DCISE advisories, NIST 800-171 and DFARS 7012: nation-state spear-phishing, CUI and ITAR exfiltration, living off the land and machine-tool integrity.',
+  },
+  pharma: {
+    label: 'Pharma & life sciences overlay',
+    techs: ['T1565', 'T1562', 'T1213', 'T1199', 'T1560', 'T1567', 'T1190', 'T1505', 'T1078', 'T1219', 'T1486', 'T1490', 'T0843', 'T0821', 'T0886', 'T0836', 'AML.T0057'],
+    note: 'Pharma overlay maintained by HexaShield and aligned to Health-ISAC, EU GMP Annex 11 and NIS2: GxP data integrity, process and formulation IP theft, CRO access and plant ransomware.',
+  },
+  sghospital: {
+    label: 'Healthcare (Singapore) overlay',
+    techs: ['T1078', 'T1098', 'T1621', 'T1566', 'T1133', 'T1190', 'T1219', 'T1213', 'T1565', 'T1486', 'T1490', 'T1556', 'T0883', 'T0886', 'T0843', 'T0836'],
+    note: 'Singapore healthcare overlay maintained by HexaShield and aligned to the MOH Cybersecurity & Data Security Essentials, CSA advisories and HSA GL-04: help-desk reset abuse, edge-device exploitation, EHR snooping and medical-device reachability.',
+  },
+  studio: {
+    label: 'Studio, streaming & parks overlay',
+    techs: ['T1567', 'T1530', 'T1213', 'T1199', 'T1078', 'T1621', 'T1110', 'T1539', 'T1059', 'T1195', 'T1486', 'T1560', 'T0866', 'T0886', 'T0883', 'T0855', 'AML.T0057'],
+    note: 'Studio overlay maintained by HexaShield and aligned to MPA CSBP, TPN and IEC 62443: pre-release leaks, VFX vendor abuse, subscriber account takeover and ride-control segmentation.',
   },
 };
 
@@ -75,7 +100,7 @@ export default function SocAttack() {
   const tactics = m === 'enterprise' ? FULL_TACTICS.map((t) => t.name) : matrixTactics(m);
   const tacColor = (t: string, i: number) => (m === 'enterprise' ? TACTIC_COLOR[t] : EXTRA_TAC[i % EXTRA_TAC.length]);
   const hasOt = tenants.some((t) => t.env.includes('ot'));
-  const ov = OVERLAY[c.id];
+  const ov = forCustomer(OVERLAY, c);
   const actorSet = new Set(actor ? actorTechniques(actor).map((x) => (m === 'enterprise' ? parentId(x) : x)) : []);
   const ovSet = new Set(overlay ? ov.techs : []);
   const highlight = actor ? actorSet : ovSet;

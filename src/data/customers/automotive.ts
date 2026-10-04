@@ -5,6 +5,7 @@ import type { CustomerProfile } from '../types';
 // UNECE R155/R156, ISO/SAE 21434, TISAX, NIS2 and IEC 62443 bite.
 export const automotive: CustomerProfile = {
   id: 'automotive',
+  dataKey: 'automotive',
   name: 'Vireo Motor Group',
   short: 'Vireo',
   initials: 'VM',
@@ -100,6 +101,21 @@ export const automotive: CustomerProfile = {
       { name: 'Felix Bauer', role: 'Service Desk Lead', email: 'felix.bauer@vireo-motors.com' },
       { name: 'Hana Novak', role: 'Battery Process Engineer', email: 'hana.novak@vireo-motors.com' },
     ],
+  },
+  rolePeople: {
+    master: { name: 'Jonas Keller', role: 'Security Platform Owner', email: 'jonas.keller@vireo-motors.com' },
+    executive: { name: 'Dr. Friedrich Albers', role: 'Chairman of the Management Board', email: 'friedrich.albers@vireo-motors.com', vip: true },
+    ciso: { name: 'Dr. Katrin Vogel', role: 'Group CISO', email: 'katrin.vogel@vireo-motors.com' },
+    finance: { name: 'Ingrid Hoffmann', role: 'Chief Financial Officer', email: 'ingrid.hoffmann@vireo-motors.com', vip: true },
+    socmanager: { name: 'Lukas Brandt', role: 'Head of Cyber Defence Center', email: 'lukas.brandt@vireo-motors.com' },
+    analyst: { name: 'Selin Yilmaz', role: 'Senior CDC Analyst', email: 'selin.yilmaz@vireo-motors.com' },
+    threat: { name: 'Niklas Berger', role: 'Threat Intelligence Lead (incl. vehicle threats)', email: 'niklas.berger@vireo-motors.com' },
+    grc: { name: 'Sophie Wagner', role: 'Head of Security Governance & TISAX', email: 'sophie.wagner@vireo-motors.com' },
+    risk: { name: 'Anja Richter', role: 'Head of Enterprise Risk & Business Continuity', email: 'anja.richter@vireo-motors.com' },
+    privacy: { name: 'Dr. Paul Schreiber', role: 'Group Data Protection Officer', email: 'paul.schreiber@vireo-motors.com' },
+    ot: { name: 'Mateo Hernández', role: 'Head of OT Security (Plants)', email: 'mateo.hernandez@vireo-motors.com' },
+    cloud: { name: 'Elena Popescu', role: 'Head of Cloud & Vehicle Backend Security', email: 'elena.popescu@vireo-motors.com' },
+    admin: { name: 'Tim Hofmann', role: 'Security Platform Engineer', email: 'tim.hofmann@vireo-motors.com' },
   },
   thirdParties: [
     { name: 'Bosch Mobility', category: 'Tier 1 supplier (ECUs, ADAS)', tier: 1, access: 'Engineering data exchange, ECU software', rating: 82, country: 'DE' },

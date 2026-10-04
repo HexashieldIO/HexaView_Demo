@@ -11,7 +11,7 @@ import {
   type TrQnView, type TrQuestion, type TrFormatId, type TrQState, type TrDomain,
 } from '../../data/modules/trust';
 import { scopedTenants } from '../../data/customers';
-import { fmtMoney, fmtNum } from '../../lib/format';
+import { fmtMoney, fmtNum, currencySymbol } from '../../lib/format';
 import { useTrust, TRUST_TONE, StatusPill, QStatePill, Conf, EvChip, LibChip, QProgress, dueText, TrustNav } from './parts';
 
 type TC = CSSProperties & { '--tc'?: string };
@@ -178,7 +178,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
     onClose();
     nav(`/trust/questionnaires?q=${q.id}`);
   });
-  const sym = c.currency === 'GBP' ? '£' : c.currency === 'EUR' ? '€' : '$';
+  const sym = currencySymbol(c.currency);
   return (
     <Modal
       title="Import a questionnaire"

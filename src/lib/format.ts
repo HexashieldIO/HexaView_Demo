@@ -26,8 +26,18 @@ export function fmtCompact(n: number): string {
   return fmtNum(n);
 }
 
+/** Display symbol for a customer currency (CHF has no single-glyph symbol). */
+export function currencySymbol(currency: string): string {
+  return currency === 'GBP' ? '£' : currency === 'EUR' ? '€' : currency === 'CHF' ? 'CHF ' : currency === 'SGD' ? 'S$' : '$';
+}
+
+/** Rough conversion from USD into the customer currency, for sizing sector figures. */
+export function fxFromUsd(currency: string): number {
+  return currency === 'GBP' ? 0.79 : currency === 'EUR' ? 0.92 : currency === 'CHF' ? 0.88 : currency === 'SGD' ? 1.34 : 1;
+}
+
 export function fmtMoney(n: number, currency = 'USD', compact = true): string {
-  const sym = currency === 'GBP' ? '£' : currency === 'EUR' ? '€' : '$';
+  const sym = currencySymbol(currency);
   return compact ? `${n < 0 ? '-' : ''}${sym}${fmtCompact(Math.abs(n))}` : `${sym}${fmtNum(n)}`;
 }
 

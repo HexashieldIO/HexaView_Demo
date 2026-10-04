@@ -54,7 +54,7 @@ export const NAV_GROUPS: { id: NavGroupId; label: string }[] = [
 export const MODULES: ModuleDef[] = [
   // ---------- Overview ----------
   { id: 'command', group: 'overview', product: 'Command Centre', title: 'Cyber Resilience Overview', tagline: 'Every capability, tenant and integration in one role-based view.', glyph: 'LayoutDashboard', tone: 'var(--m-view)', basePath: '/', tabs: [] },
-  { id: 'board', group: 'overview', product: 'Board View', title: 'Board & Executive View', tagline: 'The Resilience Index, how it is made, and what would raise it most.', glyph: 'Presentation', tone: 'var(--m-view)', basePath: '/board', tabs: [] },
+  { id: 'board', group: 'overview', product: 'Board View', title: 'Board & Executive View', tagline: 'The Resilience Index, how it is made, and what would raise it most.', glyph: 'Presentation', tone: 'var(--m-view)', basePath: '/board', tabs: [{ id: 'view', label: 'Board View' }, { id: 'meeting', label: 'Board Meeting' }] },
   { id: 'loop', group: 'overview', product: 'Closed-Loop Assurance', title: 'Closed-Loop Assurance', tagline: 'From policy to evidence to ATT&CK to detection to validation, proven live in one place.', glyph: 'RefreshCcwDot', tone: 'var(--m-view)', basePath: '/loop', tabs: [] },
 
   // ---------- Six core capabilities (twenty services) ----------
@@ -76,6 +76,7 @@ export const MODULES: ModuleDef[] = [
       { id: 'hunting', label: 'Threat Hunting', service: 'hunting' },
       { id: 'forensics', label: 'Digital Forensics', service: 'forensics' },
       { id: 'detection', label: 'Detection Engineering', service: 'detection-eng' },
+      { id: 'playbooks', label: 'Playbook Builder', service: 'mdr' },
       { id: 'reports', label: 'Reports', service: 'mdr' },
     ],
   },
@@ -189,6 +190,18 @@ export const MODULES: ModuleDef[] = [
     ],
   },
   {
+    id: 'programme', group: 'platform', product: 'Security Programme', title: 'Security Programme & Roadmap', isNew: true,
+    tagline: 'The plan to improve: initiatives, budget, milestones and maturity against your target, on one roadmap.',
+    glyph: 'Milestone', tone: 'var(--m-programme)', basePath: '/programme',
+    tabs: [
+      { id: 'overview', label: 'Overview' },
+      { id: 'roadmap', label: 'Roadmap' },
+      { id: 'initiatives', label: 'Initiatives' },
+      { id: 'budget', label: 'Budget & Value' },
+      { id: 'maturity', label: 'Maturity' },
+    ],
+  },
+  {
     id: 'trust', group: 'platform', product: 'Trust Centre', title: 'Trust Centre & Customer Assurance', isNew: true,
     tagline: 'Answer customer security questionnaires from live evidence, and share a trust portal your customers can rely on.',
     glyph: 'BadgeCheck', tone: 'var(--m-trust)', basePath: '/trust',
@@ -220,6 +233,7 @@ export const MODULES: ModuleDef[] = [
     brandIcon: 'HexaCore_icon.svg', tone: 'var(--m-core)', basePath: '/fabric', scoreKey: 'fabric', scoreLabel: 'Data completeness',
     tabs: [
       { id: 'integrations', label: 'Integrations' },
+      { id: 'marketplace', label: 'Marketplace' },
       { id: 'dataplanes', label: 'Data Planes' },
       { id: 'assets', label: 'Unified Assets' },
       { id: 'exposure', label: 'Exposure & Vulnerabilities' },

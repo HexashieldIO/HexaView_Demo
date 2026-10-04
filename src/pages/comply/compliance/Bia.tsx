@@ -25,12 +25,21 @@ export function hrs(h: number): string {
   return `${h} h`;
 }
 const word = (w: string) => w.split(/[\s(/]/)[0].toLowerCase();
+const OP_DIM: Record<string, string> = {
+  healthcare: 'Patient safety', automotive: 'Production & safety', maritime: 'Operations & safety',
+  insurance: 'Policyholder service', defence: 'Mission & delivery', pharma: 'Patient supply & quality', sghospital: 'Patient safety', studio: 'Guest safety & release',
+};
 
 const SECTOR: Record<string, { title: string; body: ReactNode }> = {
   healthcare: { title: 'Epic downtime readiness', body: <>Downtime procedures are in place on every unit: BCA read-only workstations, paper order sets and downtime registration. The last full downtime drill ran <b>7 h against a 4 h target</b>; BCA workstations were missing on 3 units. Ambulance diversion is considered after 2 h without the EHR.</> },
   automotive: { title: 'JIT/JIS line-stop exposure', body: <>Parts arrive just in time and in sequence: Ingolstadt line buffers cover <b>2.5 h</b> before the line stops at about <b>€22k per minute</b>. The battery plant is air-gapped and restores only from the signed data-diode bundle; OTA campaigns can be paused and rolled back in under 4 h.</> },
   maritime: { title: 'Terminal and fleet continuity', body: <>Berthing runs on a single Navis N4 production instance with a warm standby in Antwerp; manual crane sequencing covers 8 h. Vessels fall back to paper charts and manual watchkeeping under the SMS. Backup evidence is ageing while the Veeam integration is broken.</> },
   finserv: { title: 'Impact tolerances (FCA SYSC 15A / DORA Art. 11–12)', body: <>Each important business service has a board-approved impact tolerance. Faster Payments recovered in <b>2.5 h within its 4 h tolerance</b> in the last severe-but-plausible scenario test; the single card-acquiring HSM cluster remains a single point of failure.</> },
+  insurance: { title: 'Claims continuity through a catastrophe', body: <>First notice of loss and claims payments run on a single Guidewire ClaimCenter cloud tenant; the contact centre falls back to paper FNOL scripts and a manual cheque run. In a landfall week claims volume reaches <b>4x normal</b>, and the last ransomware tabletop drafted the NYDFS 72-hour notice in <b>30 h</b>.</> },
+  defence: { title: 'Programme delivery and the CUI enclave', body: <>Prime deliveries depend on the GCC High enclave and Teamcenter; both restore from immutable Rubrik copies. Building 3 can machine from the signed offline CNC library for <b>6 h</b>. Late deliveries cost about <b>$18k per day</b> in penalties, and the Tucson range records locally while its WAN link is saturated.</> },
+  pharma: { title: 'Batch release and patient supply', body: <>Batch release runs on PAS-X and LabWare; the approved contingency SOP allows paper batch records, but the last drill took <b>3 days</b> to reconcile. Cork can safe-state the aseptic line and restart only after the media fill is reviewed. Trials keep running on paper CRFs with phone unblinding.</> },
+  sghospital: { title: 'TrakCare downtime and the MOH clock', body: <>Downtime procedures are in place on every ward: read-only workstations, paper order sets and manual registration. The last drill ran <b>6.5 h against a 4 h target</b>, and the tabletop reached MOH notification at <b>3 h 10 min</b> against the 2-hour requirement. A&E diversion is considered after 2 h without the EHR.</> },
+  studio: { title: 'Release, streaming and park continuity', body: <>Starfall+ fails over to a second region in about <b>6 minutes</b>; London finishing restores from immutable masters, which took 16 h against a 12 h objective. Rides fail safe and reopen only after inspection; ticketing validates offline for up to 6 h.</> },
   media: { title: 'On-air and editorial continuity', body: <>Live playout can switch to the DR gallery in about 4 minutes; rights penalties run at around $120k per minute off air. Editorial restores from immutable masters took 14 h against an 8 h objective in the last test.</> },
 };
 
@@ -71,7 +80,7 @@ export default function BiaSection() {
   const flow = useMemo(() => {
     if (!focusSvc) return null;
     const b = focusSvc;
-    const dims = ['Financial', c.id === 'healthcare' ? 'Patient safety' : c.id === 'automotive' ? 'Production & safety' : c.id === 'maritime' ? 'Operations & safety' : 'Operational', 'Regulatory', 'Reputational'];
+    const dims = ['Financial', OP_DIM[c.id] ?? OP_DIM[c.dataKey] ?? 'Operational', 'Regulatory', 'Reputational'];
     const isSpof = (s: string) => !!b.spof && b.spof.toLowerCase().includes(word(s));
     const columns: FlowColumn[] = [
       { label: 'Suppliers', nodes: b.suppliers.map((s) => ({ id: `s-${s}`, title: s, sub: 'third party', icon: <Building2 size={13} />, onClick: () => { const v = linkedVendors(b).find((x) => x.s === s)?.v; go('vendors', v ? { id: v.id } : {}); } })) },
@@ -99,7 +108,7 @@ export default function BiaSection() {
         { ac: 'SPOF', word: 'Single points of failure', value: bia.filter((b) => b.spof).length, unit: 'services', color: 'var(--sev-high)', active: spofOnly, onClick: () => { clear(); set({ spof: '1' }); }, source: src },
         { ac: 'Review overdue', word: 'Lifecycle', value: bia.filter((b) => b.nextReviewDays < 0).length, unit: 'services', color: 'var(--bad)', active: overdue, onClick: () => { clear(); set({ lifecycle: 'overdue' }); }, source: src },
       ]} />
-      <Callout color={tone}><b>{SECTOR[c.id].title}.</b> {SECTOR[c.id].body}</Callout>
+      <Callout color={tone}><b>{(SECTOR[c.id] ?? SECTOR[c.dataKey]).title}.</b> {(SECTOR[c.id] ?? SECTOR[c.dataKey]).body}</Callout>
 
       <div className="grid comply-split">
         <Card title="Recovery objectives vs last test" sub="Bar = RTO · shaded = impact tolerance · dot = time achieved in the last test · log scale · click a service" actions={backups[0] && <Freshness minutes={backups[0].lastSyncMin} stale={backups[0].status !== 'healthy'} label={backups[0].product} />}>

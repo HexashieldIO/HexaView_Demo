@@ -98,7 +98,7 @@ export default function SocRecommendations() {
           onClose={() => setSel(null)}
           footer={
             sel.category === 'Plant' || sel.category === 'Clinical' ? (
-              <Btn onClick={() => nav(c.id === 'healthcare' || c.id === 'automotive' ? '/ot/visibility' : '/soc/entities')}>Open in {sel.category === 'Plant' || sel.category === 'Clinical' ? 'HexaOT' : 'Entities'} <ArrowRight size={14} /></Btn>
+              <Btn onClick={() => nav(c.tenants.some((t) => t.env.includes('ot')) ? '/ot/visibility' : '/soc/entities')}>Open in {sel.category === 'Plant' || sel.category === 'Clinical' ? 'HexaOT' : 'Entities'} <ArrowRight size={14} /></Btn>
             ) : (
               <Btn primary onClick={() => setWb({ title: `Apply: ${sel.title}`, system: sel.via, target: `${sel.devices.toLocaleString('en-GB')} devices`, changes: [`Push the policy through ${sel.via} to a 5% pilot ring`, 'Expand to all affected devices after 72 h without help-desk regressions', `Secure Score expected to rise by ${sel.points} points`], risk: sel.userImpact === 'High' ? 'high' : sel.userImpact === 'Medium' ? 'medium' : 'low', done: `Policy "${sel.title}" queued for pilot` })}><Wrench size={14} /> Apply via {sel.via.split(' ')[0]}</Btn>
             )

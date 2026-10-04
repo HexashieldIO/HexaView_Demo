@@ -5,6 +5,20 @@ import { Drawer, Modal } from '../../components/Overlay';
 import { tickets, type Ticket, type TicketStatus } from '../../data/modules/soc';
 import { fmtAgo, fmtDur } from '../../lib/format';
 import { useSoc, tenantShort, StatTile, Pills, RankList, SegBar, RecordsDrawer, useParamFilter } from './parts';
+import { forCustomer, type CustomerMap } from '../../data/customerMap';
+
+const NEW_TICKET_HINT: CustomerMap<string> = {
+  maritime: 'e.g. Suspicious email to the finance team',
+  finserv: 'e.g. Suspicious email to the finance team',
+  media: 'e.g. Suspicious email to the finance team',
+  healthcare: 'e.g. Caller asked a nurse to approve an MFA prompt',
+  automotive: 'e.g. Supplier asked to change bank details',
+  insurance: 'e.g. Claimant asked to change the payee bank account',
+  defence: 'e.g. CUI file found in the commercial tenant',
+  pharma: 'e.g. LIMS audit trail switched off on a QC instrument',
+  sghospital: 'e.g. Caller posing as IT asked a ward nurse for an MFA code',
+  studio: 'e.g. Screener link shared outside the guild list',
+};
 
 const STATUS_LABEL: Record<TicketStatus, string> = { open: 'Open', in_progress: 'In progress', waiting: 'Waiting on you', resolved: 'Resolved' };
 const STATUS_COLOR: Record<TicketStatus, string> = { open: '#4f8cff', in_progress: '#a78bfa', waiting: '#f5a83d', resolved: '#2dd4bf' };
@@ -173,7 +187,7 @@ export default function SocTickets() {
           <div className="stack" style={{ gap: 12 }}>
             <label className="stack" style={{ gap: 6 }}>
               <span className="section-label" style={{ margin: 0 }}>What do you need?</span>
-              <input className="input" value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} placeholder={c.id === 'healthcare' ? 'e.g. Caller asked a nurse to approve an MFA prompt' : c.id === 'automotive' ? 'e.g. Supplier asked to change bank details' : 'e.g. Suspicious email to the finance team'} />
+              <input className="input" value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} placeholder={forCustomer(NEW_TICKET_HINT, c)} />
             </label>
             <div className="grid g2" style={{ gap: 10 }}>
               <select className="select" value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value })} aria-label="Category">

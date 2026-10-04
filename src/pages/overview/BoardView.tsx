@@ -1,6 +1,6 @@
 import { useMemo, useState, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Printer, Sparkles, ArrowRight, ShieldCheck, FileText } from 'lucide-react';
+import { Printer, Sparkles, ArrowRight, ShieldCheck, FileText, CalendarDays } from 'lucide-react';
 import { useApp, rangeDays, rangeLabel } from '../../state/AppContext';
 import { headlines, resilienceIndex, riTrend, riDrivers, RI_VERSION, loops, loopSummary } from '../../data/core';
 import { tenantName } from '../../data/customers';
@@ -73,6 +73,7 @@ export default function BoardView() {
         </p>
         <Btn onClick={runDraft} color="var(--m-view)" primary><Sparkles /> Draft board summary</Btn>
         <Btn onClick={() => window.print()}><Printer /> Print</Btn>
+        <Btn onClick={() => nav('/board/meeting')} title="Agenda, questions, decisions, actions and minutes for the next board meeting"><CalendarDays /> Board meeting workspace →</Btn>
       </div>
 
       <Card>

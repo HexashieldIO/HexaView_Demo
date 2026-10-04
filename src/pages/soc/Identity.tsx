@@ -3,7 +3,33 @@ import { Users, Cloud, Building2, UserX, ShieldAlert, KeyRound, UserCheck, Finge
 import { Card, Badge, KV, Btn, Callout, cap } from '../../components/ui';
 import { DataTable } from '../../components/DataTable';
 import { Drawer } from '../../components/Overlay';
-import { identityUsers, incidents, type IdUser } from '../../data/modules/soc';
+import { identityUsers, incidents, hasBadgeTap, type IdUser } from '../../data/modules/soc';
+import { forCustomer, type CustomerMap } from '../../data/customerMap';
+
+const ID_INTRO: CustomerMap<string> = {
+  maritime: '',
+  finserv: '',
+  media: '',
+  healthcare: ' Shared clinical workstations sign in by Imprivata badge tap; help-desk-resettable accounts are watched for social engineering.',
+  automotive: ' Supplier, dealer and robot-OEM guests are tracked separately; plant shared logons are limited to Level 3 hosts.',
+  insurance: ' Agents and brokers federate through Okta; BPO servicing staff reach PolicyCenter only through Island Browser.',
+  defence: ' The CUI enclave runs on Entra ID (GCC High) with FIPS YubiKeys; the commercial tenant is tracked separately and never holds CUI.',
+  pharma: ' CRO partners sign in through the Okta partner org; plant shared logons are limited to MES terminals and QC lab benches.',
+  sghospital: ' Shared ward workstations sign in by Imprivata badge tap; help-desk-resettable clinical accounts are watched for social engineering.',
+  studio: ' Freelancers and VFX vendors reach content through Island Browser; ride operations use shared consoles on isolated park networks.',
+};
+const GUEST_LABEL: CustomerMap<string> = {
+  maritime: 'Guests (B2B)',
+  finserv: 'Guests (B2B)',
+  media: 'Guests (B2B)',
+  healthcare: 'Vendor & agency guests',
+  automotive: 'Supplier & dealer guests',
+  insurance: 'BPO & vendor guests',
+  defence: 'OEM & assessor guests',
+  pharma: 'CRO & OEM guests',
+  sghospital: 'Vendor & locum guests',
+  studio: 'Vendor & freelancer guests',
+};
 import { fmtAgo, fmtNum } from '../../lib/format';
 import { rng } from '../../lib/rng';
 import { useSoc, tenantShort, StatTile, Pills, SegBar, RecordsDrawer, WriteBackModal, useParamFilter, AV_COLORS, initials, type WriteBack } from './parts';
@@ -36,14 +62,14 @@ export default function SocIdentity() {
     <>
       <p className="page-intro">
         <b>{scopeLabel}</b> · user connectivity, sync source, Conditional Access and sign-in risk across {src}.
-        {c.id === 'healthcare' ? ' Shared clinical workstations sign in by Imprivata badge tap; help-desk-resettable accounts are watched for social engineering.' : c.id === 'automotive' ? ' Supplier, dealer and robot-OEM guests are tracked separately; plant shared logons are limited to Level 3 hosts.' : ''}
+        {forCustomer(ID_INTRO, c)}
       </p>
 
       <div className="soc-stats">
         <StatTile icon={<Users />} value={fmtNum(d.total)} label="Total users" tone={tone} onClick={() => { setStatus('all'); setSource('all'); setCa('all'); setRiskOnly(false); }} source={src} />
         <StatTile icon={<Building2 />} value={fmtNum(d.hybrid)} label="Hybrid (AD synced)" tone="#4f8cff" onClick={() => setSource('Hybrid')} source={`${tools.idpShort} Connect sync`} />
         <StatTile icon={<Cloud />} value={fmtNum(d.cloud)} label="Cloud only" tone="#2dd4bf" onClick={() => setSource('Cloud only')} source={tools.idpShort} />
-        <StatTile icon={<UserCheck />} value={fmtNum(d.guests)} label={c.id === 'automotive' ? 'Supplier & dealer guests' : c.id === 'healthcare' ? 'Vendor & agency guests' : 'Guests (B2B)'} tone="#a78bfa" onClick={() => setSource('Guest (B2B)')} source={tools.idpShort} />
+        <StatTile icon={<UserCheck />} value={fmtNum(d.guests)} label={forCustomer(GUEST_LABEL, c)} tone="#a78bfa" onClick={() => setSource('Guest (B2B)')} source={tools.idpShort} />
         <StatTile icon={<UserX />} value={fmtNum(d.disabled)} label="Disabled" tone="#8a9bc0" onClick={() => setStatus('disabled')} source={tools.idpShort} />
       </div>
       <div className="soc-stats">
@@ -108,7 +134,7 @@ export default function SocIdentity() {
             onClose={() => setSel(null)}
             footer={idp ? (
               <>
-                <Btn onClick={() => setWb({ title: `Require MFA re-registration for ${sel.name}`, system: tools.idpShort, target: sel.upn, changes: ['Existing MFA methods removed', c.id === 'healthcare' || c.id === 'finserv' ? 'Re-registration only after verified call-back by the service desk (help-desk social-engineering control)' : 'Re-registration with a Temporary Access Pass issued in person', 'User notified by their manager'], risk: 'high', done: `MFA re-registration for ${sel.name} requested` })}>Reset MFA</Btn>
+                <Btn onClick={() => setWb({ title: `Require MFA re-registration for ${sel.name}`, system: tools.idpShort, target: sel.upn, changes: ['Existing MFA methods removed', (c.dataKey === 'healthcare' || c.dataKey === 'finserv' || c.id === 'studio') ? 'Re-registration only after verified call-back by the service desk (help-desk social-engineering control)' : 'Re-registration with a Temporary Access Pass issued in person', 'User notified by their manager'], risk: 'high', done: `MFA re-registration for ${sel.name} requested` })}>Reset MFA</Btn>
                 <Btn primary onClick={() => setWb({ title: `Revoke sessions for ${sel.name}`, system: tools.idpShort, target: sel.upn, changes: [`${idp.write[0] ?? 'Revoke sessions'} on all devices`, 'Refresh tokens invalidated; user re-authenticates with MFA', sel.vip ? 'VIP: executive assistant informed' : 'Service desk briefed'], risk: 'high', done: `Session revocation for ${sel.name} requested` })}>Revoke sessions</Btn>
               </>
             ) : undefined}
@@ -124,7 +150,7 @@ export default function SocIdentity() {
                 ['Privileged', sel.privileged ? `Yes${pam ? ` · vaulted in ${pam.product}` : ''}` : 'No'],
                 ['Sign-ins (7 d)', `${sel.signins7d} · ${sel.failed7d} failed`],
               ]} />
-              {sel.source === 'Shared / kiosk' && <Callout>{c.id === 'healthcare' ? 'Shared clinical workstation: clinicians tap their badge to switch user (Imprivata). Activity is attributed to the tapped user, not this account.' : 'Shared logon: restricted to designated hosts and no email or internet access.'}</Callout>}
+              {sel.source === 'Shared / kiosk' && <Callout>{hasBadgeTap(c) ? 'Shared clinical workstation: clinicians tap their badge to switch user (Imprivata). Activity is attributed to the tapped user, not this account.' : 'Shared logon: restricted to designated hosts and no email or internet access.'}</Callout>}
               {sel.mfa === 'SMS' && <Callout kind="warn">SMS MFA is vulnerable to SIM swap and real-time phishing. Move this user to number matching or FIDO2.</Callout>}
               <div>
                 <div className="section-label">Recent sign-ins · {tools.idpShort}</div>

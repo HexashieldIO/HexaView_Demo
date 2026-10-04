@@ -23,6 +23,10 @@ export const TP_FLAGS: Record<string, { label: string; test: (s: TpSupplier) => 
   lei: { label: 'Missing LEI', test: (s) => s.v.lei === false },
   cif: { label: 'Supports a critical or important function', test: (s) => !!s.v.cif },
   exit: { label: 'Critical provider without tested exit plan', test: (s) => !!s.v.cif && !s.v.obligations.exitPlan },
+  cmmc: { label: 'CUI without a verified CMMC L2 position', test: (s) => s.v.dataAccess.includes('CUI') && (s.v.cmmc === 'POA&M open' || s.v.cmmc === 'No SPRS score') },
+  qa: { label: 'GxP data without a quality agreement', test: (s) => s.v.qa === 'Missing' || s.v.qa === 'Expired' },
+  xfer: { label: 'Patient data overseas without safeguards', test: (s) => s.v.xfer === 'No safeguards' },
+  npi: { label: 'Holds NPI with notice window over 24 h', test: (s) => s.v.dataAccess.includes('NPI') && s.v.obligations.breachNotifyHrs > 24 },
 };
 
 const SECTOR_COL: Record<string, { header: string; render: (s: TpSupplier) => ReactNode; sort: (s: TpSupplier) => string } | undefined> = {
@@ -30,6 +34,10 @@ const SECTOR_COL: Record<string, { header: string; render: (s: TpSupplier) => Re
   healthcare: { header: 'BAA', sort: (s) => s.v.baa ?? '', render: (s) => (s.v.baa && s.v.baa !== 'Not required' ? <Pill color={s.v.baa === 'Signed' ? 'var(--good)' : 'var(--bad)'}>{s.v.baa}</Pill> : <span className="tp-muted">n/a</span>) },
   automotive: { header: 'TISAX', sort: (s) => s.v.tisax ?? '', render: (s) => (s.v.tisax ? <Pill color={s.v.tisax === 'AL3 valid' ? 'var(--good)' : s.v.tisax === 'AL2 valid' ? 'var(--m-matrix)' : s.v.tisax === 'Expiring' ? 'var(--sev-medium)' : 'var(--bad)'}>{s.v.tisax}</Pill> : '—') },
   media: { header: 'TPN', sort: (s) => s.v.tpn ?? '', render: (s) => (s.v.tpn ? <Pill color={s.v.tpn === 'Gold Shield' ? 'var(--m-custody)' : s.v.tpn === 'Blue Shield' ? 'var(--m-matrix)' : s.v.tpn === 'Self-reported' ? 'var(--sev-info)' : 'var(--bad)'}>{s.v.tpn}</Pill> : '—') },
+  insurance: { header: 'NYDFS TPSP', sort: (s) => `${s.v.dataAccess.includes('NPI') ? 1 : 0}${s.v.obligations.breachNotifyHrs}`, render: (s) => (s.v.dataAccess.includes('NPI') ? <span className="tp-tags"><Pill color="var(--m-comply)">NPI</Pill>{s.v.obligations.breachNotifyHrs > 24 && <Pill color="var(--sev-high)">{s.v.obligations.breachNotifyHrs} h notice</Pill>}</span> : <span className="tp-muted">—</span>) },
+  defence: { header: 'CMMC', sort: (s) => s.v.cmmc ?? '', render: (s) => (s.v.cmmc && s.v.cmmc !== 'Not required' ? <Pill color={s.v.cmmc === 'L2 C3PAO' ? 'var(--good)' : s.v.cmmc === 'L2 self-assessed' ? 'var(--m-matrix)' : 'var(--bad)'}>{s.v.cmmc}</Pill> : <span className="tp-muted">n/a</span>) },
+  pharma: { header: 'Quality agreement', sort: (s) => s.v.qa ?? '', render: (s) => (s.v.qa && s.v.qa !== 'Not required' ? <Pill color={s.v.qa === 'Signed' ? 'var(--good)' : 'var(--bad)'}>{s.v.qa}</Pill> : <span className="tp-muted">n/a</span>) },
+  sghospital: { header: 'Data location', sort: (s) => s.v.xfer ?? '', render: (s) => (s.v.xfer && s.v.xfer !== 'No patient data' ? <Pill color={s.v.xfer === 'Singapore only' ? 'var(--good)' : s.v.xfer === 'Safeguards on file' ? 'var(--m-matrix)' : 'var(--bad)'}>{s.v.xfer}</Pill> : <span className="tp-muted">—</span>) },
   maritime: { header: 'OT access', sort: (s) => (s.v.otRemote ? '1' : '0'), render: (s) => (s.v.otRemote ? <Pill color="var(--m-ot)">Remote OT</Pill> : <span className="tp-muted">—</span>) },
 };
 
@@ -53,7 +61,7 @@ export function Suppliers() {
 
   const shown = sup.filter((s) => (service === 'all' || s.service === service) && (risk === 'all' || s.level === risk) && (scope === 'all' || s.inScope.includes(scope))
     && (state === 'all' || s.state === state) && (!status || s.v.assessment === status) && (!flag || !TP_FLAGS[flag] || TP_FLAGS[flag].test(s)));
-  const sector = SECTOR_COL[c.id];
+  const sector = SECTOR_COL[c.id] ?? SECTOR_COL[c.dataKey];
   const assessed = sup.filter((s) => s.v.assessment !== 'Not started').length;
 
   return (

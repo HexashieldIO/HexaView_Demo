@@ -9,6 +9,7 @@ import { DataTable, type Column } from '../../../components/DataTable';
 import { fmtNum } from '../../../lib/format';
 import { useHr, pct } from './state';
 import { Funnel, Stars } from './ui';
+import { forCustomer } from '../../../data/customerMap';
 
 const ST_COLOR: Record<CampaignStatus, string> = { Completed: 'var(--good)', Running: 'var(--accent)', Scheduled: 'var(--sev-medium)' };
 
@@ -147,7 +148,7 @@ function CampaignDrawer({ camp, onClose, deptName }: { camp: Campaign; onClose: 
 function LaunchModal({ onClose, preset }: { onClose: () => void; preset: string | null }) {
   const { c, depts, launch, platform, go } = useHr();
   const { toast } = useApp();
-  const themes = THEMES[c.id];
+  const themes = forCustomer(THEMES, c);
   const [ti, setTi] = useState(0);
   const [sel, setSel] = useState<string[]>(preset ? [preset] : depts.map((d) => d.id));
   const [when, setWhen] = useState<'now' | 'week'>('now');

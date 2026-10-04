@@ -4,6 +4,7 @@ import type { CustomerProfile } from '../types';
 // mainframe and SWIFT on-prem, DORA/PCI/NYDFS regulated, dedicated stamp + BYOK.
 export const finserv: CustomerProfile = {
   id: 'finserv',
+  dataKey: 'finserv',
   name: 'Aldersgate Financial Group',
   short: 'Aldersgate',
   initials: 'AF',
@@ -100,6 +101,21 @@ export const finserv: CustomerProfile = {
       { name: 'Tom Haines', role: 'Service Desk Lead', email: 'tom.haines@aldersgate.co.uk' },
       { name: 'Fatima Al-Sayed', role: 'AML Investigator', email: 'fatima.alsayed@aldersgate.co.uk' },
     ],
+  },
+  rolePeople: {
+    master: { name: 'Owen Price', role: 'Security Platform Owner', email: 'owen.price@aldersgate.co.uk' },
+    executive: { name: 'Sir Richard Langley', role: 'Group Chief Executive', email: 'richard.langley@aldersgate.co.uk', vip: true },
+    ciso: { name: 'Catherine Ashworth', role: 'Group CISO', email: 'catherine.ashworth@aldersgate.co.uk' },
+    finance: { name: 'Helen Carter', role: 'Group CFO', email: 'helen.carter@aldersgate.co.uk', vip: true },
+    socmanager: { name: 'Marcus Bell', role: 'Head of Cyber Defence', email: 'marcus.bell@aldersgate.co.uk' },
+    analyst: { name: 'Aisha Mensah', role: 'Senior Cyber Defence Analyst', email: 'aisha.mensah@aldersgate.co.uk' },
+    threat: { name: 'Daniel Kerr', role: 'Head of Cyber Threat Intelligence', email: 'daniel.kerr@aldersgate.co.uk' },
+    grc: { name: 'Priya Natarajan', role: 'Head of Operational Resilience', email: 'priya.natarajan@aldersgate.co.uk' },
+    risk: { name: 'Rupert Halloran', role: 'Chief Risk Officer, Technology & Cyber', email: 'rupert.halloran@aldersgate.co.uk' },
+    privacy: { name: 'Siobhan Doyle', role: 'Group Data Protection Officer', email: 'siobhan.doyle@aldersgate.co.uk' },
+    ot: { name: 'Graham Holt', role: 'Head of Data Centre Facilities', email: 'graham.holt@aldersgate.co.uk' },
+    cloud: { name: 'Vikram Shah', role: 'Head of Cloud Security Engineering', email: 'vikram.shah@aldersgate.co.uk' },
+    admin: { name: 'Gemma Lloyd', role: 'Security Platform Engineer', email: 'gemma.lloyd@aldersgate.co.uk' },
   },
   thirdParties: [
     { name: 'Microsoft Azure', category: 'Cloud (critical ICT provider)', tier: 1, access: 'Core hosting, UK South', rating: 88, country: 'US' },

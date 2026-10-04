@@ -9,6 +9,7 @@ import { Drawer } from '../../components/Overlay';
 import { fmtAgo, fmtDur, fmtNum } from '../../lib/format';
 import { rng } from '../../lib/rng';
 import { OT_TONE, OtIntro, NoOtState, PeakBadge, CellMeter, srcNames } from './parts';
+import { forCustomer } from '../../data/customerMap';
 
 const HEALTH_COLOR: Record<string, string> = { Good: 'var(--good)', Attention: 'var(--sev-medium)', Offline: 'var(--bad)' };
 const VESSEL_COLOR: Record<string, string> = { online: 'var(--good)', 'store & forward': 'var(--sev-medium)', 'out of coverage': 'var(--bad)' };
@@ -37,7 +38,7 @@ export default function OtSites() {
   }, [show]);
 
   if (!sc.hasOt) return <NoOtState what="Sites and sensors cover locations that run operational technology." />;
-  const w = SECTOR[c.id];
+  const w = forCustomer(SECTOR, c);
   const src = srcNames(sc);
   const r = rng(`ot-sites-${c.id}-${tenantId}`);
   const attention = sensors.filter((s) => s.health !== 'Good' && !s.note?.startsWith('Air-gapped'));

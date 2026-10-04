@@ -7,6 +7,7 @@ import { KpiStrip, Card, Badge, Chip, BarRow } from '../../components/ui';
 import { DataTable } from '../../components/DataTable';
 import { fmtNum } from '../../lib/format';
 import { OT_TONE, OtIntro, NoOtState, AssetDrawer, LevelBadge, levelLabel, srcNames } from './parts';
+import { forCustomer } from '../../data/customerMap';
 
 const CRIT_COLOR: Record<string, string> = { Safety: 'var(--sev-critical)', Production: 'var(--sev-medium)', Support: 'var(--text-muted)' };
 
@@ -44,7 +45,7 @@ export default function OtAssets() {
     (!crit || critOf(a) === crit) && (!fw || a.fwBehind > 0) && (!proto || a.protocols.includes(proto)) && (!route || ('route' in a && (a as { route: string }).route === route))), [base, level, site, zone, type, crit, fw, route, proto]);
 
   if (!sc.hasOt) return <NoOtState what="The asset inventory covers sites that run operational technology." />;
-  const w = SECTOR[c.id];
+  const w = forCustomer(SECTOR, c);
   const src = srcNames(sc);
   const findings = tracked.reduce((s, a) => s + a.findings, 0);
   const noFix = tracked.filter((a) => a.route === 'No vendor fix').length;
@@ -65,7 +66,7 @@ export default function OtAssets() {
         toneColor={OT_TONE}
         items={[
           { label: 'Tracked', hint: 'individually', value: tracked.length, onClick: () => setParams(new URLSearchParams(), { replace: true }), source: src },
-          { label: 'Safety', hint: c.id === 'healthcare' ? 'failure can harm a patient' : 'failure risks people', value: tracked.filter((a) => a.crit === 'Safety').length, toneColor: 'var(--sev-critical)', onClick: () => setParams(new URLSearchParams({ crit: 'Safety' }), { replace: true }), source: src },
+          { label: 'Safety', hint: w.safetyHint ?? 'failure risks people', value: tracked.filter((a) => a.crit === 'Safety').length, toneColor: 'var(--sev-critical)', onClick: () => setParams(new URLSearchParams({ crit: 'Safety' }), { replace: true }), source: src },
           { label: 'Firmware', hint: 'behind vendor latest', value: tracked.filter((a) => a.fwBehind > 0).length, bar: (tracked.filter((a) => a.fwBehind > 0).length / Math.max(1, tracked.length)) * 100, onClick: () => setParams(new URLSearchParams({ fw: 'behind' }), { replace: true }), source: `${src} · vendor firmware catalogue` },
           { label: 'Findings', hint: 'open on these assets', value: fmtNum(findings), to: '/ot/vulns', source: `${src} · vendor advisories, NVD` },
           { label: 'No fix', hint: 'vendor has none', value: noFix, onClick: () => setParams(new URLSearchParams({ route: 'No vendor fix' }), { replace: true }), source: 'Vendor advisories' },

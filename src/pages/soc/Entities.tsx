@@ -31,7 +31,7 @@ export default function SocEntities() {
   const oses = Array.from(new Set(devs.map((d) => d.os))).sort();
   const rows = devs.filter((d) => (exp === 'all' || d.exposure === exp) && (stat === 'all' || (stat === 'online' ? d.online : !d.online)) && (board === 'all' || (board === 'onboarded' ? d.onboarded : !d.onboarded)) && (os === 'all' || d.os === os));
   const kinds = Array.from(new Set(devs.map((d) => d.kind)));
-  const isPlant = (d: Device) => /HMI|Engineering workstation \(TIA|Crane engineering|Bridge/.test(d.kind);
+  const isPlant = (d: Device) => /HMI|Engineering workstation \(TIA|Crane engineering|Bridge|modality console/.test(d.kind);
   const threatIncs = incs.filter((i) => i.status !== 'closed' && !i.ot).slice(0, Math.max(sum.threats, 1));
 
   return (
@@ -125,7 +125,7 @@ export default function SocEntities() {
                 ['Open findings', `${sel.vulns} vulnerabilities · ${sel.alerts} alerts (7 d)`],
                 ['Tags', sel.tags.length ? sel.tags.join(', ') : 'None'],
               ]} />
-              {plant && <OtReadOnly>This is a plant or vessel engineering host. HexaView reads its telemetry but response is carried out by site engineers.</OtReadOnly>}
+              {plant && <OtReadOnly>This is an OT, medical-device or engineering host on a site network. HexaView reads its telemetry but response is carried out by site engineers.</OtReadOnly>}
               <div>
                 <div className="section-label">Vulnerabilities on this device · {dc.length}</div>
                 {dc.length ? dc.map((x) => (

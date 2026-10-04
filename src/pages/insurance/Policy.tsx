@@ -13,6 +13,7 @@ import { Intro, TenantNote, INS_TONE, INS_HEX, money } from './parts';
 import { RecordsDrawer, scrollToId } from './viz';
 import type { CustomerProfile } from '../../data/types';
 import type { TowerLayer } from '../../data/modules/insurance';
+import { forCustomer } from '../../data/customerMap';
 
 const LAYER_COLORS = [INS_HEX, '#4f8cff', '#a07cfb', '#f5a83d'];
 
@@ -80,7 +81,7 @@ export default function InsurancePolicy() {
   const hist = policyHistory(c);
   const mkt = marketIndex();
   const miles = renewalMilestones(c);
-  const peers = PEERS[c.id];
+  const peers = forCustomer(PEERS, c);
   const [ex, setEx] = useState<Exclusion | null>(null);
   const [sub, setSub] = useState<Sublimit | null>(null);
   const [brief, setBrief] = useState(false);
@@ -94,7 +95,7 @@ export default function InsurancePolicy() {
   const rol = (ins.premiumK / 1000 / ins.limitM) * 100;
   const inception = daysAhead(ins.renewalDays);
   const policyStart = daysAgo(365 - ins.renewalDays);
-  const policyNo = `${c.initials}-CY-${new Date().getFullYear() - 1}-${({ finserv: '00418', maritime: '07731', media: '02296', healthcare: '05182', automotive: '11407' } as Record<string, string>)[c.id]}`;
+  const policyNo = `${c.initials}-CY-${new Date().getFullYear() - 1}-${({ finserv: '00418', maritime: '07731', media: '02296', healthcare: '05182', automotive: '11407', insurance: '03390', defence: '00862', pharma: '14025', sghospital: '00517', studio: '20914' } as Record<string, string>)[c.id] ?? '00001'}`;
 
   const worstFor = (s: Sublimit) => {
     const rel = sc.filter((x) => s.scenarios.includes(x.id));

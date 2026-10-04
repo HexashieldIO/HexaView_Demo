@@ -3,13 +3,14 @@
 // governance-side vendor register and the GRC incident register. Everything is
 // derived from the customer profile with a seeded RNG, so it is stable per
 // customer and tenant and agrees with the compliance chain in comply.ts.
-import type { CustomerId, CustomerProfile } from '../types';
+import type { CustomerProfile } from '../types';
 import { rng } from '../../lib/rng';
 import { scopedConnectors } from '../customers';
 import {
-  WORKFLOW_QUESTIONS, vendors,
+  WORKFLOW_QUESTIONS, vendors, vendorLens,
   type ComplyControl, type ComplyTask, type EvidenceItem, type RiskItem, type RegAsset, type DomainId, type CiaLevel,
 } from './comply';
+import { forCustomer, type CustomerMap } from '../customerMap';
 
 /* =====================================================================
    Stream: control workflows (questions that establish each control)
@@ -60,7 +61,7 @@ export function streamWorkflows(controls: ComplyControl[]): Workflow[] {
 export interface CourseStep { title: string; body: string; points?: string[] }
 export interface Course { id: string; title: string; kind: 'Mandatory' | 'Role-based'; minutes: number; dueDays: number; done: boolean; audience: string; steps: CourseStep[] }
 
-const SECTOR_COURSES: Record<CustomerId, Omit<Course, 'id' | 'done' | 'dueDays'>[]> = {
+const SECTOR_COURSES: CustomerMap<Omit<Course, 'id' | 'done' | 'dueDays'>[]> = {
   maritime: [
     { title: 'Cyber risk on board: IMO MSC.428 for officers', kind: 'Role-based', minutes: 12, audience: 'Deck and engine officers', steps: [
       { title: 'Why the SMS covers cyber', body: 'Since 2021 cyber risk must be addressed in the Safety Management System. Port State Control can ask to see how.', points: ['DoC verification includes cyber', 'The Master can stop operations'] },
@@ -147,7 +148,7 @@ export function trainingCourses(c: CustomerProfile): Course[] {
       { title: 'Check the output', body: 'AI output can be wrong. You remain responsible for anything you send or publish.' },
     ] },
   ];
-  const all = [...common, ...SECTOR_COURSES[c.id]];
+  const all = [...common, ...forCustomer(SECTOR_COURSES, c)];
   const r = rng(`training-${c.id}`);
   return all.map((x, i) => ({ ...x, id: `TRN-${String(i + 1).padStart(3, '0')}`, done: i === 1, dueDays: i === 1 ? -r.int(20, 60) : r.int(6, 40) }));
 }
@@ -176,7 +177,7 @@ export interface DriveItem {
 }
 
 const POLICIES = ['Information security policy', 'Acceptable use policy', 'Access control policy', 'Incident response policy', 'Business continuity policy', 'Supplier security policy', 'Data classification & handling standard'];
-const SECTOR_FOLDER: Record<CustomerId, [string, string[], string[]]> = {
+const SECTOR_FOLDER: CustomerMap<[string, string[], string[]]> = {
   maritime: ['Vessel & terminal OT', ['Fleet OT asset inventory', 'Crane network zone diagram', 'ECDIS update procedure', 'Konecranes remote access agreement'], ['Ship cyber security plan', 'PFSP cyber annex', 'Removable media standard (vessels)']],
   finserv: ['Operational resilience', ['Important business services map', 'Impact tolerance board paper', 'Severe-but-plausible scenario results', 'ICT third-party exit plans'], ['DORA ICT risk framework', 'SWIFT CSP architecture type A1', 'PCI DSS scope statement']],
   media: ['Content security', ['Watermark vendor specification', 'TPN Gold Shield certificate', 'Custody delivery log (Nightjar)', 'Freelancer NDA template'], ['Pre-release handling standard', 'Screening room security procedure', 'Live playout DR runbook']],
@@ -194,7 +195,7 @@ export function driveTree(c: CustomerProfile, tasks: ComplyTask[], evidence: Evi
     const created = r.int(4, 400);
     out.push({ id: `DOC-${String(out.length + 1).padStart(4, '0')}`, parent, kind: 'file', name, filename: `${slug(name)}.${type.toLowerCase()}`, type, sizeKb: type === 'PNG' ? r.int(180, 2400) : type === 'PDF' ? r.int(90, 6200) : r.int(24, 900), status, createdDays: created, modifiedDays: r.int(0, created), ...extra });
   };
-  const [secName, secFiles, secDrafts] = SECTOR_FOLDER[c.id];
+  const [secName, secFiles, secDrafts] = forCustomer(SECTOR_FOLDER, c);
   folder('f-iam', 'Access and identity management');
   folder('f-ev', 'Evidences', true);
   folder('f-pol', 'Policy library');
@@ -226,7 +227,7 @@ export function driveTree(c: CustomerProfile, tasks: ComplyTask[], evidence: Evi
 /* =====================================================================
    Risk record detail (scenario, dimension assessments, treatment)
    ===================================================================== */
-export const RISK_DIMS: Record<CustomerId, string[]> = {
+export const RISK_DIMS: CustomerMap<string[]> = {
   maritime: ['Financial', 'Regulatory', 'Reputational', 'Operational', 'Customer'],
   finserv: ['Financial', 'Regulatory', 'Reputational', 'Operational', 'Customer'],
   media: ['Financial', 'Regulatory', 'Reputational', 'Operational', 'Customer'],
@@ -249,7 +250,7 @@ const PROPOSED: [RegExp, string][] = [
   [/contract terms/, 'Add security, audit and breach-notification clauses at renewal'],
   [/egress/, 'Egress filtering through the secure web gateway'],
 ];
-const FUNCTIONS: Record<CustomerId, string[]> = {
+const FUNCTIONS: CustomerMap<string[]> = {
   maritime: ['Security operations', 'Terminal OT engineering', 'Fleet technical', 'Group IT infrastructure', 'Procurement & vendor management', 'Finance'],
   finserv: ['Cyber defence', 'Operational resilience', 'Payments operations', 'Technology infrastructure', 'Third-party risk', 'Financial crime'],
   media: ['Content security', 'Security operations', 'Post-production IT', 'Broadcast engineering', 'Platform engineering', 'Vendor management'],
@@ -300,7 +301,7 @@ export function riskDetail(c: CustomerProfile, x: RiskItem, assets: RegAsset[]):
     res: x.residual ? dims(r, x.residual.i) : null,
     existing,
     proposed,
-    responsible: r.pick(FUNCTIONS[c.id]),
+    responsible: r.pick(forCustomer(FUNCTIONS, c)),
     boardReport: x.curated || x.level === 'High',
     comment: x.treatment === 'Accept' ? 'Accepted within risk appetite; re-confirm at the next quarterly review.' : x.treatment === 'Transfer' ? `Financial impact transferred to cyber insurance (${c.insurance.carrier}).` : x.treatment === 'Avoid' ? 'Activity discontinued or redesigned to remove the exposure.' : x.treatment === 'Not set' ? 'Treatment decision pending with the risk owner.' : 'Treatment plan agreed; residual is a target until the proposed control is in place.',
     uniqueId: `${c.vocab.hostPrefix}-RSK-${x.id.slice(2)}`,
@@ -389,21 +390,21 @@ export interface VendorRec {
   tenants: string[];
   local?: boolean;
 }
-const FIRST: Record<CustomerId, string[]> = {
+const FIRST: CustomerMap<string[]> = {
   maritime: ['Jeroen', 'Annika', 'Mikko', 'Siti', 'Rafael', 'Kees', 'Liesbeth', 'Wei', 'Thomas', 'Ana'],
   finserv: ['James', 'Charlotte', 'Rohan', 'Hannah', 'Callum', 'Sophie', 'Daniel', 'Amira', 'Oliver', 'Grace'],
   media: ['Tyler', 'Camille', 'Jordan', 'Isabel', 'Noah', 'Marisol', 'Dev', 'Sienna', 'Owen', 'Lucía'],
   healthcare: ['Brian', 'Melissa', 'Carlos', 'Jennifer', 'Derek', 'Ashley', 'Kumar', 'Rebecca', 'Travis', 'Monica'],
   automotive: ['Stefan', 'Julia', 'Matthias', 'Lena', 'Florian', 'Katharina', 'Zoltán', 'Mariana', 'Uwe', 'Petra'],
 };
-const LAST: Record<CustomerId, string[]> = {
+const LAST: CustomerMap<string[]> = {
   maritime: ['Visser', 'Lindqvist', 'Virtanen', 'Abdullah', 'Souza', 'de Boer', 'Maes', 'Lim', 'Jensen', 'Costa'],
   finserv: ['Harrington', 'Pemberton', 'Mehta', 'Clarke', 'MacLeod', 'Turner', 'Webb', 'Hassan', 'Bennett', 'Shaw'],
   media: ['Brooks', 'Laurent', 'Reyes', 'Navarro', 'Fischer', 'Ortega', 'Patel', 'Hughes', 'Sullivan', 'Molina'],
   healthcare: ['Kowalczyk', 'Henderson', 'Ramirez', 'Walsh', 'Coleman', 'Morgan', 'Iyer', 'Foster', 'Russell', 'Bishop'],
   automotive: ['Weber', 'Schmitt', 'Neumann', 'Zimmermann', 'Huber', 'Wolf', 'Kovács', 'Ortiz', 'Becker', 'Lang'],
 };
-const SECTOR_REQ: Record<CustomerId, (personal: boolean, ot: boolean) => string[]> = {
+const SECTOR_REQ: CustomerMap<(personal: boolean, ot: boolean) => string[]> = {
   maritime: (p, ot) => [...(ot ? ['IACS UR E27 (supplier systems)', 'IEC 62443-2-4'] : []), 'NIS2 supply-chain clauses', ...(p ? ['GDPR Art. 28 processor terms'] : [])],
   finserv: (p) => ['DORA Art. 30 contractual provisions', 'FCA SYSC 8 outsourcing', ...(p ? ['UK GDPR Art. 28 processor terms'] : [])],
   media: (p) => ['TPN Gold Shield', 'MPA CSBP content handling', ...(p ? ['CCPA service-provider terms'] : [])],
@@ -414,24 +415,28 @@ export function vendorRegister(c: CustomerProfile, tenantId: string): VendorRec[
   const r = rng(`vreg-${c.id}`);
   const reviewers = [c.people.grcLead.name, c.people.ciso.name, ...c.people.staff.slice(3, 6).map((p) => p.name)];
   return vendors(c, tenantId).map((v) => {
-    const personal = v.dataAccess.some((d) => /Personal|PHI|Payments/.test(d));
+    const personal = v.dataAccess.some((d) => /Personal|PHI|Payments|NPI|Patient|Clinical/.test(d));
     const ot = v.dataAccess.some((d) => /OT|Medical device/.test(d)) || !!v.otRemote;
-    const restricted = v.dataAccess.some((d) => /PHI|Pre-release|Prototype|Payments/.test(d));
+    const restricted = v.dataAccess.some((d) => /PHI|Pre-release|Prototype|Payments|CUI|ITAR|Patient|Clinical/.test(d));
+    const lens = vendorLens(c);
     const classification: VendorClass = restricted ? 'Restricted' : personal || v.dataAccess.includes('Confidential') || ot ? 'Confidential' : v.tier === 3 ? r.weighted<VendorClass>([['Internal', 3], ['Public', 1]]) : 'Internal';
     const risk: RecordedRisk = v.highRisk ? 'High' : v.gapScore >= 45 || v.tier === 1 ? 'Medium' : 'Low';
     const nda = r.chance(v.tier === 1 ? 0.85 : 0.6);
     const inContract = v.obligations.rightToAudit || v.tier === 1 || r.chance(0.6);
     const clauses: Clauses = inContract && nda ? 'Contract + NDA' : inContract ? 'In contract' : nda ? 'NDA' : 'None';
-    const fn = r.pick(FIRST[c.id]);
-    const ln = r.pick(LAST[c.id]);
+    const fn = r.pick(forCustomer(FIRST, c));
+    const ln = r.pick(forCustomer(LAST, c));
     const dom = v.name.toLowerCase().replace(/\(.*?\)/g, '').replace(/[^a-z0-9]+/g, '').slice(0, 16) || 'vendor';
     const certs = [
       ...(r.chance(v.tier === 1 ? 0.8 : 0.45) ? ['ISO/IEC 27001'] : []),
       ...(r.chance(0.4) ? ['SOC 2 Type II'] : []),
       ...(v.tisax && v.tisax !== 'No label' ? [`TISAX ${v.tisax}`] : []),
       ...(v.tpn && v.tpn !== 'Not assessed' ? [`TPN ${v.tpn}`] : []),
-      ...(c.id === 'healthcare' && r.chance(0.3) ? ['HITRUST r2'] : []),
-      ...(c.id === 'finserv' && v.cif ? ['ISAE 3402 Type II'] : []),
+      ...(lens === 'baa' && r.chance(0.3) ? ['HITRUST r2'] : []),
+      ...(lens === 'dora' && v.cif ? ['ISAE 3402 Type II'] : []),
+      ...(v.cmmc === 'L2 C3PAO' || v.cmmc === 'L2 self-assessed' ? [`CMMC ${v.cmmc}`] : []),
+      ...(v.qa === 'Signed' ? ['GxP quality agreement'] : []),
+      ...(lens === 'pdpa' && r.chance(0.3) ? ['CSA Cyber Trust'] : []),
     ];
     return {
       id: `VEN-${v.id.slice(4)}`, name: v.name, category: v.category, tier: v.tier, country: v.country,
@@ -441,7 +446,7 @@ export function vendorRegister(c: CustomerProfile, tenantId: string): VendorRec[
       status: v.assessment === 'Not started' || v.assessment === 'Sent' ? r.weighted<RegStatus>([['Draft', 2], ['AI Draft', 1.5]]) : r.weighted<RegStatus>([['Confirmed', 8], ['AI Draft', 1]]),
       startDays: r.int(200, 2400), endDays: v.contractEndDays,
       slas: v.tier === 1 ? r.pick(['99.9% availability · P1 response 30 min', '99.95% availability · P1 response 15 min', '24×7 support · P1 response 1 h']) : r.pick(['Business-hours support · P1 response 4 h', 'Best effort', 'Next business day']),
-      compliance: SECTOR_REQ[c.id](personal, ot),
+      compliance: forCustomer(SECTOR_REQ, c)(personal, ot),
       rights: ot ? 'Remote maintenance on named systems' : personal ? 'Processing of personal data on our instructions' : v.tier === 1 ? 'Administrative access to hosted service' : 'Named user access, no admin',
       duration: ot ? 'Per session, approved ticket' : v.tier === 1 ? 'Contract term, reviewed quarterly' : 'Contract term',
       methods: ot ? 'PAM jump host, session recording' : r.pick(['SSO with MFA, joiner/leaver feed', 'Dedicated tenant, customer-managed keys', 'Supplier portal with MFA']),
@@ -480,7 +485,7 @@ export interface GrcIncident {
   updatedDays: number;
 }
 type IncSeed = [title: string, cause: GrcCause, detail: string, personal: boolean, breach: boolean, status: GrcIncStatus, description: string, asset: number | null, vendor: number | null, regulator: string | null];
-const INC_SEEDS: Record<CustomerId, IncSeed[]> = {
+const INC_SEEDS: CustomerMap<IncSeed[]> = {
   maritime: [
     ['Crew list e-mailed to wrong agent at Port Klang', 'Human error', 'Autocomplete picked a similarly named agency', true, true, 'Closed', 'Crew passports and visas for Halcyon Aurora were sent to the wrong ship agent. Agent confirmed deletion in writing.', null, null, 'Dutch DPA (AP)'],
     ['VSAT outage left Halcyon Pioneer without remote monitoring for 19 h', 'Third party', 'Satellite provider ground-station failure', false, false, 'Resolved', 'No telemetry ashore for 19 hours; vessel operated normally on board. Store-and-forward backlog replayed on reconnection.', null, null, null],
@@ -536,7 +541,7 @@ export function grcIncidents(c: CustomerProfile, tenantId: string): GrcIncident[
   const r = rng(`grcinc-${c.id}`);
   const people = [c.people.grcLead, c.people.socLead, c.people.admin, ...(c.people.otLead ? [c.people.otLead] : []), ...c.people.staff];
   const tIds = c.tenants.map((t) => t.id);
-  const all = INC_SEEDS[c.id].map(([title, cause, causeDetail, personal, breach, status, description, assetIdx, vendorIdx, regulator], i): GrcIncident => {
+  const all = forCustomer(INC_SEEDS, c).map(([title, cause, causeDetail, personal, breach, status, description, assetIdx, vendorIdx, regulator], i): GrcIncident => {
     const started = r.int(3 + i * 9, 20 + i * 14);
     const open = status === 'Open' || status === 'Under investigation';
     const durationH = open ? null : r.weighted<number>([[r.int(1, 12), 3], [r.int(12, 72), 2], [r.int(72, 400), 1]]);
@@ -555,3 +560,160 @@ export function grcIncidents(c: CustomerProfile, tenantId: string): GrcIncident[
   });
   return tenantId === 'all' ? all : all.filter((x) => x.tenant === tenantId);
 }
+
+/* =====================================================================
+   Second-wave customers: their own entries in the tables above.
+   ===================================================================== */
+SECTOR_COURSES.insurance = [
+  { title: 'Protecting policyholder NPI under NYDFS 500 and GLBA', kind: 'Mandatory', minutes: 10, audience: 'All Kingsbridge staff, agents and BPO users', steps: [
+    { title: 'What counts as NPI', body: 'Names with policy numbers, driver records, claim files, medical bills and bank details are nonpublic information. Most of what we touch is NPI.' },
+    { title: 'Approved channels only', body: 'Send claim files through the MFT service or the secure portal. Never personal email, consumer cloud or chat apps.', points: ['MFT or portal only', 'Encrypted email for NPI'] },
+    { title: 'The 72-hour clock', body: 'NYDFS must be told within 72 hours of a reportable cybersecurity event. Report anything odd at once so the clock starts from facts, not rumour.' },
+    { title: 'Annual certification', body: 'The CEO and CISO certify compliance every April. Your training record is part of the evidence.' },
+  ] },
+  { title: 'Claims disbursement fraud and help-desk impersonation', kind: 'Role-based', minutes: 8, audience: 'Adjusters, SIU and billing staff', steps: [
+    { title: 'How the attack sounds', body: 'Callers pose as an adjuster or IT and ask for an MFA reset, or ask to change a claimant payee. They are calm and well informed.' },
+    { title: 'Verify on a known number', body: 'Call back on the number in the directory. Payee changes always need a second approver in ClaimCenter.', points: ['Call-back on file number', 'Dual approval for payee changes'] },
+    { title: 'Catastrophe weeks', body: 'Fraud rises after a landfall. Expect urgent requests and slow down the ones that change where money goes.' },
+    { title: 'Report it', body: 'Use the Report button in Outlook or call SIU. Early reports stop losses.' },
+  ] },
+];
+SECTOR_COURSES.defence = [
+  { title: 'Handling CUI and ITAR technical data', kind: 'Mandatory', minutes: 12, audience: 'All Sentry Peak staff', steps: [
+    { title: 'Where CUI lives', body: 'Controlled Unclassified Information stays in the GCC High enclave. Labels in Purview tell you what is CUI.', points: ['Never in commercial M365', 'No personal devices'] },
+    { title: 'US persons only', body: 'ITAR technical data may only be seen by US persons. Ask the Empowered Official before showing a drawing to anyone you are unsure about.' },
+    { title: 'Sending to primes and sub-tiers', body: 'Use PreVeil or the custody-tracked TDP release. Check the recipient has a current CMMC status first.' },
+    { title: 'Spills and incidents', body: 'If CUI ends up in the wrong place, tell the CUI Program Manager at once. DoD must hear within 72 hours of a reportable incident.' },
+  ] },
+  { title: 'Insider threat awareness (CMMC AT.L2-3.2.3)', kind: 'Role-based', minutes: 9, audience: 'Engineering, programs and Building 3', steps: [
+    { title: 'What to look for', body: 'Unusual downloads from Teamcenter, interest in programmes outside your work, or requests to bypass the enclave.' },
+    { title: 'Foreign contact reporting', body: 'Report foreign contacts and travel to the Facility Security Officer as required by policy.' },
+    { title: 'Shop-floor media', body: 'CNC programmes move from the DNC server only. No USB sticks on machine controllers.', points: ['DNC server only', 'No personal media'] },
+    { title: 'How to report', body: 'Speak to the FSO or use the confidential line. Reports are handled discreetly.' },
+  ] },
+];
+SECTOR_COURSES.pharma = [
+  { title: 'Data integrity (ALCOA+) for GxP systems', kind: 'Mandatory', minutes: 11, audience: 'QC, manufacturing and QA staff', steps: [
+    { title: 'Why it matters', body: 'Batch records, lab results and audit trails are the evidence that a medicine is safe to release. Inspectors read them line by line.' },
+    { title: 'ALCOA+', body: 'Records must be attributable, legible, contemporaneous, original and accurate, and also complete, consistent, enduring and available.', points: ['Your own login only', 'No shared accounts'] },
+    { title: 'Audit trails', body: 'Every GxP change leaves an audit trail. Never ask IT to switch it off, even for a fix.' },
+    { title: 'Report a data-integrity concern', body: 'Tell your QA partner. Raising it is expected; hiding it is the problem.' },
+  ] },
+  { title: 'Trial data, unblinding and generative AI', kind: 'Role-based', minutes: 9, audience: 'Clinical operations and data management', steps: [
+    { title: 'Blinding protects the trial', body: 'Unblinding keys and randomisation lists are restricted. Access is logged and reviewed for every study.' },
+    { title: 'Partners and CROs', body: 'Share study data only through Medidata, Veeva or custody-tracked transfers. CRO users sign in with phishing-resistant MFA.' },
+    { title: 'No trial data in public AI', body: 'Do not paste patient or study data into unsanctioned AI tools. Approved tools are listed on the intranet.', points: ['GDPR special category data', 'EU AI Act literacy'] },
+    { title: 'If data goes astray', body: 'Tell the DPO and the study lead at once. Serious breaches of the protocol have a 7-day reporting clock.' },
+  ] },
+];
+SECTOR_COURSES.sghospital = [
+  { title: 'Health Information Act essentials for clinical staff', kind: 'Mandatory', minutes: 10, audience: 'All Orchid Bay workforce', steps: [
+    { title: 'Access only what you need', body: 'Open records only for patients in your care. Every TrakCare and NEHR access is logged and reviewed.' },
+    { title: 'VIP and medical-tourism patients', body: 'Looking up a well-known patient without a care reason is a breach and leads to sanctions.', points: ['Access is logged', 'Break-glass is reviewed'] },
+    { title: 'Sending patient data', body: 'Use the approved secure messaging. Overseas second opinions go through the transfer procedure, never personal email.' },
+    { title: 'The 2-hour clock', body: 'MOH must hear within 2 hours of us assessing a notifiable incident. Report anything unusual to the service desk straight away.' },
+  ] },
+  { title: 'Medical device security for biomedical engineering', kind: 'Role-based', minutes: 9, audience: 'Biomed, radiology and lab staff', steps: [
+    { title: 'Devices are on the network', body: 'Pumps, monitors, analysers and modalities talk to servers. Many run old operating systems that cannot be patched.' },
+    { title: 'Vendor service sessions', body: 'GE HealthCare, Philips and Siemens Healthineers connect only through CyberArk with a work order.' },
+    { title: 'Buying new devices', body: 'Tenders ask for an SBOM, a patch plan and an end-of-support date, in line with the HSA cybersecurity guidelines.', points: ['SBOM on file', 'Patch commitment'] },
+    { title: 'If a device misbehaves', body: 'Take it out of use, tag it and call Biomed. Patient safety first; security is told in parallel.' },
+  ] },
+];
+SECTOR_COURSES.studio = [
+  { title: 'Handling pre-release content at Starfall', kind: 'Mandatory', minutes: 10, audience: 'Production, post and marketing staff', steps: [
+    { title: 'What is pre-release', body: 'Locked cuts, dailies, plates, stems, scripts and key art before release. One leak can cost a release window.' },
+    { title: 'Watermarks and custody', body: 'Every copy carries a forensic watermark tied to you, and HexaCustody records who received what.' },
+    { title: 'Approved transfer only', body: 'Use Aspera, Signiant or Frame.io with expiring links. Never personal cloud, email or USB.', points: ['No personal cloud', 'No screen recording'] },
+    { title: 'If something leaks', body: 'Tell Content Security immediately. Do not trace it yourself; the watermark does that.' },
+  ] },
+  { title: 'Ride and show control: vendor access and change', kind: 'Role-based', minutes: 9, audience: 'Parks engineering (Orlando, Osaka)', steps: [
+    { title: 'Safety comes first', body: 'Ride control is safety-rated. Nothing in HexaView changes it; monitoring is read-only.' },
+    { title: 'One way in for OEMs', body: 'Intamin and Christie connect only through CyberArk, per session, inside an approved maintenance window.', points: ['Work order', 'Named engineer', 'Time limit'] },
+    { title: 'Programme changes', body: 'Any change to ride or show programmes needs the change ticket and a witnessed test run.' },
+    { title: 'When to stop a session', body: 'Unexpected downloads or mode changes mean you end the session and call OT security.' },
+  ] },
+];
+
+SECTOR_FOLDER.insurance = ['NYDFS 500 & NAIC', ['NYDFS 500.17 certification pack 2026', 'NAIC #668 board certification (domiciliary states)', 'Third-party service provider due-diligence log', 'Guidewire restore test report'], ['Cybersecurity policy (NYDFS 500.3)', 'Incident response plan (72-hour notices)', 'NPI encryption standard']];
+SECTOR_FOLDER.defence = ['CMMC & DFARS', ['System Security Plan v4.2', 'POA&M (SPRS 88/110)', 'Customer responsibility matrix (GCC High)', 'Sub-tier SPRS verification log'], ['CUI handling procedure', 'Technology control plan (ITAR / EAR)', 'DIBNet incident reporting procedure']];
+SECTOR_FOLDER.pharma = ['GxP & computerised systems', ['Validation master plan', 'Annex 11 audit-trail review records', 'Quality agreements register', 'PAS-X restore test report'], ['Data integrity policy (ALCOA+)', 'GxP change control SOP', 'NIS2 incident reporting procedure']];
+SECTOR_FOLDER.sghospital = ['HIA & clinical systems', ['HIA CS/DS Essentials self-assessment', 'Medical device inventory (xDome export)', 'TrakCare downtime drill report', 'NEHR readiness plan'], ['MOH incident notification procedure', 'PDPA overseas transfer procedure', 'Medical device security standard (HSA GL-04)']];
+SECTOR_FOLDER.studio = ['Content security', ['Watermark vendor specification', 'TPN Gold Shield certificate', 'Custody delivery log (Lodestar)', 'Freelancer NDA template'], ['Pre-release handling standard', '8-K materiality runbook', 'Ride control security standard']];
+
+RISK_DIMS.insurance = ['Financial', 'Regulatory', 'Reputational', 'Operational', 'Policyholder'];
+RISK_DIMS.defence = ['Financial', 'Regulatory', 'Reputational', 'Operational', 'Mission'];
+RISK_DIMS.pharma = ['Financial', 'Regulatory', 'Reputational', 'Operational', 'Patient'];
+RISK_DIMS.sghospital = ['Financial', 'Regulatory', 'Reputational', 'Operational', 'Patient'];
+RISK_DIMS.studio = ['Financial', 'Regulatory', 'Reputational', 'Operational', 'Guest & subscriber'];
+FUNCTIONS.insurance = ['Security operations', 'Claims technology', 'Cyber risk & regulatory compliance', 'Infrastructure & mainframe', 'Third-party risk', 'Special investigations (SIU)'];
+FUNCTIONS.defence = ['Security operations', 'CMMC compliance', 'Engineering IT (PLM)', 'Manufacturing systems & OT', 'Trade compliance', 'Subcontracts'];
+FUNCTIONS.pharma = ['Cyber defence centre', 'IT quality & GxP compliance', 'OT security (manufacturing & supply)', 'Clinical systems', 'R&D IT', 'Supplier quality'];
+FUNCTIONS.sghospital = ['Security operations', 'Biomedical engineering', 'TrakCare application team', 'Infrastructure & cloud', 'Data protection office', 'Procurement'];
+FUNCTIONS.studio = ['Content security', 'Cyber defence centre', 'Post-production IT', 'Ride & show control engineering', 'Starfall+ platform engineering', 'Vendor management'];
+FIRST.insurance = ['Kevin', 'Laura', 'Anil', 'Megan', 'Patrick', 'Diane', 'Jorge', 'Kristen', 'Sean', 'Priya'];
+FIRST.defence = ['Wade', 'Tammy', 'Dale', 'Crystal', 'Russell', 'Brandy', 'Curtis', 'Lori', 'Jared', 'Misty'];
+FIRST.pharma = ['Matthias', 'Céline', 'Niamh', 'Reto', 'Aoife', 'Dominik', 'Chiara', 'Ciarán', 'Sandrine', 'Florian'];
+FIRST.sghospital = ['Wei Ling', 'Hafiz', 'Siew Mei', 'Arjun', 'Nurul', 'Kelvin', 'Pei Shan', 'Ravi', 'Farhana', 'Desmond'];
+FIRST.studio = ['Kenji', 'Avery', 'Sienna', 'Marco', 'Harper', 'Dev', 'Lucía', 'Theo', 'Naomi', 'Ivy'];
+LAST.insurance = ['Sullivan', 'Mehta', 'Russo', 'Callahan', 'Dixon', 'Iyer', 'Martinez', 'Kowalczyk', 'Brennan', 'Thompson'];
+LAST.defence = ['Whitaker', 'Holloway', 'Bishop', 'Crawford', 'Daniels', 'Garrison', 'Lambert', 'Pruitt', 'Tate', 'Odom'];
+LAST.pharma = ['Keller', 'Baumann', 'Rochat', 'Murphy', 'Gallagher', 'Fischer', 'Dubois', 'Steiner', 'Moser', 'Byrne'];
+LAST.sghospital = ['Tan', 'Lim', 'Ng', 'Goh', 'Rahman', 'Kumar', 'Chua', 'Ismail', 'Wong', 'Pillai'];
+LAST.studio = ['Caldwell', 'Ortega', 'Nakamura', 'Fitzgerald', 'Reyes', 'Hollis', 'Park', 'Delgado', 'Sato', 'Whitmore'];
+SECTOR_REQ.insurance = (p) => ['NYDFS 500.11 third-party service provider terms', 'NAIC #668 §4F oversight', ...(p ? ['GLBA safeguards / NPI handling', 'PCI DSS 12.8 (if card data)'] : [])];
+SECTOR_REQ.defence = (p, ot) => ['DFARS 252.204-7012 flow-down', 'CMMC Level 2 / SPRS score (DFARS 7019-7021)', 'ITAR / EAR US-person restrictions', ...(ot ? ['NIST 800-171 remote maintenance (MA.L2-3.7.5)'] : []), ...(p ? ['Personnel data handling'] : [])];
+SECTOR_REQ.pharma = (p, ot) => ['GxP quality agreement (EU GMP Ch. 7)', ...(ot ? ['Annex 11 §12 remote access & IEC 62443-2-4'] : []), ...(p ? ['GDPR Art. 28 / revDSG processor terms'] : []), 'NIS2 supply-chain clauses'];
+SECTOR_REQ.sghospital = (p, ot) => [...(p ? ['PDPA s24 protection & s26 transfer terms', 'HIA third-party controls'] : []), ...(ot ? ['HSA GL-04 SBOM & patch commitment'] : []), 'CSA Cyber Trust or ISO 27001'];
+SECTOR_REQ.studio = (p, ot) => ['TPN Gold Shield', 'MPA CSBP content handling', ...(ot ? ['IEC 62443-2-4 service provider'] : []), ...(p ? ['CCPA / CPRA service-provider terms'] : [])];
+
+INC_SEEDS.insurance = [
+  ['Claim files e-mailed to the wrong body shop', 'Human error', 'Autocomplete picked a similarly named repairer', true, true, 'Closed', 'An adjuster sent estimates with claimant names and VINs to the wrong repairer. Recipient confirmed deletion; state notification assessed.', 6, 7, 'Connecticut Insurance Department'],
+  ['Guidewire ClaimCenter degraded for 3 h during hail event', 'Third party', 'Cloud release regression', false, false, 'Resolved', 'FNOL intake slowed for 3 hours during a hail catastrophe. Contact centre switched to paper scripts; no claims lost.', 0, 0, null],
+  ['Fraudulent payee change on a total-loss claim', 'Malicious act', 'Spoofed claimant email and call', true, false, 'Contained', 'A caller impersonating a claimant changed the payee on a $41k total loss. Dual approval in ClaimCenter stopped the payment.', 0, null, null],
+  ['BPO user exported a claims queue to a USB stick', 'Third party', 'Removable media allowed on a legacy desktop', true, true, 'Closed', 'An EXL user copied 2,300 claim records to USB. Device recovered; NYDFS notice filed within 72 hours.', 6, 6, 'NYDFS'],
+  ['Premium payment page script changed without approval', 'Process gap', 'Marketing tag manager update', false, false, 'Closed', 'An analytics script changed on pay.kingsbridgemutual.com outside change control. Detected by script monitoring; no skimming found.', 3, 11, null],
+  ['Mainframe batch overrun delayed renewals by a day', 'System failure', 'DB2 lock contention', false, false, 'Resolved', '12,600 renewal notices printed a day late. Grace periods covered all policyholders.', 1, null, null],
+  ['Telematics bucket briefly public in AWS', 'Process gap', 'Infrastructure-as-code drift', true, false, 'Under investigation', 'A test bucket with driver-behaviour samples was public for 6 hours. Access logs under review; no downloads seen so far.', 4, 10, null],
+  ['Data-centre UPS alarm at the primary site', 'Physical / environmental', 'Battery string failure', false, false, 'Resolved', 'UPS ran on a degraded string for 9 hours. Batteries replaced; no outage.', null, null, null],
+];
+INC_SEEDS.defence = [
+  ['CUI drawing e-mailed from the commercial tenant', 'Human error', 'Engineer used the wrong mailbox', false, false, 'Contained', 'A CUI-marked drawing was sent from commercial M365 to a prime buyer. Message recalled and purged; spill procedure followed.', 1, 1, null],
+  ['Possible CUI exposure at a sub-tier machine shop', 'Third party', 'Ransomware at Cumberland Precision Machining', false, true, 'Under investigation', 'A sub-tier shop holding ITAR drawings reported ransomware. DIBNet report filed within 72 hours; image preservation requested.', 1, 10, 'DoD (DIBNet / DC3)'],
+  ['Foreign-person access to a Teamcenter folder', 'Process gap', 'US-person attribute missing on a new hire', false, false, 'Closed', 'A new engineer without a verified US-person attribute could open one ITAR folder for 2 days. No downloads; voluntary disclosure assessed and not required.', 1, null, null],
+  ['Haas remote session outside the maintenance window', 'Third party', 'OEM engineer connected early', false, false, 'Closed', 'BeyondTrust session to a Building 3 mill started 3 hours before the approved window. Recorded; no programme changes.', 3, 9, null],
+  ['Test-range telemetry link saturated during a campaign', 'System failure', 'Telemetry volume above link capacity', false, false, 'Resolved', 'Range data and backups lagged for 2 days. Data recorded locally and couriered to Huntsville on encrypted drives.', 4, 12, null],
+  ['Phishing email impersonating a prime contracting officer', 'Malicious act', 'Look-alike domain', false, false, 'Closed', 'Engineers received a fake RFQ with a credential-harvesting link. Two clicks, no credential entry; domain blocked.', null, 0, null],
+  ['Costpoint timesheet corrections without approval', 'Process gap', 'Role change not reviewed', false, false, 'Resolved', 'A supervisor role allowed timesheet edits without a second approval for 3 weeks. DCAA-relevant; control restored and reviewed.', 5, 6, null],
+  ['Building 3 compressed-air outage stopped machining', 'Physical / environmental', 'Compressor failure', false, false, 'Resolved', 'CNC machines stopped for 5 hours. Not security-related; maintenance plan updated.', null, null, null],
+];
+INC_SEEDS.pharma = [
+  ['Batch record audit trail gap after PAS-X patch', 'System failure', 'Audit-trail service restarted during patching', false, false, 'Closed', 'Audit trail missing for 40 minutes on one line. QA impact assessment found no GMP data changed; deviation closed.', 3, 11, null],
+  ['Trial data pasted into an unsanctioned AI tool', 'Human error', 'Clinical staff summarising a site report', true, true, 'Closed', 'A study manager pasted pseudonymised site data into a public chatbot. Prompt history deleted with the vendor; DPO notified the lead authority.', 0, null, 'Irish Data Protection Commission'],
+  ['CRO partner account used from an unusual country', 'Third party', 'Credential reuse at a CRO', true, false, 'Contained', 'A Parexel monitor account signed in from a new country. Session revoked; no study downloads found.', 0, 1, null],
+  ['DeltaV OEM session without a GxP change ticket', 'Third party', 'Engineer connected for diagnostics only', false, false, 'Under investigation', 'An Emerson session to a Valais DCS started without a linked change. Recording under QA review.', 3, 9, null],
+  ['Cold-chain excursion on a biologics shipment', 'Third party', 'Logger failed in transit', false, false, 'Resolved', 'Temperature data lost for 6 hours on one pallet. Product quarantined and released after stability review.', 5, 13, null],
+  ['Varonis collector down on R&D file shares', 'System failure', 'Disk full on BSL-FS02', false, false, 'Open', 'Bulk access to discovery shares is not being monitored. Collector rebuild scheduled.', 4, null, null],
+  ['Licensing payment redirect attempt', 'Malicious act', 'Look-alike partner domain', false, false, 'Closed', 'Finance received changed bank details for a milestone payment. Call-back verification stopped it.', null, 6, null],
+  ['Cleanroom EMS alarm flood at Cork', 'System failure', 'Sensor firmware fault', false, false, 'Resolved', 'Spurious alarms for 3 hours. Manual monitoring in place; media-fill review unaffected.', null, null, null],
+];
+INC_SEEDS.sghospital = [
+  ['Staff viewed a VIP patient record without a care reason', 'Human error', 'Curiosity access flagged by FairWarning', true, true, 'Closed', 'FairWarning flagged access to a well-known patient. Sanctions applied; MOH and PDPC notified within their clocks.', 0, null, 'MOH / PDPC'],
+  ['Imaging study e-mailed overseas without the transfer procedure', 'Human error', 'Second-opinion request from a patient family', true, false, 'Closed', 'A doctor sent CT images to an overseas specialist from a personal email. Transfer procedure re-briefed; recipient confirmed deletion.', 1, null, null],
+  ['TrakCare downtime 2 h (unplanned)', 'System failure', 'Storage controller failover', false, false, 'Closed', 'Wards ran on downtime procedures for 2 hours. No patient harm; MOH notification assessed as not required.', 0, 1, null],
+  ['GE HealthCare session to a CT console without a work order', 'Third party', 'Engineer connected outside process', false, false, 'Under investigation', 'A remote session to a CT console started without a ServiceNow work order. Session recorded; vendor asked to explain.', 1, 4, null],
+  ['NEHR messages rejected after a profile update', 'Third party', 'FHIR R4 profile change', false, false, 'Open', 'Pilot NEHR contributions were rejected for 2 days after a profile change. Messages queued for replay; mapping fix in test.', 4, 0, null],
+  ['Alaris drug library sync failed on 2 wards', 'System failure', 'Server certificate expired', false, false, 'Resolved', 'Pumps used the previous drug library for 7 hours. Pharmacy checked high-risk infusions manually.', 2, 7, null],
+  ['Insurer-themed phishing hit the billing team', 'Malicious act', 'Look-alike insurer portal', false, false, 'Closed', 'Billing staff received a fake insurer claims-portal login. One password entered; reset within 20 minutes, MFA held.', 6, 10, null],
+  ['Lab analyser network loop at Science Park', 'Physical / environmental', 'Patch cable error during PACS migration', false, false, 'Resolved', 'Results to the LIS paused for 90 minutes. Critical results phoned to wards.', 3, null, null],
+];
+INC_SEEDS.studio = [
+  ['Teaser trailer leaked 2 days early', 'Third party', 'Marketing agency workstation', false, false, 'Contained', 'The embargoed Lodestar teaser appeared online. Watermark traced it to an agency workstation; vendor access suspended.', 0, 8, null],
+  ['Freelancer kept Moxion access after wrap', 'Process gap', 'Access not revoked at end of contract', false, false, 'Closed', 'A freelance editor kept dailies access 30 days after wrap. Revoked; deletion of local copies confirmed.', null, null, null],
+  ['Starfall+ support export exposed subscriber emails', 'Human error', 'CSV attached to a vendor-visible ticket', true, true, 'Closed', 'A support agent attached 4,800 subscriber emails to a ticket a vendor could see. Notified under CCPA.', 2, null, 'California AG / CPPA'],
+  ['Dubbing vendor sent scripts from a personal mailbox', 'Third party', 'Vendor bypassed the content portal', false, false, 'Under investigation', 'Bluebird Dubbing Studios sent episode scripts to a sub-contractor from a personal account. TPN review requested.', null, 6, null],
+  ['Ride shut down after a show-control fault in Orlando', 'System failure', 'Show controller firmware fault', false, false, 'Resolved', 'One attraction safe-stopped and reopened after 2 h 40 min. Not security-related; OEM patch scheduled.', 4, 14, null],
+  ['Card-testing bots on the ticketing site', 'Malicious act', 'Stolen cards tested at checkout', true, false, 'Contained', 'Thousands of low-value authorisations from bots. Bot management rules tightened; no stored card data affected.', 5, 13, null],
+  ['Screener links forwarded during awards season', 'Human error', 'Voter shared a link with family', false, false, 'Closed', 'An awards screener link was opened from 6 devices. Watermark identified the recipient; link revoked.', 0, 7, null],
+  ['Osaka edge backlog delayed vulnerability scans', 'System failure', 'Edge agent queue', false, false, 'Open', 'Resort scan uploads are arriving about 3 hours late. Agent upgrade planned after the Halloween freeze.', null, null, null],
+];

@@ -24,7 +24,7 @@ export default function CustodyVendors() {
   const [band, setBand] = useState<'all' | 'risk' | 'untracked'>('all');
   const [revoked, setRevoked] = useState<Set<string>>(new Set());
 
-  const media = c.id === 'media';
+  const media = c.dataKey === 'media';
   const hq = c.tenants[0];
   const avgScore = Math.round(vendors.reduce((s, v) => s + v.custodyScore, 0) / Math.max(1, vendors.length));
   const avgCov = Math.round(vendors.reduce((s, v) => s + v.agentCoverage, 0) / Math.max(1, vendors.length));

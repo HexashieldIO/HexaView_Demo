@@ -2,11 +2,12 @@
 // members and key people, impersonation and deepfakes, data-broker removals and
 // travel risk. Advisory-level only: findings are summarised, never the
 // underlying personal data. Everyone named is fictional customer data.
-import type { CustomerId, CustomerProfile, Person, Severity } from '../types';
+import type { CustomerProfile, Person, Severity } from '../types';
 import { rng, type Rng } from '../../lib/rng';
 import { headlines } from '../core';
 import { vipExposure } from './int';
 import { incidents } from './soc';
+import { forCustomer, type CustomerMap } from '../customerMap';
 
 /* ---------------- Vocabulary ---------------- */
 export const VIP_TIERS = ['Board', 'Executive', 'Key person', 'Security'] as const;
@@ -131,28 +132,43 @@ export interface Trip {
 }
 
 /* ---------------- Names & roles ---------------- */
-const NAMES: Record<CustomerId, { first: string[]; last: string[] }> = {
+const NAMES: CustomerMap<{ first: string[]; last: string[] }> = {
   maritime: { first: ['Willem', 'Annelies', 'Jeroen', 'Margriet', 'Koen', 'Lotte', 'Bram', 'Saskia', 'Siti', 'Rafael', 'Mariana', 'Nadia', 'Olav', 'Henrike'], last: ['de Boer', 'Mulder', 'Smit', 'Verbeek', 'Dubois', 'Maes', 'Wouters', 'Abdullah', 'Oliveira', 'Lindqvist', 'Hartog', 'van Leeuwen'] },
   finserv: { first: ['Alistair', 'Fiona', 'Rupert', 'Harriet', 'Nikhil', 'Camilla', 'Edward', 'Priya', 'Laurent', 'Grace', 'Marcus', 'Imogen', 'Thomas', 'Serena'], last: ['Whitmore', 'Pemberton', 'Shah', 'Hargreaves', 'Bellamy', 'Okoro', 'Fairbairn', 'Dumont', 'Chen', 'Kingsley', 'Ashdown', 'Montague'] },
   media: { first: ['Tyler', 'Brooke', 'Marcus', 'Sienna', 'Darius', 'Harper', 'Elliot', 'Naomi', 'Rafael', 'Quinn', 'Zoe', 'Malcolm', 'Ava', 'Jasper'], last: ['Lane', 'Monroe', 'Vasquez', 'Kincaid', 'Holloway', 'Reyes', 'Sterling', 'Park', 'Fontaine', 'Ward', 'Calloway', 'Brooks'] },
   healthcare: { first: ['Robert', 'Linda', 'Kevin', 'Patricia', 'Anil', 'Monica', 'Gregory', 'Denise', 'Carlos', 'Rebecca', 'Steven', 'Lauren', 'Howard', 'Janet'], last: ['Halvorsen', 'McAllister', 'Patel', 'Brennan', 'Washington', 'Kowalczyk', 'Ramirez', 'Sutton', 'Gallagher', 'Nguyen', 'Sorensen', 'Price'] },
   automotive: { first: ['Matthias', 'Claudia', 'Stefan', 'Anja', 'Tobias', 'Birgit', 'László', 'Eszter', 'Alejandro', 'Sabine', 'Jürgen', 'Mónica', 'Florian', 'Ute'], last: ['Krämer', 'Weber', 'Neumann', 'Schulte', 'Kovács', 'Brandt', 'Hartmann', 'Szabó', 'Herrera', 'Lehmann', 'Fischer', 'Zimmermann'] },
+  insurance: { first: ['Richard', 'Susan', 'Thomas', 'Karen', 'William', 'Deborah', 'James', 'Christine', 'Robert', 'Nancy', 'Charles', 'Patricia', 'Edward', 'Maureen'], last: ['Whitaker', 'Sullivan', 'Prescott', 'Hale', 'Donovan', 'Caldwell', 'Bishop', 'Mercer', 'Lowell', 'Ramsey', 'Talbot', 'Winslow'] },
+  defence: { first: ['Robert', 'Michael', 'Susan', 'David', 'Carol', 'James', 'Patricia', 'Gary', 'Janet', 'Wayne'], last: ['Hargrove', 'Mitchell', 'Coleman', 'Dalton', 'Whitley', 'Bowman', 'Pressley', 'Stanton', 'McBride', 'Cunningham'] },
+  pharma: { first: ['Beat', 'Corinne', 'Urs', 'Monika', 'Stefan', 'Brigitte', 'Pascal', 'Sandrine', 'Aoife', 'Ciarán', 'Siobhán', 'Jennifer', 'Michael', 'Katrin'], last: ['Baumgartner', 'Huber', 'Frey', 'Gerber', 'Brunner', 'Rochat', 'Fournier', 'Bonvin', 'Kennedy', 'Lynch', 'Doherty', 'Reynolds'] },
+  sghospital: { first: ['Wei Ming', 'Siew Ling', 'Kok Leong', 'Hui Min', 'Mohamed', 'Siti', 'Rajesh', 'Kavitha', 'Jun Jie', 'Mei Ling', 'Hakim', 'Anand'], last: ['Tan', 'Lim', 'Ng', 'Chan', 'Lee', 'Yeo', 'Ismail', 'Hassan', 'Menon', 'Krishnan', 'Chong', 'Teo'] },
+  studio: { first: ['Jordan', 'Madeline', 'Spencer', 'Vanessa', 'Dominic', 'Charlotte', 'Rupert', 'Imogen', 'Kenji', 'Yuki', 'Haruto', 'Miranda', 'Trevor', 'Selena'], last: ['Ashby', 'Delacroix', 'Montgomery', 'Harrington', 'Pryce', 'Okonkwo', 'Fairfax', 'Takahashi', 'Watanabe', 'Kobayashi', 'Sinclair', 'Vance'] },
 };
-const EXTRA_ROLES: Record<CustomerId, [string, VipTier][]> = {
+const EXTRA_ROLES: CustomerMap<[string, VipTier][]> = {
   maritime: [['Chair of the Supervisory Board', 'Board'], ['Chief Operating Officer', 'Executive'], ['General Counsel', 'Executive'], ['Non-executive director', 'Board'], ['Chief Commercial Officer', 'Executive'], ['Designated Person Ashore', 'Key person'], ['Chief Technology Officer', 'Executive'], ['Head of Investor Relations', 'Key person'], ['Non-executive director', 'Board'], ['Group Treasurer', 'Key person'], ['Head of M&A', 'Key person'], ['Master, Halcyon Aurora', 'Key person'], ['Non-executive director', 'Board']],
   finserv: [['Chair', 'Board'], ['Senior Independent Director', 'Board'], ['Chief Risk Officer', 'Executive'], ['Group Treasurer', 'Executive'], ['Chief Operating Officer', 'Executive'], ['General Counsel', 'Executive'], ['Head of Payments Operations', 'Key person'], ['Head of Investor Relations', 'Key person'], ['Non-executive director', 'Board'], ['Non-executive director', 'Board'], ['Head of FX Trading', 'Key person'], ['Chief Data Officer', 'Executive'], ['Head of Financial Crime', 'Key person'], ['Non-executive director', 'Board'], ['Chief People Officer', 'Executive'], ['Head of Corporate Banking', 'Key person'], ['Chief Technology Officer', 'Executive'], ['Non-executive director', 'Board'], ['Head of SWIFT Operations', 'Key person'], ['Head of Wealth Advisory, Singapore', 'Key person'], ['Company Secretary', 'Key person'], ['Head of Treasury Operations', 'Key person'], ['Non-executive director', 'Board'], ['Chief Audit Executive', 'Executive']],
   media: [['Chair', 'Board'], ['Chief Content Officer', 'Executive'], ['Showrunner (talent services)', 'Key person'], ['Director (talent services)', 'Key person'], ['Head of Distribution', 'Executive'], ['Chief Financial Officer', 'Executive'], ['General Counsel', 'Executive'], ['Head of KestrelPlay', 'Executive'], ['Lead Actor (talent services)', 'Key person'], ['Head of Live Sports', 'Key person'], ['Non-executive director', 'Board'], ['Head of Publicity', 'Key person'], ['Composer (talent services)', 'Key person'], ['Head of Marketing', 'Executive'], ['Non-executive director', 'Board'], ['Producer (talent services)', 'Key person']],
   healthcare: [['Board Chair', 'Board'], ['Chief Operating Officer', 'Executive'], ['Chief Medical Officer', 'Executive'], ['General Counsel', 'Executive'], ['Chief Research Officer', 'Executive'], ['Trustee', 'Board'], ['Chief Compliance & Privacy Officer', 'Executive'], ['Chief of Surgery', 'Key person'], ['Trustee', 'Board'], ['Chief of Emergency Medicine', 'Key person'], ['VP Revenue Cycle', 'Key person'], ['Foundation President', 'Key person'], ['Trustee', 'Board'], ['Principal Investigator, genomics', 'Key person']],
   automotive: [['Chair of the Supervisory Board', 'Board'], ['Board Member, Production', 'Executive'], ['Board Member, R&D', 'Executive'], ['Board Member, Sales', 'Executive'], ['Head of Battery Plant', 'Key person'], ['General Counsel', 'Executive'], ['Works Council Chair', 'Board'], ['Head of Motorsport', 'Key person'], ['Supervisory Board Member', 'Board'], ['Head of Connected Vehicle', 'Key person'], ['Head of Procurement', 'Executive'], ['Plant Director, Puebla', 'Key person'], ['Supervisory Board Member', 'Board'], ['Head of Investor Relations', 'Key person'], ['Chief Engineer, EV platform', 'Key person'], ['Plant Director, Győr', 'Key person'], ['Head of Dealer Network', 'Key person'], ['Supervisory Board Member', 'Board'], ['Chief People Officer', 'Executive'], ['Head of Treasury', 'Key person']],
+  insurance: [['Chair of the Board of Directors', 'Board'], ['Chief Operating Officer', 'Executive'], ['Chief Investment Officer', 'Executive'], ['Director (mutual board)', 'Board'], ['Chief Risk Officer', 'Executive'], ['President, Life & Annuities', 'Executive'], ['President, Specialty E&S', 'Executive'], ['Director (mutual board)', 'Board'], ['Head of Reinsurance', 'Key person'], ['Treasurer', 'Key person'], ['Head of SIU, Claims', 'Key person'], ['Director (mutual board)', 'Board']],
+  defence: [['Chair of the Board', 'Board'], ['Director, Business Development & Capture', 'Executive'], ['Site Director, Tucson', 'Key person'], ['Chief Engineer, guidance programmes', 'Key person'], ['Independent director', 'Board']],
+  pharma: [['Chair of the Board of Directors', 'Board'], ['Vice-Chair of the Board', 'Board'], ['Chief Medical Officer', 'Executive'], ['Head of Regulatory Affairs', 'Executive'], ['Chief Commercial Officer', 'Executive'], ['Site Head, Valais', 'Key person'], ['Head of Biologics Process Development', 'Key person'], ['Member of the Board of Directors', 'Board'], ['Head of Investor Relations', 'Key person'], ['Head of Pharmacovigilance (EU QPPV)', 'Key person'], ['President, US Commercial', 'Executive'], ['Member of the Board of Directors', 'Board'], ['Head of Corporate Development', 'Key person'], ['Group Treasurer', 'Key person'], ['Principal Investigator, oncology', 'Key person'], ['Head of Quality (Global QA)', 'Executive'], ['Member of the Board of Directors', 'Board'], ['Chief People Officer', 'Executive']],
+  sghospital: [['Board Chairman', 'Board'], ['Medical Director, Specialist centres', 'Key person'], ['Independent director', 'Board'], ['Head of Oncology', 'Key person'], ['Director, International Patient Services', 'Key person'], ['Chief Information Officer', 'Executive']],
+  studio: [['Lead Independent Director', 'Board'], ['Chief Content Officer', 'Executive'], ['Director (talent services)', 'Key person'], ['Showrunner, The Hollow Coast (talent services)', 'Key person'], ['Head of Theatrical Distribution', 'Executive'], ['General Counsel', 'Executive'], ['Lead Actor, Lodestar (talent services)', 'Key person'], ['President, Osaka Resort', 'Executive'], ['Non-executive director', 'Board'], ['Head of Publicity', 'Key person'], ['Composer (talent services)', 'Key person'], ['Chief Marketing Officer', 'Executive'], ['President, Orlando Resort', 'Executive'], ['Producer, Crown of Ash (talent services)', 'Key person'], ['Non-executive director', 'Board'], ['Head of Starfall+ Content', 'Key person'], ['Chief Technology Officer, Starfall+', 'Executive'], ['Head of Investor Relations', 'Key person'], ['Non-executive director', 'Board'], ['Head of Imagineering, Parks', 'Key person'], ['Director (talent services)', 'Key person'], ['Chief People Officer', 'Executive'], ['Head of Corporate Development', 'Key person'], ['Non-executive director', 'Board'], ['Voice lead, Skyward Kids 2 (talent services)', 'Key person'], ['Head of Post Production, Studios', 'Key person'], ['Treasurer', 'Key person']],
 };
 
 /** Region drives data-broker volume: US brokers list far more, EU removals are faster (GDPR Art. 17). */
-const BROKER_PROFILE: Record<CustomerId, { min: number; max: number; days: [number, number]; legal: string }> = {
+const BROKER_PROFILE: CustomerMap<{ min: number; max: number; days: [number, number]; legal: string }> = {
   maritime: { min: 0, max: 4, days: [6, 21], legal: 'GDPR Art. 17 erasure request' },
   finserv: { min: 1, max: 7, days: [8, 28], legal: 'UK GDPR Art. 17 erasure request' },
   media: { min: 6, max: 18, days: [14, 45], legal: 'CCPA / CPRA deletion request' },
   healthcare: { min: 4, max: 14, days: [12, 40], legal: 'State privacy law deletion request' },
   automotive: { min: 0, max: 5, days: [5, 20], legal: 'GDPR Art. 17 erasure request' },
+  insurance: { min: 5, max: 15, days: [12, 40], legal: 'State privacy law deletion request (CT, CA)' },
+  defence: { min: 4, max: 13, days: [12, 42], legal: 'State privacy law deletion request · people-search opt-out' },
+  pharma: { min: 0, max: 4, days: [5, 18], legal: 'revDSG / GDPR Art. 17 erasure request' },
+  sghospital: { min: 0, max: 3, days: [7, 25], legal: 'PDPA withdrawal of consent and deletion request' },
+  studio: { min: 7, max: 20, days: [14, 45], legal: 'CCPA / CPRA deletion request · California Delete Act' },
 };
 
 function tierOf(p: Person, c: CustomerProfile): VipTier {
@@ -201,8 +217,8 @@ function roster(c: CustomerProfile): ProtectedPerson[] {
   const base = vipExposure(c);
   const named: Person[] = [c.people.board, ...c.people.staff.filter((p) => p.vip), c.people.ciso];
   const total = headlines(c, 'all').int.vipsMonitored;
-  const extra = EXTRA_ROLES[c.id];
-  const pool = NAMES[c.id];
+  const extra = forCustomer(EXTRA_ROLES, c);
+  const pool = forCustomer(NAMES, c);
   const used = new Set(named.map((p) => p.name));
   const people: { name: string; role: string; tier: VipTier; seed?: (typeof base)[number] }[] = named.map((p, i) => ({ name: p.name, role: p.role, tier: tierOf(p, c), seed: base[i] }));
   let k = 0;
@@ -215,7 +231,7 @@ function roster(c: CustomerProfile): ProtectedPerson[] {
     used.add(name);
     people.push({ name, role, tier });
   }
-  const bp = BROKER_PROFILE[c.id];
+  const bp = forCustomer(BROKER_PROFILE, c);
   return people.map((p, i) => {
     const id = `VIP-${String(i + 1).padStart(2, '0')}`;
     const s = p.seed;
@@ -274,26 +290,41 @@ export function scoreBand(score: number): { label: string; color: string } {
 
 /* ---------------- Impersonation & deepfakes ---------------- */
 const PLATFORMS = ['LinkedIn', 'X', 'Instagram', 'Facebook', 'TikTok'];
-const FRAUD_LINE: Record<CustomerId, string[]> = {
+const FRAUD_LINE: CustomerMap<string[]> = {
   maritime: ['urgent change of bank details for a bunker supplier', 'release fee for a container held at customs', 'confidential acquisition deposit for a terminal concession', 'advance payment to a new crewing agency'],
   finserv: ['same-day CHAPS payment for a confidential acquisition', 'change of bank details for a market-data vendor', 'urgent FX settlement to a new counterparty', 'gift-card purchase for a client event'],
   media: ['talent fee to a new agency account', 'location deposit wired before the shoot', 'payment to a festival screening partner', 'change of bank details for a VFX vendor'],
   healthcare: ['change of direct-deposit details for a physician', 'urgent wire to a medical equipment supplier', 'grant payment to a research partner', 'payment to a locum staffing agency'],
   automotive: ['change of bank details for a Tier 1 supplier', 'urgent tooling payment for a pre-launch model', 'confidential deposit for a battery-materials deal', 'dealer incentive payout to a new account'],
+  insurance: ['change of remittance details for a catastrophe claims contractor', 'urgent claim settlement wire to a new law-firm trust account', 'reinsurance premium payment to a "new" broker account', 'confidential deposit for Project Harbourlight'],
+  defence: ['change of bank details for a prime subcontract payment', 'urgent milestone payment to a machining sub-tier', 'advance on a test-range services invoice', 'confidential payment under a capture-team teaming agreement'],
+  pharma: ['CRO milestone payment to a new bank account', 'urgent upfront fee for an in-licensing deal (Project Edelweiss)', 'change of bank details for a CDMO invoice', 'investigator-site grant payment rerouted abroad'],
+  sghospital: ['insurer reimbursement redirected to a new account', 'change of bank details for a medical-supplies invoice', 'urgent deposit for an overseas patient-referral partner', 'payment to a locum doctor agency'],
+  studio: ['talent payment to a new loan-out company account', 'change of bank details on a VFX vendor invoice', 'urgent location deposit for a reshoot', 'festival premiere event payment to a new agency'],
 };
-const VOICE_LINE: Record<CustomerId, string> = {
+const VOICE_LINE: CustomerMap<string> = {
   maritime: 'Cloned-voice call to a terminal finance clerk asking to release a held payment',
   finserv: 'Cloned-voice call to Treasury Operations requesting a same-day transfer',
   media: 'Cloned-voice voicemail to a production accountant approving a talent fee',
   healthcare: 'Cloned-voice call to the revenue-cycle team requesting a vendor wire',
   automotive: 'Cloned-voice call to a plant controller requesting an urgent supplier payment',
+  insurance: 'Cloned-voice call to claims payments approving an out-of-process settlement wire',
+  defence: 'Cloned-voice call to subcontracts asking to release a held supplier payment',
+  pharma: 'Cloned-voice call to Treasury asking to pay a CRO milestone to a new account',
+  sghospital: 'Cloned-voice call to Finance asking to settle a supplier invoice before month-end',
+  studio: 'Cloned-voice voicemail to production accounting approving a talent fee',
 };
-const DEEPFAKE_LINE: Record<CustomerId, string> = {
+const DEEPFAKE_LINE: CustomerMap<string> = {
   maritime: 'Synthetic video of the CEO “announcing” a terminal strike settlement shared in a crypto promotion',
   finserv: 'Synthetic video of the Group Chief Executive endorsing an investment scheme',
   media: 'Synthetic clip of a lead actor promoting a pirated streaming site',
   healthcare: 'Synthetic video of the CEO endorsing an unapproved supplement',
   automotive: 'Synthetic video of the Chairman “unveiling” a pre-launch model in a giveaway scam',
+  insurance: 'Synthetic video of the CEO “announcing” a policyholder dividend windfall in a crypto scam',
+  defence: 'Synthetic video of the CEO “confirming” a cancelled Army contract, spread on social media',
+  pharma: 'Synthetic video of the CEO endorsing an unapproved weight-loss injection sold online',
+  sghospital: 'Synthetic video of the Group CEO promoting a fake health-insurance subsidy on social media',
+  studio: 'Synthetic clip of the Chairman and a lead actor “announcing” a Starfall+ free-year giveaway',
 };
 
 export function impersonations(c: CustomerProfile, tenantId: string): ImpItem[] {
@@ -339,7 +370,7 @@ export function impersonations(c: CustomerProfile, tenantId: string): ImpItem[] 
     const intercepted = r.chance(0.7);
     out.push({
       id: id(), kind: 'CEO fraud / payment diversion', personId: who.id, personName: who.name, channel: 'Email',
-      title: `Payment-diversion attempt in ${who.name}’s name: ${r.pick(FRAUD_LINE[c.id])}`,
+      title: `Payment-diversion attempt in ${who.name}’s name: ${r.pick(forCustomer(FRAUD_LINE, c))}`,
       detail: `Display-name spoof from a free-mail account to ${r.int(1, 4)} finance staff. ${intercepted ? `Quarantined by ${emailName} before delivery.` : 'Delivered; recipient reported it with the report button and no payment was made.'}${link ? ` Correlated to HexaSOC incident ${link.id}.` : ''}`,
       sev: i === 0 ? 'critical' : 'high', foundMin: r.int(30, 60 * 24 * 25),
       status: intercepted ? 'Intercepted' : 'Monitoring', reach: r.int(1, 4), reachLabel: 'recipients',
@@ -361,13 +392,13 @@ export function impersonations(c: CustomerProfile, tenantId: string): ImpItem[] 
   const voiceTarget = ppl.find((p) => p.deepfake === 'High') ?? ceo;
   out.push({
     id: id(), kind: 'Voice clone', personId: voiceTarget.id, personName: voiceTarget.name, channel: 'Phone',
-    title: `${VOICE_LINE[c.id]} (voice of ${voiceTarget.name})`,
+    title: `${forCustomer(VOICE_LINE, c)} (voice of ${voiceTarget.name})`,
     detail: 'Caller refused a call-back to the directory number; the employee followed the call-back procedure and reported it. Public keynote audio is the likely training source.',
     sev: 'high', foundMin: r.int(60 * 24 * 2, 60 * 24 * 21), status: 'Monitoring', reach: 1, reachLabel: 'call', incidentId: inc[0]?.id, source: 'Employee report · HexaSOC', confidence: r.int(70, 88),
   });
   out.push({
     id: id(), kind: 'Deepfake video', personId: ceo.id, personName: ceo.name, channel: r.pick(['YouTube', 'TikTok', 'X']),
-    title: DEEPFAKE_LINE[c.id],
+    title: forCustomer(DEEPFAKE_LINE, c),
     detail: 'Synthetic video detected by HexaInt media monitoring; lip-sync artefacts and a cloned voice. Platform notified under its synthetic-media policy.',
     sev: 'high', foundMin: r.int(60 * 6, 60 * 24 * 12), status: r.pick<ImpStatus>(['Takedown requested', 'New']), reach: r.int(4000, 180000), reachLabel: 'views', source: 'HexaInt media monitoring', confidence: r.int(82, 97),
   });
@@ -417,7 +448,7 @@ const EXPOSES: Record<BrokerCat, string[]> = {
 export function brokerRecords(c: CustomerProfile, tenantId: string): BrokerRecord[] {
   const ppl = protectedPeople(c, tenantId);
   const r = rng(`vip-brokers-${c.id}-${tenantId}`);
-  const bp = BROKER_PROFILE[c.id];
+  const bp = forCustomer(BROKER_PROFILE, c);
   const out: BrokerRecord[] = [];
   let n = 0;
   for (const p of ppl) {
@@ -448,7 +479,8 @@ export function removalTrend(c: CustomerProfile, tenantId: string, recs: BrokerR
 }
 
 /* ---------------- Travel & events ---------------- */
-const TRIPS: Record<CustomerId, { dest: string; country: string; purpose: string; threat: ThreatLevel; pub: boolean }[]> = {
+/** `notes` adds trip-specific advisories (e.g. export-control briefings); `control` adds a trip-specific checklist item. */
+const TRIPS: CustomerMap<{ dest: string; country: string; purpose: string; threat: ThreatLevel; pub: boolean; notes?: string[]; control?: string }[]> = {
   maritime: [
     { dest: 'Singapore', country: 'SG', purpose: 'Singapore Maritime Week · keynote', threat: 'Moderate', pub: true },
     { dest: 'Athens', country: 'GR', purpose: 'Posidonia exhibition', threat: 'Low', pub: true },
@@ -486,6 +518,44 @@ const TRIPS: Record<CustomerId, { dest: string; country: string; purpose: string
     { dest: 'Seoul', country: 'KR', purpose: 'Battery-cell partner negotiations', threat: 'Elevated', pub: false },
     { dest: 'Munich', country: 'DE', purpose: 'IAA Mobility press day', threat: 'Moderate', pub: true },
   ],
+  insurance: [
+    { dest: 'Hamilton', country: 'BM', purpose: 'January 1 reinsurance renewals · treaty meetings', threat: 'Low', pub: false, notes: ['Renewal terms are market-sensitive: discuss only on the encrypted deal-room, never on hotel Wi-Fi'] },
+    { dest: 'London', country: 'GB', purpose: 'Lloyd’s market meetings · specialty capacity', threat: 'Moderate', pub: false },
+    { dest: 'Monte Carlo', country: 'MC', purpose: 'Rendez-Vous de Septembre (reinsurance)', threat: 'Moderate', pub: true },
+    { dest: 'Chicago', country: 'US', purpose: 'NAIC Insurance Summit · regulator panel', threat: 'Moderate', pub: true },
+    { dest: 'New York', country: 'US', purpose: 'NYDFS meeting and rating-agency review', threat: 'Low', pub: false },
+    { dest: 'Charlotte', country: 'US', purpose: 'Catastrophe claims surge site visit (hurricane season)', threat: 'Elevated', pub: true, notes: ['Disaster-themed payment fraud peaks after landfall: verify every out-of-process payment request by call-back'] },
+  ],
+  defence: [
+    { dest: 'Washington, DC', country: 'US', purpose: 'AUSA Annual Meeting · Army programme office meetings', threat: 'Elevated', pub: true, notes: ['Foreign-intelligence collection is common at large defence shows: no CUI on personal devices, report any unusual approaches to the FSO'], control: 'FSO foreign-contact reporting briefing' },
+    { dest: 'Farnborough', country: 'GB', purpose: 'Farnborough International Airshow · prime supplier meetings', threat: 'Elevated', pub: true, notes: ['ITAR: carry no export-controlled technical data unless a licence or exemption is recorded by the Empowered Official', 'Hand-carried hardware or drawings need a pre-approved export authorisation'], control: 'ITAR travel briefing by the Empowered Official' },
+    { dest: 'Paris', country: 'FR', purpose: 'Paris Air Show · European teaming discussions', threat: 'High', pub: true, notes: ['ITAR: technical discussions with foreign persons require a licence or agreement in place before travel', 'Assume hotel rooms and show chalets are monitored'], control: 'ITAR travel briefing by the Empowered Official' },
+    { dest: 'Orlando', country: 'US', purpose: 'Prime supplier review (Lockheed Martin)', threat: 'Low', pub: false },
+    { dest: 'Tucson', country: 'US', purpose: 'Range test campaign 26-04 review', threat: 'Low', pub: false },
+  ],
+  pharma: [
+    { dest: 'San Diego', country: 'US', purpose: 'BIO International Convention · partnering meetings', threat: 'Moderate', pub: true },
+    { dest: 'Chicago', country: 'US', purpose: 'ASCO Annual Meeting · Phase III data presentation', threat: 'Elevated', pub: true, notes: ['Results are embargoed until presentation: no slides or data on devices taken to the venue beyond the presenter copy'] },
+    { dest: 'Shanghai', country: 'CN', purpose: 'CMO quality audit (contract manufacturing)', threat: 'High', pub: false, notes: ['Process IP must not leave the HexaCustody data room; take only the audit agenda and checklists'] },
+    { dest: 'Incheon', country: 'KR', purpose: 'Samsung Biologics tech-transfer steering committee', threat: 'Elevated', pub: false },
+    { dest: 'Boston', country: 'US', purpose: 'Cambridge, MA research site review', threat: 'Low', pub: false },
+    { dest: 'Davos', country: 'CH', purpose: 'World Economic Forum health panel', threat: 'Elevated', pub: true },
+  ],
+  sghospital: [
+    { dest: 'Jakarta', country: 'ID', purpose: 'Medical tourism referral partner meetings', threat: 'Elevated', pub: false },
+    { dest: 'Kuala Lumpur', country: 'MY', purpose: 'Partner hospital and insurer meetings', threat: 'Moderate', pub: false },
+    { dest: 'Bangkok', country: 'TH', purpose: 'HIMSS APAC Health Conference · panel', threat: 'Moderate', pub: true },
+    { dest: 'Singapore', country: 'SG', purpose: 'MOH Healthcare Cybersecurity Forum · NEHR readiness briefing', threat: 'Low', pub: true },
+    { dest: 'Ho Chi Minh City', country: 'VN', purpose: 'Patient-referral office opening', threat: 'Elevated', pub: true },
+  ],
+  studio: [
+    { dest: 'Cannes', country: 'FR', purpose: 'Cannes Film Festival · Crown of Ash premiere', threat: 'Elevated', pub: true },
+    { dest: 'Toronto', country: 'CA', purpose: 'TIFF gala screening & press junket', threat: 'Moderate', pub: true },
+    { dest: 'Osaka', country: 'JP', purpose: 'Osaka Resort new-land opening', threat: 'Elevated', pub: true, notes: ['Ride and show control engineers must not take engineering laptops off site; use the resort’s managed jump host'] },
+    { dest: 'Tokyo', country: 'JP', purpose: 'Starfall+ Japan launch and partner meetings', threat: 'Moderate', pub: true },
+    { dest: 'London', country: 'GB', purpose: 'Leicester Square premiere · Soho post review', threat: 'Elevated', pub: true, notes: ['Locked cuts are reviewed in the post facility only; no screeners on travel devices'] },
+    { dest: 'San Diego', country: 'US', purpose: 'Comic-Con Hall H panel (Lodestar)', threat: 'Elevated', pub: true },
+  ],
 };
 const ADVISORY: Record<ThreatLevel, string[]> = {
   Low: ['Standard travel profile; corporate device permitted with full-disk encryption', 'Use the corporate VPN on hotel and venue Wi-Fi'],
@@ -496,7 +566,7 @@ const ADVISORY: Record<ThreatLevel, string[]> = {
 export function trips(c: CustomerProfile, tenantId: string): Trip[] {
   const ppl = protectedPeople(c, tenantId).filter((p) => p.tier !== 'Security');
   const r = rng(`vip-trips-${c.id}-${tenantId}`);
-  const list = TRIPS[c.id];
+  const list = forCustomer(TRIPS, c);
   const n = Math.min(list.length, Math.max(2, Math.round(ppl.length / 3)));
   return r.pickN(list, n).map((t, i) => {
     const p = ppl[i % ppl.length];
@@ -507,10 +577,11 @@ export function trips(c: CustomerProfile, tenantId: string): Trip[] {
       { label: 'Account watch during travel (HexaSOC)', done: r.chance(0.4) },
     ];
     if (t.pub) ctl.push({ label: 'Public itinerary scrubbed', done: r.chance(0.3) });
+    if (t.control) ctl.push({ label: t.control, done: r.chance(0.5) });
     return {
       id: `TRV-${String(i + 1).padStart(2, '0')}`, personId: p.id, personName: p.name, destination: t.dest, country: t.country, purpose: t.purpose,
       departsIn: r.int(2, 55), nights: r.int(2, 7), threat: t.threat, publicItinerary: t.pub,
-      advisories: [...ADVISORY[t.threat], ...(t.pub ? ['Event agenda names the executive publicly; expect lookalike event emails and fake social profiles around the dates'] : [])],
+      advisories: [...ADVISORY[t.threat], ...(t.notes ?? []), ...(t.pub ? ['Event agenda names the executive publicly; expect lookalike event emails and fake social profiles around the dates'] : [])],
       controls: ctl,
     };
   }).sort((a, b) => a.departsIn - b.departsIn);

@@ -6,6 +6,8 @@ import type { CapabilityId, Connector, ConnectorCategory, CustomerId, CustomerPr
 import { rng } from '../../lib/rng';
 import { headlines, resilienceIndex, loops, loopSummary } from '../core';
 import { scopedConnectors, scopedTenants, tenantShare, scale } from '../customers';
+import { forCustomer, type CustomerMap } from '../customerMap';
+import { fxFromUsd } from '../../lib/format';
 
 /* =====================================================================
    People and roles
@@ -44,15 +46,20 @@ function pick(x: { name: string; email: string; role: string }) {
 }
 
 /** Extra named users who are not personas: duty approvers, analysts, auditors, support. */
-const EXTRA: Record<CustomerId, { approver: string; analysts: string[]; auditor: string; support: string; partner: string }> = {
+const EXTRA: CustomerMap<{ approver: string; analysts: string[]; auditor: string; support: string; partner: string }> = {
   maritime: { approver: 'Kees Vermeulen', analysts: ['Nadia El Amrani', 'Thijs Mulder', 'Rizal Hakim'], auditor: 'Lotte Smit', support: 'J. Okonkwo (HexaShield)', partner: 'Northbridge Cyber' },
   finserv: { approver: 'Aisha Mensah', analysts: ['Rhys Morgan', 'Chen Wei', 'Dominika Nowak'], auditor: 'Olivia Hart', support: 'M. Ferreira (HexaShield)', partner: 'Castlegate Managed Security' },
   media: { approver: 'Diego Alvarez', analysts: ['Tasha Reed', 'Sam Patel', 'Noor Haddad'], auditor: 'Grace Kim', support: 'L. Andersson (HexaShield)', partner: 'Silverscreen Secure' },
   healthcare: { approver: 'Marcus Bell', analysts: ['Keisha Robinson', 'Daniel Ortiz', 'Mei Chen'], auditor: 'Patricia Hollis', support: 'A. Delgado (HexaShield)', partner: 'Buckeye Health Cyber' },
   automotive: { approver: 'Stefan Richter', analysts: ['Lea Zimmermann', 'Murat Yılmaz', 'Anna Kowalczyk'], auditor: 'Thomas Weber', support: 'C. Hartmann (HexaShield)', partner: 'Isar Cyber Defence GmbH' },
+  insurance: { approver: 'Colleen Murphy', analysts: ['Tyrone Jackson', 'Mei-Ling Wu', 'Patrick Sullivan'], auditor: 'Deborah Klein', support: 'S. Novak (HexaShield)', partner: 'Charter Oak Cyber Partners' },
+  defence: { approver: 'Wesley Grant', analysts: ['Kayla Simmons', 'Marcus Webb', 'Jordan Ellis'], auditor: 'Patricia Lowe', support: 'T. Bennett (HexaShield, US person)', partner: 'Rocket City Managed Security' },
+  pharma: { approver: 'Simon Baumann', analysts: ['Lea Fischer', 'Aoife Byrne', 'Matteo Russo'], auditor: 'Corinne Vogel', support: 'P. Gruber (HexaShield)', partner: 'Rheinknie Cyber AG' },
+  sghospital: { approver: 'Kelvin Lau', analysts: ['Siti Aminah', 'Ravi Shankar', 'Joanne Lim'], auditor: 'Patricia Goh', support: 'W. Tan (HexaShield)', partner: 'Merlion Health Cyber' },
+  studio: { approver: 'Victor Morales', analysts: ['Kiara Johnson', 'Ethan Park', 'Lucia Romero'], auditor: 'Harold Benson', support: 'N. Price (HexaShield)', partner: 'Cahuenga Secure' },
 };
 export function extraPeople(c: CustomerProfile) {
-  return EXTRA[c.id];
+  return forCustomer(EXTRA, c);
 }
 
 /* =====================================================================
@@ -161,7 +168,7 @@ interface PendingSeed {
   created: number;
 }
 
-const PENDING: Record<CustomerId, PendingSeed[]> = {
+const PENDING: CustomerMap<PendingSeed[]> = {
   maritime: [
     {
       conn: 'c-paloalto', write: 'Add address to block list', tenant: 'pkl', target: '185.220.101.47/32', title: 'Block C2 address at the Port Klang perimeter', by: 'agent', created: 55,
@@ -282,21 +289,155 @@ const PENDING: Record<CustomerId, PendingSeed[]> = {
       reason: 'Renders opened from an unmanaged device in Milan; TISAX prototype-protection breach risk', linked: 'CUS-LUMEN-07',
     },
   ],
+  insurance: [
+    {
+      conn: 'c-crowdstrike', write: 'Contain host (approval: high)', tenant: 'group', target: 'KMI-MFT-01', title: 'Network-contain the managed file transfer server KMI-MFT-01', by: 'agent', created: 26,
+      diff: [['Network state', 'Normal', 'Contained (Falcon cloud only)'], ['Partner transfers', '41 scheduled jobs (EXL, Broadridge, One Inc)', 'Paused; partners moved to the Cohesity-restored standby'], ['Duration', '—', 'Until lifted by approval']],
+      reason: 'Web shell in the MFT web tier and 38 GB outbound to an unfamiliar host in 3 hours', linked: 'MI-2026-044',
+    },
+    {
+      conn: 'c-island', write: 'Revoke browser session', tenant: 'claims', target: 'EXL Pune adjuster pod 4 (11 users)', title: 'Revoke Island sessions for EXL adjuster pod 4', by: 'analyst', received: 1, created: 38,
+      diff: [['Island sessions', '11 active (ClaimCenter, claims documents)', '0 (revoked)'], ['Copy, print & download', 'Restricted', 'Blocked pending SIU review'], ['Okta group', 'exl-claims-adjusters', 'unchanged']],
+      reason: '23 claimant payee bank-detail changes in 40 minutes from one pod; matches the SIU payee-fraud pattern', linked: 'SIU-2026-0381',
+    },
+    {
+      conn: 'c-sentinel', write: 'Deploy scheduled rule', tenant: 'group', target: 'HV-T1098-HELPDESK-RESET-PIM', title: 'Deploy rule: help-desk MFA reset followed by PIM activation', by: 'me', created: 74,
+      diff: [['Analytic rule', '—', 'HV-T1098-HELPDESK-RESET-PIM (scheduled, every 10 min)'], ['Severity', '—', 'High'], ['Entity mapping', '—', 'Account, IP, Host'], ['Workspace', '—', 'law-kmi-sec-eus2']],
+      reason: 'Closes 8 partial NYDFS 500.7 / CTL-HD-02 loops on help-desk identity verification', linked: 'LP-GROUP-HD-02-T1098',
+    },
+    {
+      conn: 'c-cloudflare', write: 'Add WAF rule (approval: medium)', tenant: 'personal', target: 'agents.kingsbridgemutual.com /login', title: 'Add WAF rule: challenge credential stuffing on AgentHub', by: 'grc', created: 120,
+      diff: [['WAF custom rule', '—', 'Managed challenge on /login from residential-proxy ASNs'], ['Rate limit', '—', '10 attempts per 5 min per IP'], ['Zone', '—', 'agents.kingsbridgemutual.com']],
+      reason: '41,000 failed agent logins from 2,300 IPs overnight; 64 agent credentials found in stealer logs', linked: 'INT-AGENTHUB-12',
+    },
+  ],
+  defence: [
+    {
+      conn: 'c-entra', write: 'Revoke sessions', tenant: 'programs', target: 'erin.kowalski@sentrypeakdefense.com', title: 'Revoke all GCC High sessions: Contracts & Subcontracts Manager', by: 'analyst', received: 1, created: 34,
+      diff: [['Refresh tokens', '3 active (2 devices)', '0 (revoked)'], ['Sign-in sessions', 'Valid', 'Re-authentication with FIPS YubiKey required'], ['Conditional Access', 'Standard', '+ "IR containment" (compliant device, US locations only)']],
+      reason: 'Session cookie replayed from a non-US VPS after an AiTM phishing click on an RTX-themed lure', linked: 'MI-2026-052',
+    },
+    {
+      conn: 'c-beyondtrust', write: 'Terminate session', tenant: 'manufacturing', target: 'haas-svc-b3 · jump item SPD-JUMP-OT01', title: 'Terminate Haas remote-service session to the Building 3 jump host', by: 'agent', created: 52,
+      diff: [['Session', 'Active 1 h 52 min', 'Terminated'], ['Jump item', 'SPD-JUMP-OT01 (enabled)', 'Disabled until re-approved'], ['Vendor account', 'haas-svc-b3', 'Locked; recording preserved']],
+      reason: 'Session outside the agreed maintenance window; DNC programme share listed from the jump host', linked: 'IR-2026-0233',
+    },
+    {
+      conn: 'c-sentinel', write: 'Deploy scheduled rule', tenant: 'programs', target: 'HV-T1539-GCCH-NONUS-TOKEN', title: 'Deploy rule: GCC High token used from a non-US network', by: 'me', created: 81,
+      diff: [['Analytic rule', '—', 'HV-T1539-GCCH-NONUS-TOKEN (scheduled, every 5 min)'], ['Severity', '—', 'High'], ['Entity mapping', '—', 'Account, IP, CloudApplication'], ['Workspace', '—', 'law-spd-gcch-usgv']],
+      reason: 'Closes 6 partial NIST 800-171 3.1.12 / 3.5.3 loops; would have fired 40 minutes before the CUI site access', linked: 'LP-PROGRAMS-IAM-01-T1539',
+    },
+  ],
+  pharma: [
+    {
+      conn: 'c-crowdstrike', write: 'Contain host (approval: high)', tenant: 'valais', target: 'VLS-MES-WS07', title: 'Network-contain PAS-X MES workstation VLS-MES-WS07 (Valais building 12)', by: 'agent', created: 24,
+      diff: [['Network state', 'Normal', 'Contained (Falcon cloud only)'], ['QA sign-off', '—', 'Batch record step paused; QA on-call informed (deviation DEV-26-0412)'], ['Batch in progress', 'RHN-2290 API batch 26V118', 'Held at step 14, no data loss'], ['Duration', '—', 'Until lifted by approval']],
+      reason: 'Black Basta loader beaconing every 60 s; same hash as the encrypted VLS file server', linked: 'MI-2026-061',
+    },
+    {
+      conn: 'c-beyondtrust', write: 'Terminate session', tenant: 'valais', target: 'emerson-svc-vls · VLS-DELTAV-PROPLUS', title: 'Terminate Emerson remote session to DeltaV ProfessionalPLUS (Valais)', by: 'analyst', received: 1, created: 31,
+      diff: [['Session', 'Active 47 min', 'Terminated'], ['Jump item', 'VLS-DELTAV-PROPLUS (enabled)', 'Disabled until a GxP change record is linked'], ['Vendor account', 'emerson-svc-vls', 'Locked; recording preserved for QA']],
+      reason: 'OEM session open during the incident with no linked ServiceNow GxP change', linked: 'MI-2026-061',
+    },
+    {
+      conn: 'c-paloalto', write: 'Add address to block list', tenant: 'valais', target: '91.92.247.18/32', title: 'Block Black Basta C2 at the Valais perimeter', by: 'agent', created: 48,
+      diff: [['Address group', 'HV-Blocklist (318 entries)', 'HV-Blocklist (319 entries)'], ['Entry', '—', '91.92.247.18/32 · tag hv-ir-vls'], ['Device group', '—', 'Panorama "Valais" (VLS-EDGE-FW01/02)'], ['Commit', '—', 'Partial commit, device group only']],
+      reason: 'C2 contacted by the loader on VLS-MES-WS07 and the plant file server', linked: 'MI-2026-061',
+    },
+    {
+      conn: 'c-okta', write: 'Clear sessions', tenant: 'clinops', target: '4 ICON CRA accounts (study RHN-4471)', title: 'Clear Okta sessions for 4 ICON monitor accounts', by: 'analyst', created: 66,
+      diff: [['Users', '4 (ICON plc, partner portal)', 'unchanged'], ['Active sessions', '9', '0'], ['Remembered factors', 'Yes', 'Forgotten'], ['Rave access', 'Read, 14 sites', 'Re-authentication required']],
+      reason: 'Bulk Rave export pattern from a new ASN; unblinding lists not touched', linked: 'IR-2026-0718',
+    },
+    {
+      conn: 'c-sentinel', write: 'Deploy scheduled rule', tenant: 'valais', target: 'HV-T1133-OEM-OUTSIDE-GXP-CHANGE', title: 'Deploy rule: OEM remote session without a GxP change record', by: 'me', created: 92,
+      diff: [['Analytic rule', '—', 'HV-T1133-OEM-OUTSIDE-GXP-CHANGE (scheduled, every 15 min)'], ['Severity', '—', 'High'], ['Entity mapping', '—', 'Account, Host'], ['Workspace', '—', 'law-rhn-sec-chn']],
+      reason: 'Closes 9 partial EU GMP Annex 11 §12 loops on vendor access to computerised systems', linked: 'LP-VALAIS-OT-03-T1133',
+    },
+  ],
+  sghospital: [
+    {
+      conn: 'c-crowdstrike', write: 'Contain host (approval: high)', tenant: 'obh', target: 'OBH-TRAK-APP03', title: 'Network-contain TrakCare application server OBH-TRAK-APP03', by: 'agent', created: 27,
+      diff: [['Network state', 'Normal', 'Contained (Falcon cloud only)'], ['Clinical sign-off', '—', 'CMIO and A&E consultant on duty (downtime procedures in force)'], ['TrakCare sessions', '412 clinician sessions', 'Moved to APP01/APP02'], ['Duration', '—', 'Until lifted by approval']],
+      reason: 'Qilin encryptor staged on the application tier; same hash as the encrypted file share', linked: 'MI-2026-027',
+    },
+    {
+      conn: 'c-cyberark', write: 'Terminate vendor session (approval: high)', tenant: 'obh', target: 'isc-support-sg · OBH-TRAK-DB01', title: 'Terminate InterSystems vendor session to the TrakCare database', by: 'analyst', received: 1, created: 39,
+      diff: [['Vendor PAM session', 'Active 2 h 14 min', 'Terminated'], ['Vendor account', 'isc-support-sg', 'Locked; recording preserved'], ['Approval policy', 'Standing', 'Per-session approval required']],
+      reason: 'Session opened at 02:31 SGT with no approved change; credential seen in a stealer log', linked: 'MI-2026-027',
+    },
+    {
+      conn: 'c-crowdstrike', write: 'Add IOC', tenant: 'obh', target: 'cdn-trakupdate[.]com', title: 'Add IOC: Qilin C2 domain', by: 'agent', created: 58,
+      diff: [['IOC type', '—', 'domain'], ['Value', '—', 'cdn-trakupdate[.]com'], ['Action', '—', 'Prevent (block + detect)'], ['Host groups', '—', 'All campuses, Windows servers & workstations'], ['Expiry', '—', '90 days']],
+      reason: 'Domain contacted by the encryptor on OBH-TRAK-APP03 and two ward workstations', linked: 'MI-2026-027',
+    },
+    {
+      conn: 'c-sentinel', write: 'Deploy scheduled rule', tenant: 'obh', target: 'HV-T1133-VENDOR-PAM-OFF-WINDOW', title: 'Deploy rule: vendor PAM session outside its approved window', by: 'me', created: 88,
+      diff: [['Analytic rule', '—', 'HV-T1133-VENDOR-PAM-OFF-WINDOW (scheduled, every 10 min)'], ['Severity', '—', 'High'], ['Entity mapping', '—', 'Account, Host'], ['Workspace', '—', 'law-obh-sec-sea']],
+      reason: 'Closes 7 partial HIA CS/DS access-control loops; would have fired 2 hours before encryption', linked: 'LP-OBH-IAM-04-T1133',
+    },
+    {
+      conn: 'c-mimecast', write: 'Block sender', tenant: 'corp', target: '*@orchidbay-billing.com', title: 'Block lookalike sender targeting patients and insurers', by: 'grc', created: 140,
+      diff: [['Blocked senders policy', '27 entries', '28 entries'], ['Entry', '—', '*@orchidbay-billing.com'], ['Scope', '—', 'All inbound, incl. patient billing shared mailboxes']],
+      reason: 'Lookalike domain sending fake "outstanding bill" notices to patients during the outage', linked: 'INT-LOOKALIKE-08',
+    },
+  ],
+  studio: [
+    {
+      conn: 'c-hexacustody', write: 'Revoke access (supplier / user / session)', tenant: 'post', target: 'Northlight Pixel (Vancouver) · Crown of Ash', title: 'Revoke supplier access: Northlight Pixel on Crown of Ash', by: 'analyst', received: 1, created: 29,
+      diff: [['Supplier grant', 'Active (22 users)', 'Revoked'], ['Assets', 'Crown of Ash locked cut v22, VFX plates batches 31–40', 'Inaccessible; cached copies wiped by agent'], ['Review links', '9 live', '0 live']],
+      reason: 'NexGuard watermark on the leaked clip traces to a Northlight review session', linked: 'MI-2026-038',
+    },
+    {
+      conn: 'c-aspera', write: 'Revoke package link', tenant: 'post', target: 'aspera.starfallent.com · 14 Northlight packages', title: 'Revoke 14 Aspera package links shared with Northlight Pixel', by: 'agent', created: 34,
+      diff: [['Package links', '14 active', '0 active'], ['Node API key', 'northlight-node-01 (2 years old)', 'Disabled'], ['Pending transfers', '3 queued', 'Cancelled']],
+      reason: 'The vendor node key used to pull the locked cut was also used from an unknown host', linked: 'MI-2026-038',
+    },
+    {
+      conn: 'c-okta', write: 'Clear sessions', tenant: 'studios', target: 'freelance-vfx-2291', title: 'Clear Okta sessions for freelancer freelance-vfx-2291', by: 'analyst', created: 41,
+      diff: [['Active sessions', '3 (2 devices)', '0'], ['Factors', 'Okta Verify added yesterday', 'Reset; re-enrol in person'], ['App assignments', 'Aspera, Frame.io, Moxion', 'Suspended pending review']],
+      reason: 'Help-desk factor reset followed by 41 plate downloads from a new device', linked: 'MI-2026-038',
+    },
+    {
+      conn: 'c-secops', write: 'Deploy YARA-L rule', tenant: 'post', target: 'hv_aspera_bulk_pull_new_host', title: 'Deploy rule: bulk Aspera pull from a new host', by: 'me', created: 70,
+      diff: [['YARA-L rule', '—', 'hv_aspera_bulk_pull_new_host (live)'], ['Alerting', '—', 'On, severity High'], ['Scope', '—', 'Aspera on Cloud and Signiant logs, all titles']],
+      reason: 'Closes 12 partial MPA DS-11 / TPN loops; would have fired on the first Northlight pull', linked: 'LP-POST-DLP-02-T1567.002',
+    },
+    {
+      conn: 'c-markmonitor', write: 'Request takedown', tenant: 'studios', target: '7 URLs (Telegram, 2 forums, 4 mirrors)', title: 'Request takedown of 7 Crown of Ash leak URLs', by: 'grc', created: 96,
+      diff: [['Takedown requests', '—', '7 URLs submitted'], ['Evidence', '—', 'NexGuard decode report, screenshots, hashes'], ['SLA', '—', '2 h per URL (internal target)']],
+      reason: 'Clip views passing 40k; mirrors appearing every 20 minutes', linked: 'MI-2026-038',
+    },
+    {
+      conn: 'c-hexacustody', write: 'Watermark policy', tenant: 'studios', target: 'Crown of Ash · awards screeners (FYC)', title: 'Raise watermark policy to per-viewer on Crown of Ash screeners', by: 'grc', created: 150,
+      diff: [['Watermark mode', 'Per-session', 'Per-viewer (NexGuard)'], ['Screener links', '2,140 live (Indee)', 'Re-issued with viewer marks'], ['Download', 'Allowed for guild members', 'Stream only']],
+      reason: 'Faster attribution if the FYC screener leaks during awards season', linked: 'MI-2026-038',
+    },
+  ],
 };
 
+const POLICY_BUNDLE: CustomerMap<string> = {
+  maritime: 'pb-2026.09.4', finserv: 'pb-2026.10.1', media: 'pb-2026.09.2', healthcare: 'pb-2026.09.3', automotive: 'pb-2026.10.2',
+  insurance: 'pb-2026.10.3', defence: 'pb-2026.09.6', pharma: 'pb-2026.10.1', sghospital: 'pb-2026.09.5', studio: 'pb-2026.10.4',
+};
+/** Customer key store holding the action-signing key when the customer brings its own key. */
+const SIGNING_KV: CustomerMap<string> = {
+  maritime: 'kv-hps-weu', finserv: 'luna-ald-01', media: 'kv-kst-use2', healthcare: 'kv-mrh-cus', automotive: 'kv-vmg-gwc',
+  insurance: 'kv-kmi-eus2', defence: 'mhsm-spd-usgv', pharma: 'luna-rhn-bsl01', sghospital: 'kv-obh-sea', studio: 'kv-sfe-wus2',
+};
 export function policyBundle(c: CustomerProfile): string {
-  return { maritime: 'pb-2026.09.4', finserv: 'pb-2026.10.1', media: 'pb-2026.09.2', healthcare: 'pb-2026.09.3', automotive: 'pb-2026.10.2' }[c.id];
+  return forCustomer(POLICY_BUNDLE, c);
 }
 export function signingKey(c: CustomerProfile): string {
-  const kv = { maritime: 'kv-hps-weu', finserv: 'luna-ald-01', media: 'kv-kst-use2', healthcare: 'kv-mrh-cus', automotive: 'kv-vmg-gwc' }[c.id];
+  const kv = forCustomer(SIGNING_KV, c);
   return c.byok ? `hsm://${kv}/hv-actions-es256` : 'hsm://hexashield-stamp/tenant-' + c.id + '/hv-actions-es256';
 }
 
 export function pendingActions(c: CustomerProfile, tenantId: string, me: Me): PendingAction[] {
   const n = headlines(c, tenantId).ops.pendingApprovals;
   const rank = (s: PendingSeed) => (tenantId === 'all' ? 0 : (s.tenant === tenantId ? 0 : 2) + (s.by === 'me' ? 1 : 0));
-  const seeds = [...PENDING[c.id]].sort((a, b) => rank(a) - rank(b));
-  const x = EXTRA[c.id];
+  const seeds = [...forCustomer(PENDING, c)].sort((a, b) => rank(a) - rank(b));
+  const x = forCustomer(EXTRA, c);
   const r = rng(`ops-pending-${c.id}-${tenantId}`);
   return seeds.slice(0, n).map((s, i) => {
     const conn = c.connectors.find((k) => k.id === s.conn) ?? c.connectors[0];
@@ -351,12 +492,17 @@ export interface HistoryAction {
   note: string;
 }
 
-const HISTORY_TARGETS: Record<CustomerId, string[]> = {
+const HISTORY_TARGETS: CustomerMap<string[]> = {
   maritime: ['HV-T1078-OT-JUMP', 'HV-T1486-MASS-RENAME', '45.137.21.9/32', 'crew.portal user', 'CTL-BKP-07', 'HV-T1219-ANYDESK', 'sha256:9f2c…e1a4', 'IR containment group'],
   finserv: ['HV - Kerberoasting burst', 'HV - SWIFT operator off-hours', 'sha256:44be…a91c', 'Treasury Ops user', 'CTL-IAM-01', 'LD8 jump host', 'phish msg <a3f9@…>', 'Newly Registered Domains'],
   media: ['hv_s3_vault_bulk_get', 'hv_aspera_new_peer', 'leak-mirror[.]to', 'Freelance colourist session', 'CTL-WAT-08', 'review link rv-88213', 'WAF rule: screener token replay', 'Pixel Forge grant'],
   healthcare: ['HV-T1556-HELPDESK-MFA-RESET', 'HV-T1486-EPIC-SHARE-RENAME', 'update-msedge[.]top', 'Help-desk reset user', 'CTL-MFA-03', 'COM-MAR-WS114', 'phish msg <mychart-billing@…>', 'mercyridgehea1th[.]org', 'HV-FairWarning VIP chart access', 'GE remote-service session'],
   automotive: ['HV - SMB writes L3 → MES', 'HV - Vendor jump outside window', 'sha256:7d1e…b09f', 'KUKA service session', 'CTL-OTA-02', 'ING-PLC-ENG04 (IT NIC)', 'phish msg <calloff@…>', 'vireo-motors-dealer[.]com', 'Dürr paint-cell session', 'HV - DMS bulk customer export'],
+  insurance: ['HV - RACF SPECIAL outside change window', 'HV-T1098-HELPDESK-RESET-PIM', 'KMI-MFT-01', 'claims-docshare[.]net', 'EXL adjuster pod 4', 'CTL-HD-02', 'Cognizant support session', 'phish msg <renewal-notice@…>', 'kingsbridge-mutual-claims[.]com', 'AgentHub /login WAF rule'],
+  defence: ['HV-T1539-GCCH-NONUS-TOKEN', 'HV - Bulk clone of export-controlled repo', 'haas-svc-b3 session', 'sharepoint-rtx-subk[.]com', 'CTL-IAM-01 (CMMC IA.L2-3.5.3)', 'SPD-JUMP-OT01', 'phish msg <subcontract-mod@…>', 'cumberland-sftp', 'PreVeil share: TDP-2207', 'CUI label: SP-EXPT'],
+  pharma: ['HV-T1133-OEM-OUTSIDE-GXP-CHANGE', 'HV - Rave bulk export by CRO account', '91.92.247.18/32', 'emerson-svc-vls session', 'CTL-GXP-AUD-04', 'VLS-MES-WS07', 'phish msg <edelweiss-dataroom@…>', 'rhenara-clinical[.]com', 'ICON CRA sessions', 'Netskope: ChatGPT upload of trial data'],
+  sghospital: ['HV-T1133-VENDOR-PAM-OFF-WINDOW', 'HV - TrakCare IRIS bulk export', 'cdn-trakupdate[.]com', 'isc-support-sg session', 'CTL-IAM-02 (HIA CS/DS)', 'OBH-TRAK-APP03', 'phish msg <outstanding-bill@…>', 'orchidbay-billing[.]com', 'BD Alaris remote session', 'FairWarning VIP record access'],
+  studio: ['hv_aspera_bulk_pull_new_host', 'hv_frameio_link_forward', 'leak-mirror[.]cc', 'freelance-vfx-2291', 'CTL-WAT-03', 'Northlight Pixel grant', 'Crown of Ash screener link', 'WAF rule: screener token replay', 'intamin-svc-orl session', 'starfallplus-login[.]help'],
 };
 
 export function actionHistory(c: CustomerProfile, tenantId: string): HistoryAction[] {
@@ -364,7 +510,7 @@ export function actionHistory(c: CustomerProfile, tenantId: string): HistoryActi
   const r = rng(`ops-history-${c.id}-${tenantId}`);
   const conns = scopedConnectors(c, tenantId).filter((k) => k.write.length && k.env !== 'ot');
   const tenants = scopedTenants(c, tenantId);
-  const x = EXTRA[c.id];
+  const x = forCustomer(EXTRA, c);
   const requesters = [...x.analysts, c.people.socLead.name, c.people.grcLead.name, 'HexaAI triage agent'];
   const approvers = [x.approver, c.people.ciso.name, c.people.admin.name, c.people.socLead.name];
   const out: HistoryAction[] = [];
@@ -392,7 +538,7 @@ export function actionHistory(c: CustomerProfile, tenantId: string): HistoryActi
     out.push({
       id: `ACT-${r.int(10000, 99999)}`,
       minAgo,
-      title: `${w} · ${r.pick(HISTORY_TARGETS[c.id])}`,
+      title: `${w} · ${r.pick(forCustomer(HISTORY_TARGETS, c))}`,
       writeType: w,
       connector: k,
       tenantId: r.pick(tenants).id,
@@ -434,7 +580,11 @@ export function actionTypes(c: CustomerProfile, tenantId: string): ActionType[] 
 }
 
 export function regoPolicy(c: CustomerProfile): string {
-  const tenantRule = {
+  const tenantRule = forCustomer(REGO_TENANT_RULE, c);
+  return regoBody(c, tenantRule);
+}
+
+const REGO_TENANT_RULE: CustomerMap<string> = {
     maritime: `# Vessels: no dispatch while a vessel is outside its LEO window
 deny contains "vessel offline: envelope would queue past expiry" if {
   input.tenant == "fleet"
@@ -475,7 +625,65 @@ deny contains "plant line freeze" if {
 deny contains "OTA signing service is out of scope" if {
   startswith(input.target.host, "VMG-OTA-SIGN")
 }`,
-  }[c.id];
+    insurance: `# Mainframe policy admin: no write-back during the z/OS batch window or quarter-end close
+deny contains "mainframe batch window or close freeze" if {
+  startswith(input.target.host, "KMI-ZOS")
+  data.calendar.zos_batch_window_active
+}
+deny contains "quarter-end close freeze (claims payments)" if {
+  input.tenant == "claims"
+  input.action.risk == "high"
+  data.calendar.quarter_end_freeze
+  not input.incident.major
+}`,
+    defence: `# CUI enclave: only US-person approvers, and nothing leaves GCC High
+deny contains "approver is not a verified US person (ITAR)" if {
+  input.tenant == "programs"
+  some a in input.approvals
+  not data.people[a.subject].us_person
+}
+
+# Building 3 shop floor and Tucson range are OT: never a write-back target
+deny contains "shop-floor and range systems are read-only" if {
+  input.tenant in {"manufacturing", "tucson"}
+  input.connector.category == "OT"
+}`,
+    pharma: `# GMP sites: high-risk actions need a linked GxP change or deviation record
+deny contains "GxP change or deviation reference required" if {
+  input.tenant in {"valais", "cork"}
+  input.action.risk == "high"
+  not input.context.gxp_record
+}
+
+# The air-gapped aseptic line is never reachable for write-back
+deny contains "aseptic line AF-2 is out of scope" if {
+  input.connector.data_plane == "dp-aseptic"
+}`,
+    sghospital: `# Patient-care hosts: no containment without clinical sign-off (CMIO or consultant on duty)
+deny contains "clinical sign-off required for patient-care hosts" if {
+  input.action.type == "contain_host"
+  "patient-care" in input.target.tags
+  not input.context.clinical_signoff
+}
+
+# Medical devices are OT: never a write-back target (HSA GL-04, vendor support)
+deny contains "medical device is read-only" if {
+  input.target.class == "medical_device"
+}`,
+    studio: `# Custody revocations must name the title and supplier grant
+deny contains "custody revoke needs title + grant" if {
+  input.action.type == "revoke_access"
+  not input.target.title
+}
+
+# Ride and show control is safety-critical OT: never a write-back target
+deny contains "ride & show control is read-only" if {
+  input.tenant in {"parks", "parksasia"}
+  input.connector.category == "OT"
+}`,
+};
+
+function regoBody(c: CustomerProfile, tenantRule: string): string {
   return `package hexaview.writeback.${c.id}
 # bundle ${policyBundle(c)} · signed ES256 · evaluated in the control plane
 # AND again by the data-plane agent before execution (local veto)
@@ -572,7 +780,7 @@ export function auditTotals(c: CustomerProfile, tenantId: string, days: number):
 
 export function auditEvents(c: CustomerProfile, tenantId: string, days: number): AuditEvent[] {
   const r = rng(`ops-audit-${c.id}-${tenantId}`);
-  const x = EXTRA[c.id];
+  const x = forCustomer(EXTRA, c);
   const tenants = scopedTenants(c, tenantId);
   const conns = scopedConnectors(c, tenantId);
   const users = [c.people.ciso.name, c.people.socLead.name, c.people.grcLead.name, c.people.admin.name, x.approver, ...x.analysts, x.auditor];
@@ -641,17 +849,24 @@ export interface Anchor {
   storage: string;
 }
 
+/** Where ledger anchors are written (immutable, in the customer's region). */
+const ANCHOR_STORE: CustomerMap<string> = {
+  finserv: 'Azure immutable blob (WORM, UK South)',
+  maritime: 'Azure immutable blob (WORM, West Europe)',
+  media: 'S3 Object Lock (compliance mode, us-east-2)',
+  healthcare: 'Azure immutable blob (WORM, Central US)',
+  automotive: 'Azure immutable blob (WORM, Germany West Central)',
+  insurance: 'Azure immutable blob (WORM, East US 2)',
+  defence: 'Azure Government immutable blob (WORM, US Gov Virginia)',
+  pharma: 'Azure immutable blob (WORM, Switzerland North)',
+  sghospital: 'Azure immutable blob (WORM, Southeast Asia)',
+  studio: 'S3 Object Lock (compliance mode, us-west-2)',
+};
 export function anchors(c: CustomerProfile, tenantId: string, lastSeq: number): Anchor[] {
   const h = headlines(c, tenantId).ops;
   const r = rng(`ops-anchor-${c.id}-${tenantId}`);
   const per5 = Math.max(1, Math.round(h.auditEvents30d / (30 * 288)));
-  const storage = {
-    finserv: 'Azure immutable blob (WORM, UK South)',
-    maritime: 'Azure immutable blob (WORM, West Europe)',
-    media: 'S3 Object Lock (compliance mode, us-east-2)',
-    healthcare: 'Azure immutable blob (WORM, Central US)',
-    automotive: 'Azure immutable blob (WORM, Germany West Central)',
-  }[c.id];
+  const storage = forCustomer(ANCHOR_STORE, c);
   let hi = lastSeq;
   return Array.from({ length: 8 }, (_, i) => {
     const entries = Math.max(1, per5 + r.int(-Math.ceil(per5 / 3), Math.ceil(per5 / 3)));
@@ -674,9 +889,9 @@ export interface SupportSession {
 }
 
 export function supportSessions(c: CustomerProfile): SupportSession[] {
-  const x = EXTRA[c.id];
+  const x = forCustomer(EXTRA, c);
   const ta = c.people.admin.name;
-  const items: Record<CustomerId, Omit<SupportSession, 'id' | 'engineer'>[]> = {
+  const items: CustomerMap<Omit<SupportSession, 'id' | 'engineer'>[]> = {
     maritime: [
       { reason: 'Port Klang edge agent 1.8.7 → 1.9.2 upgrade assistance', requestedMinAgo: 25, approvedBy: null, scope: 'Read-only · data plane dp-pkl-ot health', durationH: 2, status: 'pending', ticket: 'HS-SUP-30418' },
       { reason: 'Veeam connector field drift after v12.2 upgrade', requestedMinAgo: 190, approvedBy: ta, scope: 'Read-only · connector c-veeam config & logs', durationH: 4, status: 'active', ticket: 'HS-SUP-30392' },
@@ -706,10 +921,40 @@ export function supportSessions(c: CustomerProfile): SupportSession[] {
       { reason: 'SAP ETD field drift after S/4 support pack', requestedMinAgo: 260, approvedBy: ta, scope: 'Read-only · connector c-sap mapping & logs', durationH: 3, status: 'active', ticket: 'HS-SUP-61370' },
       { reason: 'Battery-plant bundle import verification (data diode)', requestedMinAgo: 4 * 1440, approvedBy: ta, scope: 'Read-only · offline stamp dp-battery signatures (on site, escorted)', durationH: 4, status: 'closed', ticket: 'HS-SUP-61102' },
     ],
+    insurance: [
+      { reason: 'MI-2026-044: help DFIR scope MFT exfiltration (transfer metadata only, no NPI)', requestedMinAgo: 32, approvedBy: null, scope: 'Read-only · War Room MI-2026-044 metadata, CrowdStrike and Vectra detections', durationH: 4, status: 'pending', ticket: 'HS-SUP-71204' },
+      { reason: 'Guidewire Cloud connector field drift after a platform release', requestedMinAgo: 180, approvedBy: ta, scope: 'Read-only · connector c-guidewire mapping & logs', durationH: 3, status: 'active', ticket: 'HS-SUP-71188' },
+      { reason: 'z/OS SMF type 80 collector CEF mapping on the data-centre plane', requestedMinAgo: 3 * 1440, approvedBy: ta, scope: 'Read-only · edge collector dp-dc', durationH: 2, status: 'closed', ticket: 'HS-SUP-70961' },
+      { reason: 'Request to view claims documents behind a Varonis alert for tuning', requestedMinAgo: 7 * 1440, approvedBy: null, scope: 'Requested access to file contents (contains NPI)', durationH: 2, status: 'denied', ticket: 'HS-SUP-70744' },
+    ],
+    defence: [
+      { reason: 'MI-2026-052: Sentinel (Azure Government) query support for token replay scoping', requestedMinAgo: 28, approvedBy: null, scope: 'Read-only · War Room MI-2026-052 metadata; US-person engineer only, no CUI content', durationH: 3, status: 'pending', ticket: 'HS-SUP-80412' },
+      { reason: 'Veeam shop-floor connector timeouts from the Building 3 edge', requestedMinAgo: 240, approvedBy: ta, scope: 'Read-only · connector c-veeam on dp-ot', durationH: 2, status: 'active', ticket: 'HS-SUP-80391' },
+      { reason: 'Exostar connector re-authentication after certificate renewal', requestedMinAgo: 5 * 1440, approvedBy: ta, scope: 'Read-only · connector c-exostar config', durationH: 1, status: 'closed', ticket: 'HS-SUP-80127' },
+      { reason: 'Offshore follow-the-sun engineer requested enclave access', requestedMinAgo: 9 * 1440, approvedBy: null, scope: 'Requested access to dp-gcch (not a US person: ITAR)', durationH: 4, status: 'denied', ticket: 'HS-SUP-79880' },
+    ],
+    pharma: [
+      { reason: 'MI-2026-061: Claroty and DeltaV Event Chronicle export for Valais forensics', requestedMinAgo: 36, approvedBy: null, scope: 'Read-only · connectors c-claroty, c-deltav (Valais boundaries)', durationH: 4, status: 'pending', ticket: 'HS-SUP-90533' },
+      { reason: 'Varonis connector failing after a collector certificate expiry', requestedMinAgo: 150, approvedBy: null, scope: 'Read-only · connector c-varonis', durationH: 2, status: 'pending', ticket: 'HS-SUP-90521' },
+      { reason: 'Rave audit-trail connector schema change (Medidata release)', requestedMinAgo: 300, approvedBy: ta, scope: 'Read-only · connector c-rave mapping (audit metadata only)', durationH: 3, status: 'active', ticket: 'HS-SUP-90498' },
+      { reason: 'Aseptic line AF-2 bundle signature verification (data diode)', requestedMinAgo: 4 * 1440, approvedBy: ta, scope: 'Read-only · offline stamp dp-aseptic signatures (on site, gowned, escorted)', durationH: 4, status: 'closed', ticket: 'HS-SUP-90211' },
+    ],
+    sghospital: [
+      { reason: 'MI-2026-027: help DFIR with Falcon telemetry export (no patient data)', requestedMinAgo: 30, approvedBy: null, scope: 'Read-only · War Room MI-2026-027 metadata, CrowdStrike detections', durationH: 4, status: 'pending', ticket: 'HS-SUP-63318' },
+      { reason: 'TrakCare audit connector degraded after the HealthShare upgrade', requestedMinAgo: 200, approvedBy: ta, scope: 'Read-only · connector c-trakcare mapping (audit metadata only)', durationH: 2, status: 'active', ticket: 'HS-SUP-63290' },
+      { reason: 'GuardDuty connector failing: cross-account role trust check', requestedMinAgo: 2 * 1440, approvedBy: ta, scope: 'Read-only · connector c-guardduty config', durationH: 1, status: 'closed', ticket: 'HS-SUP-63101' },
+      { reason: 'Request to view FairWarning case detail for tuning', requestedMinAgo: 8 * 1440, approvedBy: null, scope: 'Requested access to case detail (contains patient data; HIA)', durationH: 3, status: 'denied', ticket: 'HS-SUP-62870' },
+    ],
+    studio: [
+      { reason: 'MI-2026-038: NexGuard decode and custody lineage for the Crown of Ash leak', requestedMinAgo: 26, approvedBy: null, scope: 'Read-only · HexaCustody events and NexGuard results (metadata only)', durationH: 4, status: 'pending', ticket: 'HS-SUP-84017' },
+      { reason: 'Irdeto connector failing: API token expired', requestedMinAgo: 110, approvedBy: null, scope: 'Read-only · connector c-irdeto', durationH: 1, status: 'pending', ticket: 'HS-SUP-84009' },
+      { reason: 'Moxion dailies connector lag after the Autodesk platform move', requestedMinAgo: 330, approvedBy: ta, scope: 'Read-only · connector c-moxion', durationH: 2, status: 'active', ticket: 'HS-SUP-83981' },
+      { reason: 'Osaka resort edge agent 1.8.9 → 1.9.2 upgrade (data stays in Japan)', requestedMinAgo: 6 * 1440, approvedBy: ta, scope: 'Read-only · data plane dp-osaka health', durationH: 2, status: 'closed', ticket: 'HS-SUP-83702' },
+    ],
   };
   const r = rng(`ops-support-${c.id}`);
   const engineers = [x.support, 'R. Iyer (HexaShield)', 'K. Brandt (HexaShield)'];
-  return items[c.id].map((s, i) => ({ ...s, id: `sa_${r.hex(6)}`, engineer: engineers[i % engineers.length] }));
+  return forCustomer(items, c).map((s, i) => ({ ...s, id: `sa_${r.hex(6)}`, engineer: engineers[i % engineers.length] }));
 }
 
 /* =====================================================================
@@ -746,11 +991,411 @@ export interface WarScenario {
   ioc: string[];
 }
 
+const staffOf = (c: CustomerProfile, part: string, fb: string) => c.people.staff.find((s) => s.name.includes(part))?.name ?? fb;
+
+/** Live major incident per customer with its own estate; template customers use warroom's branches. */
+const OWN_WARROOMS: Partial<Record<CustomerId, (c: CustomerProfile) => WarScenario>> = {
+  insurance: (c) => {
+    const p = c.people;
+    const bs = c.vocab.businessServices;
+    const gc = staffOf(c, 'Hannah', 'General Counsel');
+    const cco = staffOf(c, 'Steven', 'Chief Claims Officer');
+    const cfo = staffOf(c, 'Michael', 'Chief Financial Officer');
+    return {
+      id: 'MI-2026-044', title: 'Cl0p data theft from the managed file transfer server', tenantId: 'group', severity: 'critical', phase: 'Containment → notification', declaredMinAgo: 264,
+      summary: 'A web shell in the managed file transfer server KMI-MFT-01 was used to pull claims documents, including bodily-injury medical records and files under litigation hold, plus the EXL and Broadridge transfer folders. Nothing was encrypted. Guidewire, the z/OS mainframe and the premium payment CDE are unaffected. Treated as a NYDFS 500.17 cybersecurity event and a likely multi-state NPI breach.',
+      commander: p.ciso.name, bridge: 'Teams bridge "MI-044 MFT" + Signal fallback',
+      timeline: [
+        { t: 0, title: 'Web shell detected on KMI-MFT-01', body: 'CrowdStrike Falcon detection on the MFT web tier; HexaSOC auto-triage escalated to critical', kind: 'detect' },
+        { t: 8, title: 'Major incident declared', body: `${p.ciso.name} declared MI-2026-044; bridge opened`, kind: 'decide' },
+        { t: 19, title: 'Exfiltration host blocked at the perimeter', body: 'Palo Alto block on the destination; scheduled partner jobs paused', kind: 'contain' },
+        { t: 41, title: 'Scope: 38 GB pulled over 3 hours', body: 'Vectra and MFT logs: claims-documents, EXL and Broadridge folders', kind: 'detect' },
+        { t: 75, title: 'Containment of KMI-MFT-01 requested', body: 'High-risk action, 0 of 2 approvals', kind: 'decide' },
+        { t: 96, title: 'Litigation-hold files confirmed in scope', body: 'Doyle v. Kingsbridge claim files affected; General Counsel engaged outside counsel', kind: 'detect' },
+        { t: 130, title: 'Partner transfers moved to the standby MFT', body: 'Cohesity-restored standby; EXL and One Inc jobs resume', kind: 'recover' },
+        { t: 170, title: 'Extortion note received via the claims mailbox', body: 'HexaInt matched the Cl0p leak-site pattern; nothing posted yet', kind: 'detect' },
+        { t: 210, title: 'Reportable cybersecurity event determined', body: `${p.grcLead.name}: NPI of New York residents in scope (NYDFS 500.17)`, kind: 'decide' },
+        { t: 240, title: 'FBI briefed; IoCs shared with FS-ISAC', body: 'Via the FS-ISAC insurance community TAXII feed', kind: 'comms' },
+      ],
+      tasks: [
+        { id: 'T1', title: 'Forensic image of KMI-MFT-01 and web-tier logs', owner: 'HexaShield DFIR', dueMin: 360, status: 'in_progress', stream: 'Investigation' },
+        { id: 'T2', title: 'Identify affected individuals and states (claims NPI)', owner: `${gc} + privacy office`, dueMin: 4320, status: 'in_progress', stream: 'Regulatory' },
+        { id: 'T3', title: 'NYDFS 500.17 notice via the DFS portal', owner: p.grcLead.name, dueMin: 4530, status: 'in_progress', stream: 'Regulatory' },
+        { id: 'T4', title: 'Rebuild the MFT tier; rotate all partner credentials', owner: p.admin.name, dueMin: 600, status: 'in_progress', stream: 'Recovery' },
+        { id: 'T5', title: 'Confirm Guidewire, z/OS and the CDE are unaffected', owner: p.socLead.name, dueMin: 180, status: 'done', stream: 'Investigation' },
+        { id: 'T6', title: 'Notify EXL, Broadridge and One Inc (contractual)', owner: cco, dueMin: 1440, status: 'todo', stream: 'Partners' },
+        { id: 'T7', title: 'Litigation hold: preserve and brief outside counsel', owner: gc, dueMin: 2880, status: 'todo', stream: 'Legal' },
+        { id: 'T8', title: 'Insurer notification via Marsh FINPRO', owner: cfo, dueMin: 2880, status: 'done', stream: 'Legal & insurance' },
+      ],
+      clocks: [
+        { name: 'NYDFS 500.17 (72 h)', body: 'Notice to DFS within 72 h of determining a cybersecurity event has occurred', dueMin: 210 + 4320, startMin: 210, status: 'running' },
+        { name: 'Connecticut Insurance Department', body: 'Insurance Data Security Law: notify the Commissioner within 3 business days', dueMin: 210 + 4320, startMin: 210, status: 'running' },
+        { name: 'Domiciliary regulators (Ohio, Iowa)', body: 'NAIC #668 state adoptions: notify within 72 h', dueMin: 210 + 4320, startMin: 210, status: 'running' },
+        { name: 'State AG & individual notices', body: 'State breach laws (30–60 days) once affected individuals are identified', dueMin: 210 + 43200, startMin: 210, status: 'conditional' },
+        { name: 'FBI / CISA', body: 'Expected for extortion; IoCs via FS-ISAC', dueMin: 1440, startMin: 8, status: 'submitted', submittedMin: 240 },
+        { name: 'Insurer (Beazley via Marsh FINPRO)', body: 'Notice of circumstance; policy condition 48 h', dueMin: 2880, startMin: 8, status: 'submitted', submittedMin: 150 },
+        { name: 'SEC Form 8-K Item 1.05', body: 'Not applicable: mutual insurer with no listed securities', dueMin: null, startMin: 0, status: 'not_applicable' },
+      ],
+      comms: [
+        { t: 10, channel: 'internal', to: 'Executive leadership & Board chair', subject: 'MI-2026-044 declared: data theft from the MFT server', by: p.ciso.name, status: 'sent' },
+        { t: 60, channel: 'partners', to: 'EXL, Broadridge, One Inc', subject: 'Transfers paused; switch to the standby MFT endpoint', by: cco, status: 'sent' },
+        { t: 150, channel: 'partners', to: 'Beazley via Marsh FINPRO', subject: 'Cyber policy notice of circumstance', by: cfo, status: 'sent' },
+        { t: 240, channel: 'law enforcement', to: 'FBI New Haven & CISA', subject: 'Extortion notification with IoCs', by: p.socLead.name, status: 'sent' },
+        { t: 250, channel: 'regulator', to: 'NYDFS (cybersecurity portal)', subject: 'Notice of cybersecurity event under 500.17', by: p.grcLead.name, status: 'approved' },
+        { t: 255, channel: 'regulator', to: 'Connecticut Insurance Department', subject: 'Notice under the Insurance Data Security Law', by: p.grcLead.name, status: 'draft' },
+        { t: 260, channel: 'press', to: 'Holding statement (reactive)', subject: '"We are investigating unauthorised access to a file transfer system; claims and policy services continue"', by: 'Corporate communications', status: 'approved' },
+      ],
+      decisions: [
+        { t: 19, decision: 'Block the exfiltration host and pause partner transfers', by: p.ciso.name, rationale: 'Stop data loss; partners can wait hours, not days' },
+        { t: 96, decision: 'Treat litigation-hold files as in scope; engage outside counsel', by: gc, rationale: 'Preservation and privilege duties' },
+        { t: 130, decision: 'Run partner transfers from the clean standby, not the compromised server', by: p.ciso.name, rationale: 'FNOL and claim payments depend on EXL and One Inc files' },
+        { t: 170, decision: 'No engagement with the extortion actor', by: p.board.name, rationale: 'Group policy; data theft only, no encryption' },
+        { t: 210, decision: 'Determine a reportable cybersecurity event (NYDFS 500.17)', by: p.grcLead.name, rationale: 'NPI of New York residents in the stolen folders' },
+      ],
+      participants: [
+        { name: p.ciso.name, role: 'Incident commander', org: 'Kingsbridge', joinedMin: 8, on: true },
+        { name: p.socLead.name, role: 'Security operations', org: 'Kingsbridge', joinedMin: 4, on: true },
+        { name: p.grcLead.name, role: 'Regulatory notifications', org: 'Kingsbridge', joinedMin: 30, on: true },
+        { name: gc, role: 'Legal & litigation hold', org: 'Kingsbridge', joinedMin: 90, on: true },
+        { name: cco, role: 'Claims operations & partners', org: 'Kingsbridge Claims', joinedMin: 45, on: false },
+        { name: 'HexaShield DFIR (3)', role: 'Forensics & IR retainer', org: 'HexaShield', joinedMin: 20, on: true },
+        { name: 'Outside counsel (privacy & litigation)', role: 'Breach counsel', org: 'Law firm', joinedMin: 110, on: true },
+        { name: 'Marsh FINPRO', role: 'Broker liaison', org: 'Broker', joinedMin: 160, on: false },
+      ],
+      services: [
+        { name: bs[0], status: 'degraded', recovery: 75, rto: '12 h', note: 'Partner files via the standby MFT; claim payments on schedule' },
+        { name: bs[1], status: 'operational', recovery: 100, rto: '—', note: 'AgentHub and Guidewire unaffected' },
+        { name: bs[2], status: 'degraded', recovery: 85, rto: '24 h', note: 'Broadridge print & mail files delayed' },
+        { name: bs[3], status: 'operational', recovery: 100, rto: '—', note: 'CDE unaffected; One Inc files on the standby' },
+        { name: bs[4], status: 'operational', recovery: 100, rto: '—', note: 'Not affected' },
+        { name: bs[5], status: 'operational', recovery: 100, rto: '—', note: 'Surge plan unaffected; EXL capacity confirmed' },
+      ],
+      ioc: ['claims-docshare[.]net', 'Web shell on the MFT web tier (sha256 c41b…7e09)', 'Cl0p extortion note via the claims mailbox'],
+    };
+  },
+  defence: (c) => {
+    const p = c.people;
+    const bs = c.vocab.businessServices;
+    const eo = staffOf(c, 'Carla', 'Empowered Official');
+    const fso = staffOf(c, 'Holly', 'Facility Security Officer');
+    const vpp = staffOf(c, 'Gregory', 'VP Programs');
+    return {
+      id: 'MI-2026-052', title: 'AiTM phishing hijack of a GCC High session: CUI accessed', tenantId: 'programs', severity: 'critical', phase: 'Investigation → DFARS reporting', declaredMinAgo: 228,
+      summary: 'An RTX-themed adversary-in-the-middle lure captured a session cookie for the Contracts & Subcontracts Manager. The token was replayed from a non-US VPS against the CUI enclave in GCC High and used to open two programme SharePoint sites holding ITAR drawing sets. Handled as a DFARS 252.204-7012 cyber incident: 72-hour DIBNet report, 90-day image preservation and prime notification. Building 3 and the Tucson range are unaffected.',
+      commander: p.ciso.name, bridge: 'Teams (GCC High) bridge "MI-052" + secure phone bridge · US persons only',
+      timeline: [
+        { t: 0, title: 'Token used from a non-US network', body: 'Entra ID Protection high-risk sign-in correlated in Sentinel (Azure Government); HexaSOC escalated', kind: 'detect' },
+        { t: 7, title: 'Major incident declared', body: `${p.ciso.name} declared MI-2026-052; need-to-know list applied`, kind: 'decide' },
+        { t: 12, title: 'Non-US locations blocked for all enclave apps', body: 'Conditional Access policy change, approved by the CISO', kind: 'contain' },
+        { t: 35, title: 'AiTM lure identified', body: 'Fake subcontract modification from a lookalike SharePoint domain; 6 recipients, 1 click', kind: 'detect' },
+        { t: 62, title: 'CUI access confirmed', body: 'Purview audit: 2 programme sites opened, 41 CUI//SP-EXPT files previewed', kind: 'detect' },
+        { t: 90, title: 'Empowered Official engaged', body: `${eo} assessing a possible unauthorised export of technical data`, kind: 'decide' },
+        { t: 120, title: 'Images and logs preserved for DC3', body: '90-day retention under DFARS 7012(e)', kind: 'recover' },
+        { t: 160, title: 'RTX supply-chain security notified', body: 'Per the subcontract flow-down', kind: 'comms' },
+        { t: 200, title: 'Session revocation requested', body: 'High-risk action, 1 of 2 approvals', kind: 'decide' },
+      ],
+      tasks: [
+        { id: 'T1', title: 'DIBNet incident report (medium assurance certificate)', owner: p.grcLead.name, dueMin: 4320, status: 'in_progress', stream: 'Regulatory' },
+        { id: 'T2', title: 'Preserve images and packet capture for 90 days', owner: 'HexaShield DFIR (US persons)', dueMin: 360, status: 'in_progress', stream: 'Investigation' },
+        { id: 'T3', title: 'Enumerate CUI files accessed (Purview, SharePoint audit)', owner: p.socLead.name, dueMin: 240, status: 'in_progress', stream: 'Investigation' },
+        { id: 'T4', title: 'ITAR assessment and possible voluntary disclosure to DDTC', owner: eo, dueMin: 2880, status: 'in_progress', stream: 'Legal' },
+        { id: 'T5', title: 'Notify affected primes per flow-down clauses', owner: vpp, dueMin: 4320, status: 'todo', stream: 'Partners' },
+        { id: 'T6', title: 'Enforce token protection and compliant-device access in GCC High', owner: p.admin.name, dueMin: 480, status: 'in_progress', stream: 'Containment' },
+        { id: 'T7', title: 'Confirm no access from the commercial tenant or Building 3', owner: p.otLead?.name ?? p.socLead.name, dueMin: 240, status: 'done', stream: 'Investigation' },
+        { id: 'T8', title: 'Update SSP and POA&M; review SPRS score impact', owner: p.grcLead.name, dueMin: 10080, status: 'todo', stream: 'Compliance' },
+      ],
+      clocks: [
+        { name: 'DFARS 7012 DIBNet report (72 h)', body: 'Rapidly report to DoD via DIBNet within 72 h of discovery', dueMin: 4320, startMin: 7, status: 'running' },
+        { name: 'Prime notification (flow-down)', body: 'Subcontract flow-down of DFARS 7012(m): notify the prime', dueMin: 4320, startMin: 7, status: 'submitted', submittedMin: 160 },
+        { name: 'Media preservation (90 days)', body: 'Preserve images of affected systems for at least 90 days; provide to DC3 on request', dueMin: 129600, startMin: 120, status: 'running' },
+        { name: 'DDTC voluntary disclosure (ITAR §127.12)', body: 'Initial notification promptly if an unauthorised export is likely; full disclosure within 60 days', dueMin: 86400, startMin: 90, status: 'conditional' },
+        { name: 'FBI (Huntsville)', body: 'Expected for nation-state activity against the defence industrial base', dueMin: 1440, startMin: 7, status: 'submitted', submittedMin: 180 },
+        { name: 'Insurer (Beazley via Marsh McLennan Agency)', body: 'Notice of circumstance; policy condition 48 h', dueMin: 2880, startMin: 7, status: 'running' },
+        { name: 'C3PAO', body: 'Not a reporting obligation; brief Redstone Cyber Assessors before the Level 2 reassessment', dueMin: null, startMin: 0, status: 'not_applicable' },
+      ],
+      comms: [
+        { t: 9, channel: 'internal', to: 'CEO, FSO and Empowered Official', subject: 'MI-2026-052 declared: GCC High session hijack', by: p.ciso.name, status: 'sent' },
+        { t: 40, channel: 'internal', to: 'All CUI enclave users', subject: 'Do not open "subcontract modification" emails; use the Report button', by: p.socLead.name, status: 'sent' },
+        { t: 160, channel: 'partners', to: 'RTX supply-chain cyber team', subject: 'Cyber incident affecting covered defence information', by: vpp, status: 'sent' },
+        { t: 180, channel: 'law enforcement', to: 'FBI Huntsville', subject: 'Notification with IoCs', by: p.socLead.name, status: 'sent' },
+        { t: 210, channel: 'regulator', to: 'DoD via DIBNet', subject: 'DFARS 252.204-7012 cyber incident report', by: p.grcLead.name, status: 'draft' },
+        { t: 220, channel: 'regulator', to: 'DDTC (initial notification)', subject: 'Possible unauthorised export of technical data', by: eo, status: 'draft' },
+        { t: 225, channel: 'partners', to: 'Lockheed Martin, Northrop Grumman, L3Harris', subject: 'Courtesy notice: no impact to your programmes identified', by: vpp, status: 'approved' },
+      ],
+      decisions: [
+        { t: 12, decision: 'Block non-US locations for every enclave app', by: p.ciso.name, rationale: 'Contain token replay while sessions are reviewed' },
+        { t: 62, decision: 'Handle as a DFARS 7012 cyber incident', by: p.grcLead.name, rationale: 'CUI//SP-EXPT files previewed from a non-US IP' },
+        { t: 90, decision: 'Engage the Empowered Official on ITAR exposure', by: p.ciso.name, rationale: 'Technical data viewed from abroad may be an export' },
+        { t: 140, decision: 'No public statement; need-to-know only', by: p.board.name, rationale: 'Prime contract terms and programme sensitivity' },
+        { t: 200, decision: 'Revoke all sessions and re-issue the YubiKey in person', by: p.socLead.name, rationale: `Token theft; re-enrolment witnessed by ${fso}` },
+      ],
+      participants: [
+        { name: p.ciso.name, role: 'Incident commander', org: 'Sentry Peak', joinedMin: 7, on: true },
+        { name: p.socLead.name, role: 'Security operations', org: 'Sentry Peak', joinedMin: 3, on: true },
+        { name: p.grcLead.name, role: 'DFARS & CMMC reporting', org: 'Sentry Peak', joinedMin: 25, on: true },
+        { name: eo, role: 'Empowered Official (ITAR)', org: 'Sentry Peak', joinedMin: 88, on: true },
+        { name: fso, role: 'Facility Security Officer', org: 'Sentry Peak', joinedMin: 15, on: true },
+        { name: vpp, role: 'Prime liaison', org: 'Sentry Peak', joinedMin: 140, on: false },
+        { name: 'HexaShield DFIR (2, US persons)', role: 'Forensics & IR retainer', org: 'HexaShield', joinedMin: 30, on: true },
+        { name: 'Marsh McLennan Agency', role: 'Broker liaison', org: 'Broker', joinedMin: 190, on: false },
+      ],
+      services: [
+        { name: bs[0], status: 'degraded', recovery: 80, rto: '48 h', note: 'Enclave work continues under heightened access controls' },
+        { name: bs[1], status: 'operational', recovery: 100, rto: '—', note: 'Building 3 not affected' },
+        { name: bs[2], status: 'operational', recovery: 100, rto: '—', note: 'Not affected' },
+        { name: bs[3], status: 'operational', recovery: 100, rto: '—', note: 'Tucson not affected' },
+        { name: bs[4], status: 'degraded', recovery: 60, rto: '72 h', note: 'RTX capture volume II access restricted pending review' },
+        { name: bs[5], status: 'operational', recovery: 100, rto: '—', note: 'Costpoint not affected' },
+      ],
+      ioc: ['sharepoint-rtx-subk[.]com (AiTM kit)', 'Non-US VPS reverse proxy 45.86.x.x', 'Lure: "Subcontract Modification 07 – action required"'],
+    };
+  },
+  pharma: (c) => {
+    const p = c.people;
+    const bs = c.vocab.businessServices;
+    const qp = staffOf(c, 'Reto', 'Qualified Person');
+    const mfg = staffOf(c, 'Fabian', 'Head of Global Manufacturing & Supply');
+    const cfo = staffOf(c, 'Isabelle', 'Chief Financial Officer');
+    return {
+      id: 'MI-2026-061', title: 'Ransomware at the Valais plant: batch release on hold', tenantId: 'valais', severity: 'critical', phase: 'Containment → recovery', declaredMinAgo: 274,
+      summary: 'A Black Basta affiliate encrypted the Valais plant file server and four PAS-X MES client workstations after entering through a phished engineer and an unpatched VPN appliance. API production in building 12 is in a controlled hold and QP release from Valais is suspended pending a data-integrity review. DeltaV controllers and the air-gapped aseptic line AF-2 are unaffected (Claroty and HexaOT passive only). Cork, clinical systems and SAP are unaffected.',
+      commander: p.ciso.name, bridge: 'Teams bridge "MI-061 VLS" + plant crisis room (building 4)',
+      timeline: [
+        { t: 0, title: 'Mass encryption on the Valais file server', body: 'CrowdStrike Falcon ransomware detection; HexaSOC auto-triage escalated to critical', kind: 'detect' },
+        { t: 6, title: 'Major incident declared', body: `${p.ciso.name} declared MI-2026-061; plant crisis team convened`, kind: 'decide' },
+        { t: 14, title: 'Level 3.5 conduits closed at Valais', body: 'Plant isolated from group IT; DeltaV continues on local control', kind: 'contain' },
+        { t: 25, title: 'Building 12 API batches on controlled hold', body: 'Batch 26V118 held at step 14; deviation DEV-26-0412 raised', kind: 'contain' },
+        { t: 48, title: 'QP release from Valais suspended', body: 'No batch certified until electronic batch-record integrity is confirmed', kind: 'decide' },
+        { t: 80, title: 'Entry point: phished engineer and VPN appliance', body: 'Proofpoint click two days earlier; KEV-listed VPN flaw unpatched', kind: 'detect' },
+        { t: 120, title: 'Clean restore point confirmed', body: 'Rubrik immutable snapshot from 03:00 verified clean', kind: 'recover' },
+        { t: 165, title: 'NCSC report filed', body: 'Via the NCSC reporting portal (ISA 24-hour duty)', kind: 'comms' },
+        { t: 205, title: 'MES client rebuild started in a validated clean room', body: 'Körber engineers on the bridge; IQ/OQ scripts ready', kind: 'recover' },
+        { t: 250, title: 'Containment of VLS-MES-WS07 requested', body: 'High-risk action with QA sign-off, 0 of 2 approvals', kind: 'decide' },
+      ],
+      tasks: [
+        { id: 'T1', title: 'Restore the file server and PAS-X clients from Rubrik; execute IQ/OQ', owner: 'Plant IT + Körber Pharma', dueMin: 720, status: 'in_progress', stream: 'Recovery' },
+        { id: 'T2', title: 'Data-integrity review of batch records since 00:00 (ALCOA+)', owner: qp, dueMin: 1440, status: 'in_progress', stream: 'Quality' },
+        { id: 'T3', title: 'Impact assessment of held batches and open deviations', owner: mfg, dueMin: 1440, status: 'in_progress', stream: 'Quality' },
+        { id: 'T4', title: 'Confirm DeltaV and AF-2 unaffected (Claroty, HexaOT passive)', owner: p.otLead?.name ?? 'OT security', dueMin: 120, status: 'done', stream: 'Investigation' },
+        { id: 'T5', title: 'Supply continuity: Cork stock and CDMO capacity (Lonza)', owner: mfg, dueMin: 2880, status: 'todo', stream: 'Supply chain' },
+        { id: 'T6', title: 'Swissmedic GMP notification (supply impact)', owner: p.grcLead.name, dueMin: 4320, status: 'in_progress', stream: 'Regulatory' },
+        { id: 'T7', title: 'Patch the VPN appliance; rotate VPN and vendor credentials', owner: p.socLead.name, dueMin: 300, status: 'blocked', stream: 'Containment' },
+        { id: 'T8', title: 'revDSG / GDPR assessment of employee data on the file server', owner: 'Group Data Protection Officer', dueMin: 4320, status: 'in_progress', stream: 'Regulatory' },
+      ],
+      clocks: [
+        { name: 'NCSC Switzerland (24 h)', body: 'Information Security Act: cyber attack on critical infrastructure reported within 24 h of discovery', dueMin: 1440, startMin: 6, status: 'submitted', submittedMin: 165 },
+        { name: 'Swissmedic (GMP inspectorate)', body: 'Significant GMP event with potential supply impact', dueMin: 4320, startMin: 48, status: 'running' },
+        { name: 'FDA (field alert / shortage)', body: 'Only if distributed US product quality or supply is affected', dueMin: null, startMin: 48, status: 'conditional' },
+        { name: 'EMA / national competent authorities', body: 'Shortage notification only if supply of an authorised product is at risk', dueMin: null, startMin: 48, status: 'conditional' },
+        { name: 'FDPIC (revDSG)', body: 'Data breach likely to result in high risk: notify as soon as possible', dueMin: 4320, startMin: 80, status: 'conditional' },
+        { name: 'Insurer (Swiss Re Corporate Solutions via Marsh)', body: 'Notice of circumstance within 48 h', dueMin: 2880, startMin: 6, status: 'submitted', submittedMin: 140 },
+      ],
+      comms: [
+        { t: 8, channel: 'internal', to: 'Executive Committee', subject: 'MI-2026-061 declared: Valais plant ransomware', by: p.ciso.name, status: 'sent' },
+        { t: 30, channel: 'internal', to: 'Valais plant staff', subject: 'Do not log on to MES clients; paper batch-record contingency in force', by: mfg, status: 'sent' },
+        { t: 140, channel: 'partners', to: 'Swiss Re Corporate Solutions via Marsh Switzerland', subject: 'Cyber policy notice of circumstance', by: cfo, status: 'sent' },
+        { t: 165, channel: 'regulator', to: 'NCSC Switzerland', subject: 'Cyber attack on a pharmaceutical manufacturer', by: p.grcLead.name, status: 'sent' },
+        { t: 200, channel: 'regulator', to: 'Swissmedic inspectorate', subject: 'GMP event: Valais batch release suspended', by: qp, status: 'draft' },
+        { t: 230, channel: 'partners', to: 'Lonza (CDMO)', subject: 'Confidential: Valais hold and capacity enquiry', by: mfg, status: 'approved' },
+        { t: 260, channel: 'press', to: 'Holding statement (reactive)', subject: '"An IT incident is affecting one of our production sites; patient supply is being protected"', by: 'Group communications', status: 'approved' },
+      ],
+      decisions: [
+        { t: 14, decision: 'Close Valais Level 3.5 conduits; keep DeltaV on local control', by: p.ciso.name, rationale: 'Contain spread without an unsafe stop of running unit operations' },
+        { t: 25, decision: 'Controlled hold of building 12 batches', by: qp, rationale: 'Batch-record integrity cannot be assured' },
+        { t: 48, decision: 'Suspend QP certification from Valais', by: qp, rationale: 'Annex 16: no release without data integrity' },
+        { t: 120, decision: 'Restore from the 03:00 snapshot; rebuild MES clients under change control', by: p.ciso.name, rationale: 'Fastest validated route back to GMP' },
+        { t: 150, decision: 'No engagement with the ransom actor', by: p.board.name, rationale: 'Group policy; sanctions risk; backups verified' },
+      ],
+      participants: [
+        { name: p.ciso.name, role: 'Incident commander', org: 'Rhenara', joinedMin: 6, on: true },
+        { name: p.socLead.name, role: 'Cyber Defence Centre', org: 'Rhenara', joinedMin: 3, on: true },
+        { name: p.otLead?.name ?? 'OT security', role: 'OT security (plants)', org: 'Rhenara', joinedMin: 10, on: true },
+        { name: qp, role: 'Qualified Person', org: 'Rhenara Valais', joinedMin: 22, on: true },
+        { name: mfg, role: 'Manufacturing & supply', org: 'Rhenara', joinedMin: 30, on: true },
+        { name: p.grcLead.name, role: 'GxP & regulator notifications', org: 'Rhenara', joinedMin: 40, on: true },
+        { name: 'HexaShield DFIR (3)', role: 'Forensics & IR retainer', org: 'HexaShield', joinedMin: 20, on: true },
+        { name: 'Körber Pharma (PAS-X)', role: 'MES recovery', org: 'Vendor', joinedMin: 190, on: true },
+        { name: 'Marsh Switzerland', role: 'Broker liaison', org: 'Broker', joinedMin: 150, on: false },
+      ],
+      services: [
+        { name: bs[0], status: 'down', recovery: 10, rto: '72 h', note: 'Valais release suspended; Cork releasing from stock' },
+        { name: bs[1], status: 'operational', recovery: 100, rto: '—', note: 'Cork unaffected; AF-2 air-gapped' },
+        { name: bs[2], status: 'operational', recovery: 100, rto: '—', note: 'Rave, eTMF and CTMS unaffected' },
+        { name: bs[3], status: 'operational', recovery: 100, rto: '—', note: 'Not affected' },
+        { name: bs[4], status: 'operational', recovery: 100, rto: '—', note: 'Argus unaffected' },
+        { name: bs[5], status: 'degraded', recovery: 85, rto: '2 weeks', note: 'Safety stock covers about 6 weeks' },
+      ],
+      ioc: ['91.92.247.18 (C2)', 'Black Basta note: readme.txt', 'Loader on VLS-MES-WS07 (sha256 5ab0…e21c)'],
+    };
+  },
+  sghospital: (c) => {
+    const p = c.people;
+    const bs = c.vocab.businessServices;
+    const cmio = staffOf(c, 'Rachel', 'Chief Medical Information Officer');
+    const cno = staffOf(c, 'Nurul', 'Chief Nursing Officer');
+    const cmo = staffOf(c, 'Arun', 'Chief Medical Officer');
+    const trak = staffOf(c, 'Benjamin', 'TrakCare Application Lead');
+    const cfo = staffOf(c, 'Kenneth', 'Group Chief Financial Officer');
+    return {
+      id: 'MI-2026-027', title: 'Ransomware on the TrakCare application tier: downtime procedures in force', tenantId: 'obh', severity: 'critical', phase: 'Containment → recovery', declaredMinAgo: 246,
+      summary: 'A Qilin affiliate used a stolen InterSystems vendor credential to reach the TrakCare application tier and encrypted a clinical file share and one application server. The main hospital and specialist centres are on downtime procedures (read-only TrakCare print-outs, paper orders); A&E is on reduced intake. The IRIS database, PACS, the Alaris pump server and all medical devices are unaffected (Claroty and Armis passive only). NEHR contribution is paused.',
+      commander: p.ciso.name, bridge: 'Teams bridge "MI-027 TrakCare" + hospital emergency operations centre',
+      timeline: [
+        { t: 0, title: 'Mass encryption on the clinical file share', body: 'CrowdStrike Falcon ransomware detection; HexaSOC auto-triage escalated to critical', kind: 'detect' },
+        { t: 6, title: 'Major incident declared', body: `${p.ciso.name} declared MI-2026-027; emergency operations centre opened`, kind: 'decide' },
+        { t: 11, title: 'TrakCare downtime procedures activated', body: 'Read-only print-outs, paper orders and medication charts on every ward', kind: 'contain' },
+        { t: 38, title: 'Entry point: InterSystems vendor credential', body: 'CyberArk Vendor PAM session at 02:31 SGT; credential seen in a stealer log', kind: 'detect' },
+        { t: 62, title: 'A&E on reduced intake', body: 'SCDF informed; priority-1 ambulance cases still accepted', kind: 'decide' },
+        { t: 95, title: 'MOH notified inside the 2-hour window', body: 'Initial notification under the Health Information Act', kind: 'comms' },
+        { t: 130, title: 'Clean restore point confirmed', body: 'Cohesity immutable snapshot from 01:00 verified clean', kind: 'recover' },
+        { t: 180, title: 'NEHR contribution paused; Synapxe informed', body: 'Resumes after integrity checks on queued records', kind: 'comms' },
+        { t: 220, title: 'Containment of OBH-TRAK-APP03 requested', body: 'High-risk action with clinical sign-off, 0 of 2 approvals', kind: 'decide' },
+      ],
+      tasks: [
+        { id: 'T1', title: 'Restore the file share and APP03 from Cohesity; re-validate TrakCare', owner: `${trak} + InterSystems`, dueMin: 720, status: 'in_progress', stream: 'Recovery' },
+        { id: 'T2', title: 'Back-load paper orders and medication charts after recovery', owner: cno, dueMin: 1440, status: 'todo', stream: 'Clinical' },
+        { id: 'T3', title: 'Confirm medical devices unaffected (Claroty, Armis passive)', owner: p.otLead?.name ?? 'Biomedical engineering', dueMin: 120, status: 'done', stream: 'Investigation' },
+        { id: 'T4', title: 'MOH HIA incident report (14 days)', owner: p.grcLead.name, dueMin: 20160, status: 'in_progress', stream: 'Regulatory' },
+        { id: 'T5', title: 'PDPA breach assessment for the encrypted share', owner: 'Data Protection Officer', dueMin: 4320, status: 'in_progress', stream: 'Regulatory' },
+        { id: 'T6', title: 'Forensic images: OBH-TRAK-APP03 and the clinical file share', owner: 'HexaShield DFIR', dueMin: 360, status: 'in_progress', stream: 'Investigation' },
+        { id: 'T7', title: 'Per-session approval for every vendor PAM account', owner: p.socLead.name, dueMin: 300, status: 'blocked', stream: 'Containment' },
+        { id: 'T8', title: 'Hold insurer claims; inform Great Eastern, AIA and Prudential', owner: cfo, dueMin: 1440, status: 'todo', stream: 'Business' },
+      ],
+      clocks: [
+        { name: 'MOH notification (HIA, 2 h)', body: 'Cybersecurity incident affecting a licensed healthcare service: notify MOH within 2 hours', dueMin: 120, startMin: 6, status: 'submitted', submittedMin: 95 },
+        { name: 'MOH HIA incident report (14 days)', body: 'Full report with root cause, impact and remediation', dueMin: 20160, startMin: 6, status: 'running' },
+        { name: 'PDPC (PDPA, 3 days)', body: 'Notify within 3 calendar days of assessing a notifiable data breach', dueMin: 140 + 4320, startMin: 140, status: 'conditional' },
+        { name: 'Affected patients (PDPA)', body: 'On or after notifying PDPC, if significant harm is likely', dueMin: null, startMin: 140, status: 'conditional' },
+        { name: 'Synapxe (NEHR)', body: 'Inform before pausing contribution; resume after integrity checks', dueMin: 240, startMin: 6, status: 'submitted', submittedMin: 180 },
+        { name: 'CSA SingCERT', body: 'Voluntary report with IoCs (not a designated CII owner)', dueMin: 1440, startMin: 6, status: 'submitted', submittedMin: 160 },
+        { name: 'Insurer (Chubb via Marsh Singapore)', body: 'Notice of circumstance within 48 h', dueMin: 2880, startMin: 6, status: 'running' },
+      ],
+      comms: [
+        { t: 8, channel: 'internal', to: 'Group CEO & Medical Board', subject: 'MI-2026-027 declared: TrakCare downtime', by: p.ciso.name, status: 'sent' },
+        { t: 15, channel: 'internal', to: 'All wards and clinics', subject: 'Downtime procedures in force: print-outs, paper orders, no USB', by: cno, status: 'sent' },
+        { t: 95, channel: 'regulator', to: 'Ministry of Health', subject: 'Initial notification of a cybersecurity incident (HIA)', by: p.grcLead.name, status: 'sent' },
+        { t: 160, channel: 'partners', to: 'CSA SingCERT', subject: 'Voluntary incident report with IoCs', by: p.socLead.name, status: 'sent' },
+        { t: 180, channel: 'partners', to: 'Synapxe', subject: 'NEHR contribution paused', by: cmio, status: 'sent' },
+        { t: 200, channel: 'customers', to: 'Patients with appointments today (SMS)', subject: 'Appointments continue; please expect delays', by: 'Patient services', status: 'approved' },
+        { t: 235, channel: 'press', to: 'Holding statement (reactive)', subject: '"We are managing an IT incident; patient care continues safely"', by: 'Corporate communications', status: 'approved' },
+      ],
+      decisions: [
+        { t: 11, decision: 'Activate TrakCare downtime procedures at all campuses', by: cmio, rationale: 'Stop spread; keep clinical data available read-only' },
+        { t: 62, decision: 'Reduced A&E intake (priority-1 ambulance cases only)', by: cmo, rationale: 'Paper orders and slower laboratory turnaround' },
+        { t: 130, decision: 'Restore from the 01:00 snapshot', by: p.ciso.name, rationale: 'Verified clean by HexaShield DFIR' },
+        { t: 150, decision: 'No engagement with the ransom actor', by: p.board.name, rationale: 'Group policy; sanctions risk; backups verified' },
+        { t: 220, decision: 'Contain OBH-TRAK-APP03 with clinical sign-off', by: p.socLead.name, rationale: 'Encryptor staged; sessions moved to APP01 and APP02' },
+      ],
+      participants: [
+        { name: p.ciso.name, role: 'Incident commander', org: 'Orchid Bay', joinedMin: 6, on: true },
+        { name: p.socLead.name, role: 'Security operations', org: 'Orchid Bay', joinedMin: 3, on: true },
+        { name: p.grcLead.name, role: 'HIA & PDPA notifications', org: 'Orchid Bay', joinedMin: 20, on: true },
+        { name: cmio, role: 'Clinical systems', org: 'Orchid Bay', joinedMin: 9, on: true },
+        { name: cno, role: 'Clinical operations (downtime)', org: 'Orchid Bay', joinedMin: 12, on: true },
+        { name: p.otLead?.name ?? 'Biomedical engineering', role: 'Medical device safety', org: 'Orchid Bay', joinedMin: 18, on: false },
+        { name: 'HexaShield DFIR (3)', role: 'Forensics & IR retainer', org: 'HexaShield', joinedMin: 22, on: true },
+        { name: 'InterSystems duty engineer', role: 'TrakCare recovery', org: 'Vendor', joinedMin: 70, on: true },
+        { name: 'Marsh Singapore', role: 'Broker liaison', org: 'Broker', joinedMin: 160, on: false },
+      ],
+      services: [
+        { name: bs[0], status: 'degraded', recovery: 60, rto: '12 h', note: 'Reduced intake; priority-1 ambulance cases accepted' },
+        { name: bs[1], status: 'degraded', recovery: 65, rto: '24 h', note: 'Paper medication charts from print-outs' },
+        { name: bs[2], status: 'degraded', recovery: 70, rto: '24 h', note: 'Elective lists at Novena postponed; day surgery running' },
+        { name: bs[3], status: 'degraded', recovery: 85, rto: '12 h', note: 'PACS unaffected; urgent reports by phone' },
+        { name: bs[4], status: 'recovering', recovery: 75, rto: '12 h', note: 'LIS results by print-out and runner' },
+        { name: bs[5], status: 'down', recovery: 15, rto: '72 h', note: 'Insurer claims held' },
+      ],
+      ioc: ['cdn-trakupdate[.]com', 'Qilin note: README-RECOVER.txt', 'isc-support-sg (vendor PAM account)'],
+    };
+  },
+  studio: (c) => {
+    const p = c.people;
+    const bs = c.vocab.businessServices;
+    const x = forCustomer(EXTRA, c);
+    const post = staffOf(c, 'Ben Hollis', 'Head of Post & VFX');
+    const pres = staffOf(c, 'Olivia', 'President, Starfall Studios');
+    const awards = staffOf(c, 'Laura Kim', 'Awards & Screeners Manager');
+    const cfo = staffOf(c, 'Daniel', 'Chief Financial Officer');
+    return {
+      id: 'MI-2026-038', title: 'Pre-release leak of Crown of Ash (locked cut v22)', tenantId: 'post', severity: 'critical', phase: 'Investigation & takedown', declaredMinAgo: 196,
+      summary: 'A 2-minute clip of the Crown of Ash locked cut v22 surfaced on a Telegram leak channel and four forum mirrors. The NexGuard watermark traces to a Northlight Pixel (Vancouver) review session, and HexaCustody shows the same cut pulled through the vendor\'s Aspera node key from a host outside its network. Release is nine weeks out and awards screeners are live on Indee.',
+      commander: p.grcLead.name, bridge: 'Google Meet "CoA WR" (need-to-know) + Slack incident channel',
+      timeline: [
+        { t: 0, title: 'Clip found on a Telegram leak channel', body: 'HexaInt leak monitoring (Irdeto connector failing), 18k views at detection', kind: 'detect' },
+        { t: 5, title: 'War room declared', body: `${p.grcLead.name} as commander; need-to-know list applied`, kind: 'decide' },
+        { t: 19, title: 'NexGuard watermark decoded', body: 'Session mark WM-31877: Northlight Pixel review session, Vancouver', kind: 'detect' },
+        { t: 34, title: 'Takedown requests issued', body: 'MarkMonitor: Telegram, 4 mirrors and 2 forums', kind: 'contain' },
+        { t: 58, title: 'Aspera pull from an unknown host', body: 'Vendor node key used outside Northlight\'s address ranges; key disabled by pre-approved playbook', kind: 'detect' },
+        { t: 90, title: 'Freelancer factor reset flagged', body: 'Help-desk reset then 41 Lodestar plate downloads from a new device', kind: 'detect' },
+        { t: 120, title: 'Northlight and studio partners briefed', body: 'Co-financier and distributors informed under NDA', kind: 'comms' },
+        { t: 160, title: 'All Crown of Ash review links rotated', body: 'Frame.io and Moxion links expired and re-issued', kind: 'contain' },
+        { t: 185, title: 'Supplier revocation for Northlight staged', body: 'High-risk action, 1 of 2 approvals', kind: 'decide' },
+      ],
+      tasks: [
+        { id: 'T1', title: 'Preserve Aspera, Okta and custody logs; request the vendor host image', owner: 'HexaShield DFIR', dueMin: 300, status: 'in_progress', stream: 'Investigation' },
+        { id: 'T2', title: 'Takedown: remaining mirrors', owner: x.analysts[0], dueMin: 240, status: 'in_progress', stream: 'Containment' },
+        { id: 'T3', title: 'TPN incident disclosure; re-assess Northlight Pixel', owner: p.grcLead.name, dueMin: 1440, status: 'todo', stream: 'Regulatory' },
+        { id: 'T4', title: 'Notice of breach to Northlight under the vendor agreement', owner: 'Legal (content & IP)', dueMin: 720, status: 'in_progress', stream: 'Legal' },
+        { id: 'T5', title: 'Referral to law enforcement (FBI IC3, RCMP)', owner: 'Legal (content & IP)', dueMin: 1440, status: 'todo', stream: 'Legal' },
+        { id: 'T6', title: 'Re-issue FYC screeners with per-viewer marks', owner: awards, dueMin: 480, status: 'in_progress', stream: 'Containment' },
+        { id: 'T7', title: 'SEC materiality assessment (8-K Item 1.05)', owner: `General Counsel + ${cfo}`, dueMin: 2880, status: 'in_progress', stream: 'Regulatory' },
+        { id: 'T8', title: 'Marketing: trailer timing decision', owner: pres, dueMin: 900, status: 'blocked', stream: 'Business' },
+      ],
+      clocks: [
+        { name: 'Studio partners (contractual)', body: 'Co-financier & distributors: notify within 24 h', dueMin: 1440, startMin: 5, status: 'submitted', submittedMin: 125 },
+        { name: 'TPN disclosure', body: 'Content security incident disclosure to TPN', dueMin: 4320, startMin: 5, status: 'running' },
+        { name: 'SEC Form 8-K Item 1.05', body: 'Within 4 business days of a materiality determination (assessment under way)', dueMin: null, startMin: 5, status: 'conditional' },
+        { name: 'Law enforcement referral', body: 'FBI IC3 (US) / RCMP (Canada): internal target 24 h', dueMin: 1440, startMin: 5, status: 'running' },
+        { name: 'CCPA / PIPEDA', body: 'Only if personal data is in the leaked material (cast & crew)', dueMin: 4320, startMin: 19, status: 'conditional' },
+        { name: 'Insurer (AIG via Marsh Media & Entertainment)', body: 'Policy condition: notify within 72 h', dueMin: 4320, startMin: 5, status: 'running' },
+        { name: 'Takedown SLA (per URL)', body: 'Internal target: 2 h per new URL', dueMin: 274, startMin: 34, status: 'running' },
+      ],
+      comms: [
+        { t: 7, channel: 'internal', to: 'Need-to-know list (11)', subject: 'Crown of Ash war room opened', by: p.grcLead.name, status: 'sent' },
+        { t: 34, channel: 'partners', to: 'Telegram, forum hosts, mirrors', subject: 'Copyright takedown notices (MarkMonitor)', by: x.analysts[0], status: 'sent' },
+        { t: 120, channel: 'partners', to: 'Northlight Pixel leadership', subject: 'Notice of security incident under the vendor agreement', by: p.grcLead.name, status: 'sent' },
+        { t: 125, channel: 'partners', to: 'Co-financier & international distributors', subject: 'Confidential: pre-release leak, Crown of Ash', by: pres, status: 'sent' },
+        { t: 170, channel: 'law enforcement', to: 'FBI IC3 (referral pack)', subject: 'Unauthorised distribution of a pre-release film', by: 'Legal (content & IP)', status: 'draft' },
+        { t: 180, channel: 'press', to: 'Holding statement (reactive only)', subject: '"We are aware of unauthorised footage and are taking action"', by: 'Corporate communications', status: 'approved' },
+        { t: 190, channel: 'internal', to: 'All vendors on Crown of Ash', subject: 'Transfers via HexaCustody packages only, effective now', by: post, status: 'approved' },
+      ],
+      decisions: [
+        { t: 5, decision: 'Treat as a major content security incident', by: p.ciso.name, rationale: 'Locked cut of a tentpole title, public exposure' },
+        { t: 34, decision: 'Takedown first, attribution second', by: p.grcLead.name, rationale: 'Views rising about 2k every 10 minutes' },
+        { t: 58, decision: 'Disable the vendor Aspera node key immediately', by: 'Custody policy (pre-approved)', rationale: 'Pre-approved playbook for active exfiltration' },
+        { t: 160, decision: 'Move Crown of Ash screeners to per-viewer marks', by: p.grcLead.name, rationale: 'Faster attribution during awards season' },
+        { t: 185, decision: 'Suspend Northlight access to all Starfall titles pending review', by: p.ciso.name, rationale: 'Vendor control failure; the agreement allows suspension' },
+      ],
+      participants: [
+        { name: p.grcLead.name, role: 'Incident commander', org: 'Starfall', joinedMin: 5, on: true },
+        { name: p.ciso.name, role: 'CISO', org: 'Starfall', joinedMin: 7, on: true },
+        { name: p.socLead.name, role: 'Cyber Defence Centre', org: 'Starfall', joinedMin: 5, on: true },
+        { name: post, role: 'Head of Post & VFX', org: 'Starfall Post', joinedMin: 25, on: true },
+        { name: awards, role: 'Awards & screeners', org: 'Starfall Studios', joinedMin: 60, on: true },
+        { name: pres, role: 'Studio leadership', org: 'Starfall Studios', joinedMin: 110, on: false },
+        { name: 'HexaShield DFIR (2)', role: 'Forensics', org: 'HexaShield', joinedMin: 30, on: true },
+        { name: 'Legal (content & IP)', role: 'Legal', org: 'Starfall', joinedMin: 45, on: true },
+      ],
+      services: [
+        { name: bs[0], status: 'degraded', recovery: 70, rto: '24 h', note: 'Crown of Ash editorial locked down; other titles running' },
+        { name: bs[1], status: 'degraded', recovery: 60, rto: '72 h', note: 'Northlight shots moving to DNEG and in-house London' },
+        { name: bs[2], status: 'operational', recovery: 100, rto: '—', note: 'Not affected' },
+        { name: bs[3], status: 'operational', recovery: 100, rto: '—', note: 'Not affected' },
+        { name: bs[4], status: 'operational', recovery: 100, rto: '—', note: 'Not affected' },
+        { name: bs[5], status: 'operational', recovery: 100, rto: '—', note: 'Not affected' },
+      ],
+      ioc: ['WM-31877 (NexGuard session mark)', 'Vendor Aspera node key used from 185.243.x.x', 't.me/… (leak channel, 4 mirrors)'],
+    };
+  },
+};
+
 export function warroom(c: CustomerProfile): WarScenario {
+  const own = OWN_WARROOMS[c.id];
+  if (own) return own(c);
   const p = c.people;
-  const x = EXTRA[c.id];
+  const x = forCustomer(EXTRA, c);
   const bs = c.vocab.businessServices;
-  if (c.id === 'maritime') {
+  if (c.dataKey === 'maritime') {
     const pkl = p.staff.find((s) => s.name.startsWith('Aisha'))?.name ?? 'Aisha Rahman';
     return {
       id: 'MI-2026-031', title: 'Ransomware at Straits Gateway Terminal (Port Klang)', tenantId: 'pkl', severity: 'critical', phase: 'Containment → recovery', declaredMinAgo: 292,
@@ -824,7 +1469,7 @@ export function warroom(c: CustomerProfile): WarScenario {
       ioc: ['185.220.101.47', 'svchost32.exe (sha256 9f2c…e1a4)', 'LockBit 3.0 note: Restore-My-Files.txt'],
     };
   }
-  if (c.id === 'healthcare') {
+  if (c.dataKey === 'healthcare') {
     const staff = (first: string, fb: string) => p.staff.find((s) => s.name.includes(first))?.name ?? fb;
     const cno = staff('Angela', 'Chief Nursing Officer');
     const epic = staff('Kevin', 'Epic Technical Lead');
@@ -904,7 +1549,7 @@ export function warroom(c: CustomerProfile): WarScenario {
       ioc: ['update-msedge[.]top', 'Rhysida note: CriticalBreachDetected.pdf', 'AnyDesk on COM-ZAN-FS01 (T1219)'],
     };
   }
-  if (c.id === 'automotive') {
+  if (c.dataKey === 'automotive') {
     const staff = (first: string, fb: string) => p.staff.find((s) => s.name.includes(first))?.name ?? fb;
     const vcs = staff('Yuki', 'Head of Vehicle Cybersecurity');
     const sqe = staff('Elena', 'Supplier Quality Engineer');
@@ -984,7 +1629,7 @@ export function warroom(c: CustomerProfile): WarScenario {
       ioc: ['Akira note: akira_readme.txt', 'rclone.exe to 194.165.16[.]x (T1567.002)', 'kuka-svc-ing (BeyondTrust vendor account)'],
     };
   }
-  if (c.id === 'finserv') {
+  if (c.dataKey === 'finserv') {
     return {
       id: 'MI-2026-007', title: 'Card authorisation latency at Aldersgate Payments', tenantId: 'pay', severity: 'critical', phase: 'Mitigation', declaredMinAgo: 141,
       summary: 'Card authorisation p99 latency rose from 180 ms to 4.2 s after a card-testing bot surge saturated the HSM gateway pool. Classified a major ICT-related incident under DORA by Aldersgate Europe S.A. (shared payments service) and reportable to the FCA/PRA and under PSD2.',
@@ -1190,7 +1835,7 @@ export function overlapPct(a: string[], b: string[]): number {
 
 export function toolScores(c: CustomerProfile, tenantId: string, days: number): ToolScore[] {
   const tools = ownTools(c, tenantId);
-  const sizeF = Math.pow(c.employees / 7400, 0.55) * (c.currency === 'GBP' ? 0.79 : 1);
+  const sizeF = Math.pow(c.employees / 7400, 0.55) * (c.currency === 'USD' ? 1 : fxFromUsd(c.currency));
   const out = tools.map((k) => {
     const r = rng(`ops-score-${c.id}-${k.id}`);
     const rr = rng(`ops-score-${c.id}-${k.id}-${tenantId}-${days}`);
@@ -1231,23 +1876,35 @@ export function toolScores(c: CustomerProfile, tenantId: string, days: number): 
 /* =====================================================================
    Peer benchmark (anonymised, opt-in)
    ===================================================================== */
-const PEERS: Record<CustomerId, { n: number; label: string; median: number; q1: number; q3: number; p90: number }> = {
+const PEERS: CustomerMap<{ n: number; label: string; median: number; q1: number; q3: number; p90: number }> = {
   maritime: { n: 23, label: 'ports, terminals & shipping lines', median: 69, q1: 61, q3: 77, p90: 83 },
   finserv: { n: 41, label: 'banks, payments & wealth firms', median: 77, q1: 71, q3: 83, p90: 88 },
   media: { n: 17, label: 'studios, post houses & streamers', median: 66, q1: 58, q3: 74, p90: 81 },
   healthcare: { n: 29, label: 'health systems & hospital groups', median: 67, q1: 59, q3: 75, p90: 82 },
   automotive: { n: 19, label: 'vehicle OEMs & tier-1 suppliers', median: 72, q1: 65, q3: 80, p90: 86 },
+  insurance: { n: 33, label: 'P&C, specialty & life insurers', median: 74, q1: 67, q3: 81, p90: 86 },
+  defence: { n: 26, label: 'defence primes & sub-tier suppliers', median: 68, q1: 59, q3: 76, p90: 83 },
+  pharma: { n: 21, label: 'research-based pharma & biotech', median: 73, q1: 66, q3: 80, p90: 86 },
+  sghospital: { n: 14, label: 'APAC private hospital groups', median: 65, q1: 57, q3: 73, p90: 80 },
+  studio: { n: 12, label: 'major studios, streamers & resort operators', median: 70, q1: 62, q3: 77, p90: 84 },
 };
 /** Peer distributions per metric: [median, q1 (worse quartile), q3 (better quartile)]. */
-const BENCH: Record<CustomerId, { mfa: number; patch: number; mttr: number[]; mttd: number[]; patchP: number[]; mfaP: number[]; loop: number[]; attack: number[] }> = {
+const BENCH: CustomerMap<{ mfa: number; patch: number; mttr: number[]; mttd: number[]; patchP: number[]; mfaP: number[]; loop: number[]; attack: number[] }> = {
   maritime: { mfa: 91, patch: 17, mttr: [74, 110, 45], mttd: [14, 26, 8], patchP: [24, 35, 15], mfaP: [86, 78, 93], loop: [49, 38, 61], attack: [58, 47, 69] },
   finserv: { mfa: 99, patch: 9, mttr: [52, 78, 34], mttd: [8, 15, 5], patchP: [13, 19, 8], mfaP: [97, 94, 99], loop: [58, 49, 68], attack: [71, 63, 80] },
   media: { mfa: 94, patch: 21, mttr: [81, 120, 50], mttd: [16, 30, 9], patchP: [26, 38, 17], mfaP: [89, 82, 95], loop: [44, 33, 57], attack: [52, 43, 63] },
   healthcare: { mfa: 88, patch: 22, mttr: [70, 105, 46], mttd: [13, 24, 8], patchP: [31, 45, 20], mfaP: [84, 76, 92], loop: [45, 35, 56], attack: [55, 45, 66] },
   automotive: { mfa: 95, patch: 15, mttr: [58, 85, 38], mttd: [10, 18, 6], patchP: [18, 27, 11], mfaP: [93, 88, 97], loop: [52, 42, 63], attack: [64, 54, 74] },
+  insurance: { mfa: 99, patch: 11, mttr: [55, 82, 36], mttd: [9, 16, 5], patchP: [15, 22, 9], mfaP: [96, 92, 99], loop: [55, 45, 65], attack: [67, 58, 76] },
+  defence: { mfa: 100, patch: 14, mttr: [66, 98, 42], mttd: [12, 22, 7], patchP: [21, 32, 13], mfaP: [97, 93, 100], loop: [47, 37, 58], attack: [57, 47, 68] },
+  pharma: { mfa: 98, patch: 13, mttr: [57, 84, 37], mttd: [9, 17, 6], patchP: [19, 28, 12], mfaP: [95, 90, 98], loop: [53, 43, 64], attack: [65, 56, 75] },
+  sghospital: { mfa: 96, patch: 19, mttr: [72, 108, 47], mttd: [13, 24, 8], patchP: [27, 40, 17], mfaP: [90, 83, 96], loop: [43, 33, 54], attack: [54, 44, 65] },
+  studio: { mfa: 95, patch: 16, mttr: [62, 92, 40], mttd: [11, 20, 6], patchP: [22, 33, 14], mfaP: [91, 85, 96], loop: [49, 39, 60], attack: [61, 52, 71] },
 };
+/** How much custody counts in each sector's peer group (radar median offset for the custody axis). */
+const CUSTODY_PEER_BIAS: CustomerMap<number> = { maritime: -10, finserv: -10, media: 0, healthcare: -10, automotive: -10, insurance: -8, defence: -2, pharma: 0, sghospital: -10, studio: 0 };
 export function peerInfo(c: CustomerProfile) {
-  return PEERS[c.id];
+  return forCustomer(PEERS, c);
 }
 
 export function percentileOf(you: number, median: number, q3: number): number {
@@ -1270,13 +1927,13 @@ export interface BenchMetric {
 }
 
 export function benchmark(c: CustomerProfile, tenantId: string, days: number) {
-  const pi = PEERS[c.id];
+  const pi = forCustomer(PEERS, c);
   const ri = resilienceIndex(c, tenantId).value;
   const h = headlines(c, tenantId);
   const ls = loopSummary(loops(c, tenantId));
   const r = rng(`ops-bench-${c.id}-${tenantId}-${days}`);
   const j = (n: number, f = 0.06) => Math.round(n * (1 + (r() - 0.5) * f) * 10) / 10;
-  const b = BENCH[c.id];
+  const b = forCustomer(BENCH, c);
   const q = (v: number[]) => ({ median: v[0], q1: v[1], q3: v[2] });
   const raw: Omit<BenchMetric, 'pct'>[] = [
     { key: 'ri', label: 'Resilience Index', unit: '', you: ri, median: pi.median, q1: pi.q1, q3: pi.q3, higherBetter: true },
@@ -1296,7 +1953,7 @@ export function benchmark(c: CustomerProfile, tenantId: string, days: number) {
   const radar = caps.map((cp) => {
     const you = tenantId === 'all' || !t0 ? c.scores[cp.id] : Math.round(c.scores[cp.id] * 0.6 + t0.ri * 0.4);
     const rr = rng(`ops-bench-cap-${c.id}-${cp.id}`);
-    const median = Math.round(pi.median + rr.int(-8, 6) + (cp.id === 'custody' && c.id !== 'media' ? -10 : 0));
+    const median = Math.round(pi.median + rr.int(-8, 6) + (cp.id === 'custody' ? forCustomer(CUSTODY_PEER_BIAS, c) : 0));
     return { ...cp, you, median, top: Math.min(98, median + rr.int(9, 15)) };
   });
   const tr = rng(`ops-bench-trend-${c.id}`);
@@ -1328,7 +1985,7 @@ export function trustTier(ri: number): { tier: string; color: string } {
 
 export function shareLinks(c: CustomerProfile, tenantId: string): ShareLink[] {
   const r = rng(`ops-share-${c.id}-${tenantId}`);
-  const seeds: Record<CustomerId, [string, ShareLink['kind'], string[]][]> = {
+  const seeds: CustomerMap<[string, ShareLink['kind'], string[]][]> = {
     maritime: [
       ['Northwind Container Line (charterer)', 'customer', ['RI', 'ISO 27001', 'IACS E26/27']],
       ['Beazley via Marsh Marine & Energy', 'insurer', ['RI', 'Attestations', 'Pen test date']],
@@ -1364,9 +2021,44 @@ export function shareLinks(c: CustomerProfile, tenantId: string): ShareLink[] {
       ['Nordpool Mobility (fleet & leasing customer)', 'customer', ['RI', 'TISAX', 'ISO 27001']],
       ['Bosch Mobility (supplier reciprocity)', 'partner', ['RI', 'TISAX']],
     ],
+    insurance: [
+      ['Beazley via Marsh FINPRO', 'insurer', ['RI', 'Attestations', 'Pen test date']],
+      ['NYDFS (examination team)', 'regulator', ['NYDFS 500', 'RI']],
+      ['Munich Re (treaty reinsurer)', 'partner', ['RI', 'NIST CSF 2.0', 'SOC 2']],
+      ['Lakeshore Independent Agents Alliance', 'customer', ['RI', 'SOC 2']],
+      ['EXL (BPO reciprocity)', 'partner', ['RI', 'SOC 2', 'PCI DSS']],
+    ],
+    defence: [
+      ['RTX supply-chain cyber team', 'customer', ['RI', 'CMMC L2', 'NIST 800-171', 'SPRS score']],
+      ['Lockheed Martin supplier assurance', 'customer', ['RI', 'CMMC L2', 'DFARS 7012']],
+      ['Redstone Cyber Assessors (C3PAO)', 'regulator', ['CMMC L2', 'NIST 800-171']],
+      ['Beazley via Marsh McLennan Agency', 'insurer', ['RI', 'Attestations', 'Pen test date']],
+      ['Cumberland Precision Machining (flow-down)', 'partner', ['RI', 'DFARS 7012']],
+    ],
+    pharma: [
+      ['Swiss Re Corporate Solutions via Marsh', 'insurer', ['RI', 'Attestations', 'Pen test date']],
+      ['Swissmedic GMP inspectorate', 'regulator', ['EU GMP Annex 11', 'Part 11', 'RI']],
+      ['IQVIA (CRO reciprocity)', 'partner', ['RI', 'ISO 27001', 'GxP']],
+      ['Global health alliance partner (supply agreement)', 'customer', ['RI', 'ISO 27001', 'NIS2']],
+      ['Lonza (CDMO tech transfer)', 'partner', ['RI', 'ISO 27001']],
+    ],
+    sghospital: [
+      ['Chubb via Marsh Singapore', 'insurer', ['RI', 'Attestations', 'Pen test date']],
+      ['Ministry of Health (HIA compliance)', 'regulator', ['HIA CS/DS', 'RI']],
+      ['Synapxe (NEHR onboarding)', 'partner', ['NEHR readiness', 'Cyber Trust']],
+      ['Great Eastern Life (integrated shield plans)', 'customer', ['RI', 'PDPA', 'ISO 27001']],
+      ['Lion City Pathology Laboratories', 'partner', ['RI', 'Cyber Essentials']],
+    ],
+    studio: [
+      ['AIG via Marsh Media & Entertainment', 'insurer', ['RI', 'Attestations', 'Pen test date']],
+      ['TPN assessor portal', 'regulator', ['TPN', 'MPA CSBP']],
+      ['Co-financier: Meridian Film Partners', 'partner', ['RI', 'TPN']],
+      ['Global distribution partner (SVOD licensee)', 'customer', ['RI', 'TPN', 'Pen test date']],
+      ['DNEG (vendor reciprocity)', 'partner', ['RI', 'TPN']],
+    ],
   };
   const viewers = ['security@', 'risk@', 'procurement@', 'underwriting@', 'supervision@'];
-  return seeds[c.id].map(([recipient, kind, scope], i) => {
+  return forCustomer(seeds, c).map(([recipient, kind, scope], i) => {
     const status: ShareLink['status'] = i === 4 ? 'expired' : 'active';
     const views = status === 'expired' ? r.int(2, 6) : r.int(1, 28);
     const created = r.int(4, 120);
@@ -1380,14 +2072,37 @@ export function shareLinks(c: CustomerProfile, tenantId: string): ShareLink[] {
   });
 }
 
+const LAST_PEN_TEST: CustomerMap<{ daysAgo: number; scope: string; by: string }> = {
+  maritime: { daysAgo: 47, scope: 'External, terminal DMZ & vessel remote access', by: 'HexaStrike' },
+  finserv: { daysAgo: 23, scope: 'Open-banking APIs, internet perimeter, CBEST-style red team (Q2)', by: 'HexaStrike' },
+  media: { daysAgo: 61, scope: 'Screener & review portals, KestrelPlay API', by: 'HexaStrike' },
+  healthcare: { daysAgo: 34, scope: 'Internet perimeter, MyChart & FHIR APIs, Citrix gateway', by: 'HexaStrike' },
+  automotive: { daysAgo: 19, scope: 'Connected-vehicle & OTA APIs, dealer portal, plant DMZ (Level 3.5)', by: 'HexaStrike' },
+  insurance: { daysAgo: 29, scope: 'AgentHub & policyholder portals, claims API, MFT, help-desk social engineering test', by: 'HexaStrike' },
+  defence: { daysAgo: 41, scope: 'GCC High enclave (AiTM & token theft), VPN, Building 3 vendor access', by: 'HexaStrike' },
+  pharma: { daysAgo: 26, scope: 'CRO partner portal, Rhenara Connect API, Valais Level 3.5 DMZ', by: 'HexaStrike' },
+  sghospital: { daysAgo: 52, scope: 'Patient portal & FHIR API, Citrix gateway, vendor PAM paths', by: 'HexaStrike' },
+  studio: { daysAgo: 17, scope: 'Screener & review portals, Starfall+ API, Aspera and park ticketing', by: 'HexaStrike' },
+};
 export function lastPenTest(c: CustomerProfile): { daysAgo: number; scope: string; by: string } {
-  return {
-    maritime: { daysAgo: 47, scope: 'External, terminal DMZ & vessel remote access', by: 'HexaStrike' },
-    finserv: { daysAgo: 23, scope: 'Open-banking APIs, internet perimeter, CBEST-style red team (Q2)', by: 'HexaStrike' },
-    media: { daysAgo: 61, scope: 'Screener & review portals, KestrelPlay API', by: 'HexaStrike' },
-    healthcare: { daysAgo: 34, scope: 'Internet perimeter, MyChart & FHIR APIs, Citrix gateway', by: 'HexaStrike' },
-    automotive: { daysAgo: 19, scope: 'Connected-vehicle & OTA APIs, dealer portal, plant DMZ (Level 3.5)', by: 'HexaStrike' },
-  }[c.id];
+  return forCustomer(LAST_PEN_TEST, c);
+}
+
+/** Workspace SSO defaults shown in Administration. */
+const SSO_DEFAULTS: CustomerMap<{ phishingResistant: boolean; sessionH: number; keyRotatedDaysAgo: number; keyNextDays: number }> = {
+  maritime: { phishingResistant: false, sessionH: 12, keyRotatedDaysAgo: 63, keyNextDays: 302 },
+  finserv: { phishingResistant: true, sessionH: 8, keyRotatedDaysAgo: 41, keyNextDays: 324 },
+  media: { phishingResistant: false, sessionH: 12, keyRotatedDaysAgo: 63, keyNextDays: 302 },
+  healthcare: { phishingResistant: false, sessionH: 12, keyRotatedDaysAgo: 63, keyNextDays: 302 },
+  automotive: { phishingResistant: true, sessionH: 12, keyRotatedDaysAgo: 63, keyNextDays: 302 },
+  insurance: { phishingResistant: true, sessionH: 8, keyRotatedDaysAgo: 52, keyNextDays: 313 },
+  defence: { phishingResistant: true, sessionH: 8, keyRotatedDaysAgo: 34, keyNextDays: 331 },
+  pharma: { phishingResistant: true, sessionH: 10, keyRotatedDaysAgo: 77, keyNextDays: 288 },
+  sghospital: { phishingResistant: false, sessionH: 12, keyRotatedDaysAgo: 0, keyNextDays: 0 },
+  studio: { phishingResistant: false, sessionH: 10, keyRotatedDaysAgo: 46, keyNextDays: 319 },
+};
+export function ssoDefaults(c: CustomerProfile) {
+  return forCustomer(SSO_DEFAULTS, c);
 }
 
 /* =====================================================================
@@ -1448,7 +2163,7 @@ export function idpFor(c: CustomerProfile): string {
 
 export function adminUsers(c: CustomerProfile, tenantId: string): AdminUser[] {
   const r = rng(`ops-users-${c.id}`);
-  const x = EXTRA[c.id];
+  const x = forCustomer(EXTRA, c);
   const p = c.people;
   const dom = c.domain;
   const mk = (name: string, email: string, role: HvRole, title: string, tenants = 'All tenants'): AdminUser => ({

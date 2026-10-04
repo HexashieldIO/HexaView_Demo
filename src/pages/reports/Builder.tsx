@@ -5,7 +5,7 @@ import { useApp } from '../../state/AppContext';
 import { scopedTenants, tenantName } from '../../data/customers';
 import { headlines } from '../../data/core';
 import {
-  SECTIONS, buildDoc, periodFromState, initialPeriodState, reportTemplates, PERIOD_KINDS,
+  SECTIONS, buildDoc, defaultSections, periodFromState, initialPeriodState, reportTemplates, PERIOD_KINDS,
   type Audience, type Format, type SectionId, type PeriodState, type PeriodKind,
 } from '../../data/modules/reports';
 import { Badge, Btn, Callout, Card, KpiStrip, KV } from '../../components/ui';
@@ -36,7 +36,7 @@ function BuilderInner() {
   const h = headlines(c, tenantId);
   const ts = scopedTenants(c, tenantId);
   const hasOt = ts.some((t) => t.env.includes('ot'));
-  const defaults: SectionId[] = ['ri', 'capability', 'incidents', 'loops', 'frameworks', c.id === 'media' || c.id === 'automotive' ? 'custody' : hasOt ? 'ot' : 'exposure', 'ai', 'risks'];
+  const defaults: SectionId[] = defaultSections(c, hasOt);
   const [sel, setSel] = useState<SectionId[]>(tpl?.sections ?? defaults);
   const [title, setTitle] = useState(tpl?.title ?? `${c.short} cyber resilience report`);
   const [audience, setAudience] = useState<Audience>(tpl?.audience ?? 'Board');

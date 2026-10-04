@@ -9,7 +9,7 @@ import { headlines } from '../../data/core';
 import type { DataPlane } from '../../data/types';
 import {
   planesInScope, planeSeries, vessels, keyInventory, DEPLOYMENT_MODELS, deploymentHighlights,
-  connShort, effHealth, airGapBundles, vehicleFleet,
+  connShort, effHealth, airGapBundles, airGapInfo, vehicleFleet,
 } from '../../data/modules/fabric';
 import { Card, KpiStrip, Badge, HealthBadge, Btn, Callout, KV, HEALTH_COLOR, Bar, Freshness } from '../../components/ui';
 import { Chart } from '../../components/Chart';
@@ -40,6 +40,8 @@ export default function FabricDataplanes() {
   const totalEpm = planes.reduce((s, d) => s + d.eventsPerMin, 0);
   const healthyPlanes = planes.filter((d) => d.status === 'healthy').length;
   const highlights = deploymentHighlights(c);
+  const gap = airGapInfo(c);
+  const gapHours = bundles.length * gap.everyH;
   const bufferedTotal = ves.reduce((s, v) => s + v.bufferedEvents, 0);
 
   const throughput = {
@@ -62,7 +64,7 @@ export default function FabricDataplanes() {
           { label: 'Events / day', value: fmtCompact(h.fabric.eventsPerDay), toneColor: TONE, onClick: () => scrollToId('fab-planes'), source: 'HexaCore metering (events_normalised)' },
           { label: 'Key management', value: c.byok ? 'BYOK' : 'Managed', hint: c.byok ? 'customer HSM' : 'per-tenant', toneColor: c.byok ? 'var(--good)' : 'var(--m-ai)', onClick: () => setRec('keys'), source: c.dataPlanes[0]?.vault ?? 'Key Vault' },
           ...(ves.length ? [{ label: 'Vessels buffering', value: ves.filter((v) => v.link === 'Out of coverage').length, hint: `${fmtCompact(bufferedTotal)} events held`, toneColor: 'var(--sev-medium)', onClick: () => scrollToId('fab-fleet'), source: 'Vessel edge collectors (store & forward)' }] : []),
-          ...(gapped.length ? [{ label: 'Air-gapped bundles', value: `${Math.round(gapped[0].heartbeatSecAgo / 3600)} h`, hint: 'since last', toneColor: 'var(--m-ot)', delta: { text: `${bundles.length} verified in 72 h`, good: true }, onClick: () => setRec('bundles'), source: `${gapped[0].name} · signed bundle via data diode` }] : []),
+          ...(gapped.length ? [{ label: 'Air-gapped bundles', value: `${Math.round(gapped[0].heartbeatSecAgo / 3600)} h`, hint: 'since last', toneColor: 'var(--m-ot)', delta: { text: `${bundles.length} verified in ${gapHours} h`, good: true }, onClick: () => setRec('bundles'), source: `${gapped[0].name} · signed bundle via data diode` }] : []),
           ...(fleet ? [{ label: 'Vehicles online', value: fmtCompact(fleet.online), hint: `of ${fmtCompact(fleet.vehicles)}`, toneColor: 'var(--m-core)', onClick: () => setRec('fleet'), source: 'Upstream vSOC · vehicle cloud data plane' }] : []),
         ]}
       />
@@ -77,11 +79,11 @@ export default function FabricDataplanes() {
             <Card title={<><ShieldCheck size={15} style={{ verticalAlign: -2, color: 'var(--m-ot)' }} /> {gapped[0].name}: signed bundles</>} sub={gapped[0].note ?? 'No network path out; data leaves only as signed bundles'} toneColor="var(--m-ot)" tinted>
               <div className="ins-stats" style={{ marginBottom: 12 }}>
                 <Stat value={`${Math.round(gapped[0].heartbeatSecAgo / 3600)} h ago`} label="Last bundle imported" color="var(--m-ot)" onClick={() => setRec('bundles')} source="Group data plane import log" />
-                <Stat value="6 h" label="Export interval" sub="00:00 · 06:00 · 12:00 · 18:00" />
-                <Stat value={fmtCompact(bundles.reduce((s, b) => s + b.events, 0) / Math.max(1, bundles.length) * 4)} label="Events per day" onClick={() => setRec('bundles')} source="Bundle manifests" />
+                <Stat value={`${gap.everyH} h`} label="Export interval" sub={Array.from({ length: Math.floor(24 / gap.everyH) }, (_, i) => `${String(i * gap.everyH).padStart(2, "0")}:00`).join(" · ")} />
+                <Stat value={fmtCompact(bundles.reduce((s, b) => s + b.events, 0) / Math.max(1, bundles.length) * (24 / gap.everyH))} label="Events per day" onClick={() => setRec('bundles')} source="Bundle manifests" />
                 <Stat value={`${bundles.filter((b) => b.verified).length}/${bundles.length}`} label="Signatures verified" color="var(--good)" onClick={() => setRec('bundles')} source="Ed25519 bundle signatures" />
               </div>
-              <div className="section-label">Bundle timeline (last 72 h)</div>
+              <div className="section-label">Bundle timeline (last {gapHours} h)</div>
               <div className="fab-bundles">
                 {bundles.slice().reverse().map((b) => (
                   <button key={b.id} className="fab-bundle" onClick={() => setRec('bundles')} title={`${b.id} · ${fmtNum(b.events)} events · ${b.sizeMb} MB · SHA-256 ${b.sha.slice(0, 12)}…`}>
@@ -90,7 +92,7 @@ export default function FabricDataplanes() {
                   </button>
                 ))}
               </div>
-              <Callout kind="info">Nothing reaches the battery plant from outside. HexaOT sensors write to a local store; every 6 h the plane signs a bundle that crosses a one-way data diode to the group plane, where HexaView verifies the signature before import. Freshness is shown as bundle age, never as live.</Callout>
+              <Callout kind="info">Nothing reaches {gap.site} from outside. HexaOT sensors write to a local store; every {gap.everyH} h the plane signs a bundle that crosses a one-way data diode to the group plane, where HexaView verifies the signature before import. Freshness is shown as bundle age, never as live.</Callout>
             </Card>
           )}
           {fleet && (
@@ -286,7 +288,7 @@ function Topology({ c, planes, conns, onSelect }: { c: ReturnType<typeof useApp>
       label: 'Customer data planes',
       nodes: planes.map((d) => ({
         id: d.id, title: d.name, icon: icon(d),
-        count: d.placement === 'Air-gapped' ? 'bundle / 6 h' : `${fmtCompact(d.eventsPerMin)}/min`,
+        count: d.placement === 'Air-gapped' ? `bundle / ${airGapInfo(c).everyH} h` : `${fmtCompact(d.eventsPerMin)}/min`,
         sub: d.placement === 'Air-gapped' ? 'via data diode' : d.placement.replace('Customer ', '').replace('On-prem ', '').replace('Vessel edge (store & forward)', 'store & forward'),
         state: d.status === 'healthy' ? undefined : 'warn' as const,
         color: d.placement === 'Air-gapped' ? 'var(--m-ot)' : HEALTH_COLOR[d.status],

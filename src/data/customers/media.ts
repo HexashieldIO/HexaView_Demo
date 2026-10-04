@@ -4,6 +4,7 @@ import type { CustomerProfile } from '../types';
 // Professional tier on multi-tenant SaaS, custody-heavy, TPN-driven.
 export const media: CustomerProfile = {
   id: 'media',
+  dataKey: 'media',
   name: 'Kestrel Pictures Group',
   short: 'Kestrel',
   initials: 'KP',
@@ -90,6 +91,21 @@ export const media: CustomerProfile = {
       { name: 'Mia Chen', role: 'Streaming SRE', email: 'm.chen@kestrelplay.com' },
       { name: 'Ravi Kapoor', role: 'Freelance Colourist', email: 'ravi.k@contractor.kestrelpost.co.uk' },
     ],
+  },
+  rolePeople: {
+    master: { name: 'Chloe Park', role: 'IT Platforms Manager', email: 'c.park@kestrelpictures.com' },
+    executive: { name: 'Victoria Hale', role: 'Chief Executive Officer', email: 'v.hale@kestrelpictures.com', vip: true },
+    ciso: { name: 'Danielle Ortiz', role: 'CISO', email: 'd.ortiz@kestrelpictures.com' },
+    finance: { name: 'Robert Lindqvist', role: 'Chief Financial Officer', email: 'r.lindqvist@kestrelpictures.com', vip: true },
+    socmanager: { name: 'Kenji Watanabe', role: 'Security Operations Lead', email: 'k.watanabe@kestrelpictures.com' },
+    analyst: { name: 'Jasmine Okafor', role: 'Security Analyst', email: 'j.okafor@kestrelpictures.com' },
+    threat: { name: 'Leo Castellanos', role: 'Anti-Piracy & Threat Intelligence Lead', email: 'l.castellanos@kestrelpictures.com' },
+    grc: { name: 'Rachel Greenberg', role: 'Content Security Director', email: 'r.greenberg@kestrelpictures.com' },
+    risk: { name: 'Nadia Haddad', role: 'Head of Enterprise Risk & Production Continuity', email: 'n.haddad@kestrelpictures.com' },
+    privacy: { name: 'Owen Fitzroy', role: 'Privacy & Talent Rights Counsel', email: 'o.fitzroy@kestrelpictures.com' },
+    ot: { name: 'Marcus Dupree', role: 'Broadcast Engineering Manager', email: 'm.dupree@kestrelpictures.com' },
+    cloud: { name: 'Priya Raman', role: 'Cloud Security Engineer', email: 'p.raman@kestrelpictures.com' },
+    admin: { name: 'Tyler Brooks', role: 'Security Platform Administrator', email: 't.brooks@kestrelpictures.com' },
   },
   thirdParties: [
     { name: 'Lumière VFX (Montréal)', category: 'VFX vendor', tier: 1, access: 'Pre-release plates & renders', rating: 71, country: 'CA' },

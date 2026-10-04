@@ -5,7 +5,7 @@ import { Drawer } from '../../../components/Overlay';
 import { KV, Btn, Callout, Badge, Sources, SectionLabel } from '../../../components/ui';
 import { useApp } from '../../../state/AppContext';
 import { fmtAgo } from '../../../lib/format';
-import { vrSetStatus, vrRaiseTicket, vrRequestScan, vrItsm, vrScanner, VR_SOURCE_META, type VrAsset, type VrStatus } from '../../../data/modules/vulnresponse';
+import { vrSetStatus, vrRaiseTicket, vrRequestScan, vrItsm, vrScanner, vrOtFixer, VR_SOURCE_META, type VrAsset, type VrStatus } from '../../../data/modules/vulnresponse';
 import { useVr } from './state';
 import { StatusPill, SourceTag, ValPill, Confirm, fmtDue, stamp } from './ui';
 
@@ -59,7 +59,7 @@ export function AssetDrawer({ a, onClose }: { a: VrAsset; onClose: () => void })
 
       {isOt && (
         <Callout kind="info" color="var(--m-ot)">
-          <Lock size={12} style={{ verticalAlign: -1 }} /> <b>OT is read-only by policy.</b> HexaView records status and raises tickets; nothing is written to the controller. {a.airGapped ? 'This plant is air-gapped: evidence arrives by offline import from the sealed HexaOT store.' : 'Plant or terminal engineers apply the fix in a maintenance window.'}
+          <Lock size={12} style={{ verticalAlign: -1 }} /> <b>OT is read-only by policy.</b> HexaView records status and raises tickets; nothing is written to the controller. {a.airGapped ? 'This plant is air-gapped: evidence arrives by offline import from the sealed HexaOT store.' : vrOtFixer(c)}
         </Callout>
       )}
 

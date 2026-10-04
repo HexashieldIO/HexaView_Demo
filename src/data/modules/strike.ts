@@ -1,11 +1,12 @@
 // HexaStrike (Offensive Security) data: penetration testing, red teaming,
 // purple teaming and attack surface management. Pure, seeded per customer.
-import type { CustomerProfile, CustomerId, Severity } from '../types';
+import type { CustomerProfile, Severity } from '../types';
 import { rng } from '../../lib/rng';
 import { headlines } from '../core';
 import { scopedTenants } from '../customers';
 import { CVES } from '../reference';
 import { daysAgo, fmtDateShort } from '../../lib/format';
+import { forCustomer, type CustomerMap } from '../customerMap';
 
 export function edrName(c: CustomerProfile): string {
   const k = c.connectors.find((x) => x.category === 'EDR / XDR');
@@ -61,7 +62,7 @@ function flagship(c: CustomerProfile): Finding[] {
   const mk = (f: Partial<Finding> & { id: string; title: string; target: string; tenantId: string; summary: string; recommendation: string }): Finding => ({
     engType: 'API', sev: 'critical', cvss: 9.3, owasp: OWASP[0], cwe: CWE[0], likelihood: 4, impact: 5, status: 'Open', slaDays: 4, detection: false, firstFixPriority: true, ...f,
   });
-  const map: Record<CustomerId, Finding[]> = {
+  const map: CustomerMap<Finding[]> = {
     finserv: [
       mk({ id: 'PT-F-001', title: 'BOLA on the open-banking accounts API', engType: 'API', target: 'openbanking.aldersgate.co.uk', tenantId: 'ukbank', cvss: 9.3, owasp: OWASP[0], cwe: CWE[0], summary: 'Broken Object Level Authorization: account identifiers in the AISP accounts endpoint are not scoped to the authenticated consent, allowing cross-account data access.', recommendation: 'Enforce consent-to-account binding server-side; add object-level authorization checks and an abuse-detection rule.' }),
       mk({ id: 'PT-F-002', title: 'SQL injection in the lending pre-approval service', engType: 'Web app', target: 'business.aldersgate.co.uk', tenantId: 'ukbank', cvss: 8.6, owasp: OWASP[2], cwe: CWE[1], sev: 'high', slaDays: 9, likelihood: 3, impact: 5, firstFixPriority: true, summary: 'A parameter in the pre-approval flow is concatenated into a query.', recommendation: 'Parameterise queries; deploy a WAF virtual patch pending fix.' }),
@@ -84,8 +85,33 @@ function flagship(c: CustomerProfile): Finding[] {
       mk({ id: 'PT-VM-002', title: 'IDOR on the dealer portal exposes customer finance applications', engType: 'Web app', target: 'dealer.vireo-motors.com', tenantId: 'retail', cvss: 9.0, owasp: OWASP[0], cwe: CWE[0], summary: 'Sequential application IDs let one dealer user open other dealers\' customer finance applications.', recommendation: 'Per-object authorisation scoped to dealer; unguessable IDs; GDPR impact assessment.' }),
       mk({ id: 'PT-VM-003', title: 'Supplier portal allows external accounts without MFA', engType: 'Web app', target: 'supplier.vireo-motors.com', tenantId: 'group', cvss: 7.9, owasp: OWASP[6], cwe: CWE[3], sev: 'high', slaDays: 13, likelihood: 4, impact: 4, summary: 'Supplier accounts federated from smaller suppliers fall back to password-only sign-in.', recommendation: 'Require MFA or managed-device certificates for all supplier accounts with PLM or OTA reach.' }),
     ],
+    insurance: [
+      mk({ id: 'PT-KM-001', title: 'Broken object-level authorisation on the AgentHub broker API', engType: 'API', target: 'agents.kingsbridgemutual.com', tenantId: 'personal', cvss: 9.3, owasp: OWASP[0], cwe: CWE[0], summary: 'Policy and book-of-business identifiers on the agent portal API are not scoped to the signed-in agency, so one agency can read another agency\'s policyholder records and quotes (tested against seeded agencies only).', recommendation: 'Bind every object to the authenticated agency server-side, add object-level authorisation and an abuse-detection rule; assess nonpublic-information exposure under NYDFS 500 and NAIC #668.' }),
+      mk({ id: 'PT-KM-002', title: 'Payment-page script integrity gap in the premium CDE', engType: 'Web app', target: 'pay.kingsbridgemutual.com', tenantId: 'personal', cvss: 8.7, owasp: OWASP[7], cwe: CWE[4], sev: 'high', slaDays: 8, likelihood: 3, impact: 5, firstFixPriority: true, summary: 'The premium payment page loads third-party scripts without integrity or change monitoring, a precursor to payment-page skimming of cardholder data.', recommendation: 'Apply Subresource Integrity and a content-security policy, inventory and monitor payment-page scripts per PCI DSS 6.4.3 and 11.6.1.' }),
+      mk({ id: 'PT-KM-003', title: 'Managed file transfer reachable with legacy authentication', engType: 'External infra', target: 'mft.kingsbridgemutual.com', tenantId: 'group', cvss: 8.1, owasp: OWASP[4], cwe: CWE[3], sev: 'high', slaDays: 10, likelihood: 3, impact: 4, summary: 'The claims and reinsurance file-transfer gateway exposes an older authentication path that bypasses the enforced MFA policy.', recommendation: 'Disable the legacy path, enforce MFA and allow-listing, and monitor the gateway for anomalous data movement.' }),
+    ],
+    defence: [
+      mk({ id: 'PT-SP-001', title: 'Controlled Unclassified Information reachable outside the GCC High enclave', engType: 'Cloud config', target: 'suppliers.sentrypeakdefense.com', tenantId: 'programs', cvss: 9.1, owasp: OWASP[0], cwe: CWE[0], summary: 'A supplier-facing share path allowed a commercial-tenant account to reach a location holding CUI technical data, breaking the enclave boundary (verified read-only against seeded documents).', recommendation: 'Confine CUI to the GCC High enclave with Purview labels and flow control, remediate the share, and treat as a potential CUI spill under DFARS 252.204-7012.' }),
+      mk({ id: 'PT-SP-002', title: 'ITAR technical data in Teamcenter accessible without a US-person attribute check', engType: 'Internal', target: 'SPD-TC-PRD01', tenantId: 'engineering', cvss: 8.6, owasp: OWASP[0], cwe: CWE[0], sev: 'high', slaDays: 9, likelihood: 3, impact: 5, firstFixPriority: true, summary: 'Item-level access control in the PLM did not enforce the US-person / export attribute for an export-controlled drawing set, so a non-US-person account context could view ITAR data.', recommendation: 'Enforce US-person attributes in Teamcenter ACLs and Entra, review the technology control plan, and record against the ITAR / EAR obligations.' }),
+      mk({ id: 'PT-SP-003', title: 'Building 3 DNC programme server accepts an unmanaged service account', engType: 'Internal', target: 'B3-DNC-SRV01', tenantId: 'manufacturing', cvss: 8.2, owasp: OWASP[6], cwe: CWE[3], sev: 'high', slaDays: 12, likelihood: 3, impact: 4, summary: 'The distributed numerical control server storing CNC programmes was reachable from the shop-floor network with a shared service account (verified read-only; no programme was altered).', recommendation: 'Vault the account in Delinea, isolate the DNC and CMM hosts from corporate IT, and add CNC programme change monitoring.' }),
+    ],
+    pharma: [
+      mk({ id: 'PT-RHN-001', title: 'GxP audit trail can be disabled on the LIMS by a privileged account', engType: 'Internal', target: 'BSL-LIMS-LW01', tenantId: 'valais', cvss: 9.0, owasp: OWASP[7], cwe: CWE[3], summary: 'A privileged application role on the laboratory system could switch off the attributable audit trail without a second approval, undermining data integrity on GxP records (observed in a validation copy).', recommendation: 'Remove the ability to disable audit trails, require dual control and reconcile to GxP change control per Part 11 11.10(e) and EU GMP Annex 11.' }),
+      mk({ id: 'PT-RHN-002', title: 'Unblinding keys and randomisation lists reachable by over-broad access', engType: 'API', target: 'clinicaltrials.rhenara.com', tenantId: 'clinops', cvss: 8.9, owasp: OWASP[0], cwe: CWE[0], sev: 'high', slaDays: 7, likelihood: 3, impact: 5, firstFixPriority: true, summary: 'RTSM access scoping allowed a clinical-operations role wider reach to unblinding keys for an active Phase III study than the role should hold (tested against a blinded synthetic study).', recommendation: 'Restrict unblinding keys to named custodians, alert on access, custody-track transfers and review against EU CTR / GCP.' }),
+      mk({ id: 'PT-RHN-003', title: 'DeltaV engineering workstation reachable from the IT network', engType: 'Internal', target: 'VLS-DELTAV-PROPLUS', tenantId: 'valais', cvss: 8.3, owasp: OWASP[4], cwe: CWE[4], sev: 'high', slaDays: 11, likelihood: 3, impact: 4, summary: 'A path from the corporate IT network reached a DeltaV engineering workstation on the Sierre plant, weakening IT/OT segmentation (reachability demonstrated; no process change attempted).', recommendation: 'Enforce the Level 3.5 DMZ, broker OEM access through PAM with session recording and alert on cross-zone connections.' }),
+    ],
+    sghospital: [
+      mk({ id: 'PT-OBH-001', title: 'Broken object-level authorisation on the patient-portal FHIR API', engType: 'API', target: 'fhir.orchidbay.com.sg', tenantId: 'obh', cvss: 9.2, owasp: OWASP[0], cwe: CWE[0], summary: 'Patient resource identifiers on the third-party-app FHIR endpoint are not scoped to the authorised patient context, so one patient\'s token can read another patient\'s demographics and encounters (tested with synthetic patients only).', recommendation: 'Enforce patient context server-side, add object-level checks and an abuse-detection rule; assess PDPA s26D (PDPC 3-day) and MOH HIA notification if exploited.' }),
+      mk({ id: 'PT-OBH-002', title: 'Default credentials on the infusion-pump management server', engType: 'Internal', target: 'OBH-ALARIS-SRV', tenantId: 'obh', cvss: 9.0, owasp: OWASP[6], cwe: CWE[3], summary: 'The BD Alaris drug-library management console accepted a vendor default account from the clinical VLAN. Verified read-only; no drug-library change was attempted (patient-safety gate).', recommendation: 'Rotate the vendor account, restrict the console to the biomed jump host, add it to CyberArk and coordinate with Biomedical Engineering and the vendor per HSA GL-04.' }),
+      mk({ id: 'PT-OBH-003', title: 'Citrix StoreFront legacy authentication path bypasses MFA', engType: 'External infra', target: 'citrix.orchidbay.com.sg', tenantId: 'obh', cvss: 8.2, owasp: OWASP[6], cwe: CWE[3], sev: 'high', slaDays: 10, likelihood: 4, impact: 4, summary: 'An older authentication endpoint on the clinician remote-access portal remained enabled and bypasses the Entra ID MFA policy.', recommendation: 'Disable the legacy endpoint and enforce Conditional Access for all StoreFront paths.' }),
+    ],
+    studio: [
+      mk({ id: 'PT-SFE-001', title: 'Review-link authentication bypass on the screeners portal', engType: 'Web app', target: 'screeners.starfallent.com', tenantId: 'studios', cvss: 9.4, owasp: OWASP[6], cwe: CWE[3], summary: 'Signed screener links can be replayed after expiry and are not bound to a viewer, exposing pre-release content ahead of release.', recommendation: 'Bind links to authenticated viewers, enforce short single-use expiry and forensic watermarking per MPA CSBP and TPN.' }),
+      mk({ id: 'PT-SFE-002', title: 'Credential-stuffing resistance missing on Starfall+ sign-in', engType: 'Web app', target: 'login.starfallplus.com', tenantId: 'play', cvss: 8.8, owasp: OWASP[6], cwe: CWE[3], sev: 'high', slaDays: 7, likelihood: 4, impact: 4, firstFixPriority: true, summary: 'The consumer streaming login lacks rate limiting, bot management and breached-credential checks, enabling account-takeover at scale against subscribers.', recommendation: 'Enforce bot management and rate limiting at the edge, add breached-credential screening and step-up authentication on risky sign-ins.' }),
+      mk({ id: 'PT-SFE-003', title: 'VFX vendor account reaches content shares without MFA', engType: 'Web app', target: 'aspera.starfallent.com', tenantId: 'post', cvss: 8.1, owasp: OWASP[6], cwe: CWE[3], sev: 'high', slaDays: 11, likelihood: 4, impact: 4, summary: 'A federated external VFX-vendor account could reach content-transfer shares with password-only sign-in, the common entry point for a pre-release leak.', recommendation: 'Require MFA or managed-device certificates and the Island enterprise browser for all vendor accounts, scoped to named projects.' }),
+    ],
   };
-  return map[c.id];
+  return forCustomer(map, c);
 }
 
 export function findings(c: CustomerProfile, tenantId = 'all'): Finding[] {
@@ -201,7 +227,7 @@ export interface RedCampaign {
 
 export function redCampaigns(c: CustomerProfile): RedCampaign[] {
   const r = rng(`strike-red-${c.id}`);
-  const base: Record<CustomerId, Omit<RedCampaign, 'steps'>[]> = {
+  const base: CustomerMap<Omit<RedCampaign, 'steps'>[]> = {
     finserv: [
       { id: 'RT-2026-01', name: 'Project Northwall', objective: 'Reach the SWIFT secure zone and stage a fraudulent payment (no execution)', framework: 'CBEST / TIBER-EU (intelligence-led)', tenantId: 'ukbank', status: 'Debrief', daysAgo: 18, crownJewelReached: false, objectivesMet: 3, objectivesTotal: 5 },
     ],
@@ -217,8 +243,23 @@ export function redCampaigns(c: CustomerProfile): RedCampaign[] {
     automotive: [
       { id: 'RT-2026-01', name: 'Project Ironline', objective: 'Via a compromised supplier account, reach the OTA signing service and the Ingolstadt MES (observe only, no changes)', framework: 'TIBER-DE style, intelligence-led (OT safety-gated)', tenantId: 'group', status: 'Complete', daysAgo: 40, crownJewelReached: true, objectivesMet: 4, objectivesTotal: 6 },
     ],
+    insurance: [
+      { id: 'RT-2026-01', name: 'Project Ledgerline', objective: 'From the agent & broker portal, reach the claims payment run and the premium CDE, and stage a mock disbursement in Guidewire ClaimCenter (no execution)', framework: 'Objective-based (NYDFS 500.17 aligned)', tenantId: 'claims', status: 'Debrief', daysAgo: 20, crownJewelReached: false, objectivesMet: 3, objectivesTotal: 5 },
+    ],
+    defence: [
+      { id: 'RT-2026-01', name: 'Project Ironcote', objective: 'From a phished engineer, reach CUI in the GCC High enclave, ITAR data in Teamcenter and the Building 3 DNC server (observe only, safety-gated)', framework: 'Objective-based, intelligence-led (CUI & OT gated)', tenantId: 'engineering', status: 'Complete', daysAgo: 38, crownJewelReached: true, objectivesMet: 4, objectivesTotal: 6 },
+    ],
+    pharma: [
+      { id: 'RT-2026-01', name: 'Project Edelweiss', objective: 'From the IT network, reach the RTSM unblinding keys, formulation IP and the Valais DeltaV DCS (observe only, GxP and OT safety-gated)', framework: 'TIBER-EU style, intelligence-led (OT safety-gated)', tenantId: 'valais', status: 'Debrief', daysAgo: 24, crownJewelReached: false, objectivesMet: 3, objectivesTotal: 6 },
+    ],
+    sghospital: [
+      { id: 'RT-2026-01', name: 'Project Orchidgate', objective: 'From the guest Wi-Fi and a phished nurse, reach the TrakCare database, PACS archive and the Alaris pump server (synthetic data only, patient-safety gated)', framework: 'Objective-based, patient-safety gated (MOH HIA aligned)', tenantId: 'obh', status: 'Debrief', daysAgo: 27, crownJewelReached: false, objectivesMet: 3, objectivesTotal: 5 },
+    ],
+    studio: [
+      { id: 'RT-2026-01', name: 'Project Nightreel', objective: 'From a VFX vendor account, reach the pre-release vault, the Starfall+ DRM licence servers and the Orlando ride-control network (observe only, OT safety-gated)', framework: 'Objective-based (MPA CSBP / TPN aligned)', tenantId: 'post', status: 'Debrief', daysAgo: 21, crownJewelReached: false, objectivesMet: 3, objectivesTotal: 6 },
+    ],
   };
-  const chain: Record<CustomerId, KillChainStep[]> = {
+  const chain: CustomerMap<KillChainStep[]> = {
     finserv: [
       { phase: 'Initial access', technique: 'T1566.002', techniqueName: 'Spearphishing Link', action: 'Phished a Treasury Ops user via a themed portal', outcome: 'achieved' },
       { phase: 'Credential access', technique: 'T1621', techniqueName: 'MFA Request Generation', action: 'MFA fatigue to approve a push', outcome: 'detected', ttdMin: 6 },
@@ -253,8 +294,43 @@ export function redCampaigns(c: CustomerProfile): RedCampaign[] {
       { phase: 'OT access', technique: 'T0886', techniqueName: 'Remote Services', action: 'Reached the MES line-controller network via an engineering workstation (observe only)', outcome: 'achieved' },
       { phase: 'Objective', technique: 'T1553.002', techniqueName: 'Code Signing', action: 'Requested an OTA signing operation; HSM dual control refused it', outcome: 'blocked', ttdMin: 4 },
     ],
+    insurance: [
+      { phase: 'Initial access', technique: 'T1110.004', techniqueName: 'Credential Stuffing', action: 'Reused broker credentials against the AgentHub portal', outcome: 'achieved' },
+      { phase: 'Credential access', technique: 'T1621', techniqueName: 'MFA Request Generation', action: 'Push fatigue against a claims-operations account', outcome: 'detected', ttdMin: 8 },
+      { phase: 'Discovery', technique: 'T1087.002', techniqueName: 'Domain Account Discovery', action: 'Enumerated Guidewire and payment service accounts', outcome: 'detected', ttdMin: 24 },
+      { phase: 'Lateral movement', technique: 'T1021.001', techniqueName: 'Remote Desktop Protocol', action: 'Pivoted toward the premium CDE segment', outcome: 'blocked', ttdMin: 15 },
+      { phase: 'Objective', technique: 'T1657', techniqueName: 'Financial Theft', action: 'Attempted to stage a disbursement in ClaimCenter', outcome: 'blocked' },
+    ],
+    defence: [
+      { phase: 'Initial access', technique: 'T1566.002', techniqueName: 'Spearphishing Link', action: 'Phished a design engineer with a capture-themed lure', outcome: 'achieved' },
+      { phase: 'Execution', technique: 'T1204.002', techniqueName: 'Malicious File', action: 'Established a foothold on an engineering workstation', outcome: 'detected', ttdMin: 19 },
+      { phase: 'Collection', technique: 'T1213', techniqueName: 'Data from Information Repositories', action: 'Located ITAR drawings in Teamcenter without a US-person check', outcome: 'achieved' },
+      { phase: 'Lateral movement', technique: 'T1021.002', techniqueName: 'SMB/Windows Admin Shares', action: 'Moved toward the Building 3 DNC server', outcome: 'achieved' },
+      { phase: 'Objective', technique: 'T1567.002', techniqueName: 'Exfiltration to Cloud Storage', action: 'Attempted to move CUI outside the GCC High enclave', outcome: 'blocked', ttdMin: 11 },
+    ],
+    pharma: [
+      { phase: 'Initial access', technique: 'T1566.001', techniqueName: 'Spearphishing Attachment', action: 'Phished an IT administrator with an invoice lure', outcome: 'achieved' },
+      { phase: 'Credential access', technique: 'T1003.001', techniqueName: 'LSASS Memory', action: 'Harvested credentials from a corporate server', outcome: 'detected', ttdMin: 16 },
+      { phase: 'Collection', technique: 'T1213', techniqueName: 'Data from Information Repositories', action: 'Reached RTSM unblinding keys through over-broad access', outcome: 'detected', ttdMin: 29 },
+      { phase: 'Lateral movement', technique: 'T1021.002', techniqueName: 'SMB/Windows Admin Shares', action: 'Crossed toward the Sierre plant Level 3.5 DMZ', outcome: 'achieved' },
+      { phase: 'OT access', technique: 'T0886', techniqueName: 'Remote Services', action: 'Reached the DeltaV engineering network (observe only, safety-gated)', outcome: 'blocked', ttdMin: 7 },
+    ],
+    sghospital: [
+      { phase: 'Initial access', technique: 'T1078', techniqueName: 'Valid Accounts', action: 'Joined the guest Wi-Fi and reused a shared clinical account', outcome: 'achieved' },
+      { phase: 'Credential access', technique: 'T1621', techniqueName: 'MFA Request Generation', action: 'Push fatigue against the Citrix StoreFront login', outcome: 'detected', ttdMin: 10 },
+      { phase: 'Lateral movement', technique: 'T1021.002', techniqueName: 'SMB/Windows Admin Shares', action: 'Moved toward the TrakCare and PACS servers', outcome: 'achieved' },
+      { phase: 'Discovery', technique: 'T1087.002', techniqueName: 'Domain Account Discovery', action: 'Enumerated TrakCare and biomed service accounts', outcome: 'detected', ttdMin: 26 },
+      { phase: 'Objective', technique: 'T1567.002', techniqueName: 'Exfiltration to Cloud Storage', action: 'Attempted a staged export of synthetic records', outcome: 'blocked' },
+    ],
+    studio: [
+      { phase: 'Initial access', technique: 'T1199', techniqueName: 'Trusted Relationship', action: 'Used a compromised VFX-vendor account', outcome: 'achieved' },
+      { phase: 'Collection', technique: 'T1530', techniqueName: 'Data from Cloud Storage', action: 'Located a locked cut in the pre-release vault', outcome: 'detected', ttdMin: 12 },
+      { phase: 'Credential access', technique: 'T1552.001', techniqueName: 'Credentials In Files', action: 'Recovered a licence-server credential from a share', outcome: 'detected', ttdMin: 21 },
+      { phase: 'Lateral movement', technique: 'T1021.001', techniqueName: 'Remote Desktop Protocol', action: 'Pivoted toward the Orlando ride-control network (observe only)', outcome: 'blocked', ttdMin: 9 },
+      { phase: 'Objective', technique: 'T1567.002', techniqueName: 'Exfiltration to Cloud Storage', action: 'Attempted exfiltration of a master file', outcome: 'blocked' },
+    ],
   };
-  return base[c.id].map((b) => ({ ...b, daysAgo: b.daysAgo + r.int(0, 3), steps: chain[c.id] }));
+  return forCustomer(base, c).map((b) => ({ ...b, daysAgo: b.daysAgo + r.int(0, 3), steps: forCustomer(chain, c) }));
 }
 
 /* =====================================================================
@@ -460,7 +536,7 @@ export interface KevExposure {
 }
 export function kevExposures(c: CustomerProfile, tenantId = 'all'): KevExposure[] {
   const r = rng(`strike-kev-${c.id}`);
-  const map: Record<CustomerId, KevExposure[]> = {
+  const map: CustomerMap<KevExposure[]> = {
     maritime: [
       { host: 'citrix.pkl.halcyonports.com', product: 'Palo Alto PAN-OS GlobalProtect', cve: 'CVE-2024-3400', title: 'Command injection in GlobalProtect', cvss: 10.0, tenantId: 'sts', slaDays: 3 },
       { host: 'vpn.halcyonports.com', product: 'Fortinet FortiOS SSL VPN', cve: 'CVE-2024-21762', title: 'Unauthenticated RCE', cvss: 9.8, tenantId: 'hq', slaDays: 9 },
@@ -479,10 +555,48 @@ export function kevExposures(c: CustomerProfile, tenantId = 'all'): KevExposure[
       { host: 'vpn.vireo-motors.com', product: 'Fortinet FortiOS SSL VPN (Puebla)', cve: 'CVE-2024-21762', title: 'Unauthenticated RCE (out-of-bounds write)', cvss: 9.8, tenantId: 'puebla', slaDays: 2 },
       { host: 'supplier.vireo-motors.com', product: 'Progress MOVEit Transfer', cve: 'CVE-2023-34362', title: 'SQL injection leading to RCE', cvss: 9.8, tenantId: 'group', slaDays: 6 },
     ],
+    insurance: [
+      { host: 'vpn.kingsbridgemutual.com', product: 'Palo Alto PAN-OS GlobalProtect', cve: 'CVE-2024-3400', title: 'Command injection in GlobalProtect', cvss: 10.0, tenantId: 'group', slaDays: 3 },
+      { host: 'mft.kingsbridgemutual.com', product: 'Progress MOVEit Transfer', cve: 'CVE-2023-34362', title: 'SQL injection leading to RCE', cvss: 9.8, tenantId: 'claims', slaDays: 6 },
+      { host: 'my.kingsbridgemutual.com', product: 'HexaShield-tracked web portal (PolicyView)', cve: 'CVE-2026-31044', title: 'Authentication bypass on an internet-facing portal', cvss: 9.3, tenantId: 'personal', slaDays: 5 },
+      { host: 'api.kingsbridgemutual.com', product: 'HexaShield-tracked API gateway (BrokerBridge)', cve: 'CVE-2026-33820', title: 'Unauthenticated remote code execution on an API gateway', cvss: 9.4, tenantId: 'commercial', slaDays: 7 },
+      { host: 'drive.kingsbridgemutual.com', product: 'HexaShield-tracked file-share appliance (DocVault)', cve: 'CVE-2026-37615', title: 'Pre-auth path traversal on a file-share appliance', cvss: 9.1, tenantId: 'life', slaDays: 9 },
+      { host: 'specialty.kingsbridgemutual.com', product: 'HexaShield-tracked underwriting portal (SpecialtyDesk)', cve: 'CVE-2026-39120', title: 'Authentication bypass on an internet-facing portal', cvss: 9.0, tenantId: 'specialty', slaDays: 11 },
+    ],
+    defence: [
+      { host: 'vpn.sentrypeakdefense.com', product: 'Palo Alto PAN-OS GlobalProtect', cve: 'CVE-2024-3400', title: 'Command injection in GlobalProtect', cvss: 10.0, tenantId: 'corporate', slaDays: 2 },
+      { host: 'portal.sentrypeakdefense.com', product: 'HexaShield-tracked collaboration portal (ProgramLink)', cve: 'CVE-2026-42051', title: 'Authentication bypass on an internet-facing portal', cvss: 9.3, tenantId: 'programs', slaDays: 3 },
+      { host: 'remote.sentrypeakdefense.com', product: 'HexaShield-tracked remote-access gateway (EngAccess)', cve: 'CVE-2026-43390', title: 'Unauthenticated remote code execution on a remote-access gateway', cvss: 9.4, tenantId: 'engineering', slaDays: 4 },
+      { host: 'sftp.sentrypeakdefense.com', product: 'HexaShield-tracked MFT appliance (ShopTransfer)', cve: 'CVE-2026-44712', title: 'Pre-auth authentication bypass on a managed file-transfer appliance', cvss: 9.1, tenantId: 'manufacturing', slaDays: 8 },
+      { host: 'test.sentrypeakdefense.com', product: 'HexaShield-tracked range portal (RangeLink)', cve: 'CVE-2026-45203', title: 'Authentication bypass on an internet-facing portal', cvss: 8.9, tenantId: 'tucson', slaDays: 10 },
+    ],
+    pharma: [
+      { host: 'vpn.rhenara.com', product: 'Palo Alto PAN-OS GlobalProtect', cve: 'CVE-2024-3400', title: 'Command injection in GlobalProtect', cvss: 10.0, tenantId: 'corporate', slaDays: 3 },
+      { host: 'suppliers.rhenara.com', product: 'HexaShield-tracked MFT appliance (SupplyBridge)', cve: 'CVE-2026-41187', title: 'Authentication bypass in a managed file-transfer appliance', cvss: 9.6, tenantId: 'commercial', slaDays: 7 },
+      { host: 'hpc.rhenara.com', product: 'HexaShield-tracked research gateway (DiscoveryHub)', cve: 'CVE-2026-46118', title: 'Unauthenticated remote code execution on a research gateway', cvss: 9.3, tenantId: 'rnd', slaDays: 8 },
+      { host: 'clinicaltrials.rhenara.com', product: 'HexaShield-tracked clinical portal (TrialConnect)', cve: 'CVE-2026-47522', title: 'Authentication bypass on an internet-facing portal', cvss: 9.2, tenantId: 'clinops', slaDays: 6 },
+      { host: 'otaccess-vls.rhenara.com', product: 'HexaShield-tracked OEM remote-access edge (PlantAccess)', cve: 'CVE-2026-48110', title: 'Pre-auth authentication bypass on a remote-access appliance', cvss: 9.0, tenantId: 'valais', slaDays: 9 },
+      { host: 'otaccess-crk.rhenara.com', product: 'HexaShield-tracked OEM remote-access edge (PlantAccess)', cve: 'CVE-2026-48110', title: 'Pre-auth authentication bypass on a remote-access appliance', cvss: 9.0, tenantId: 'cork', slaDays: 10 },
+    ],
+    sghospital: [
+      { host: 'vpn.orchidbay.com.sg', product: 'Fortinet FortiOS SSL VPN', cve: 'CVE-2024-21762', title: 'Unauthenticated RCE (out-of-bounds write)', cvss: 9.8, tenantId: 'obh', slaDays: 4 },
+      { host: 'citrix.orchidbay.com.sg', product: 'Citrix NetScaler Gateway', cve: 'CVE-2023-4966', title: '"Citrix Bleed" session token disclosure', cvss: 9.4, tenantId: 'specialist', slaDays: 6 },
+      { host: 'telehealth.orchidbay.com.sg', product: 'HexaShield-tracked telehealth portal (CareConnect)', cve: 'CVE-2026-50140', title: 'Authentication bypass on an internet-facing portal', cvss: 9.1, tenantId: 'daysurg', slaDays: 7 },
+      { host: 'research.orchidbay.com.sg', product: 'HexaShield-tracked imaging gateway (ImageShare)', cve: 'CVE-2026-51277', title: 'Pre-auth path traversal on an imaging gateway', cvss: 9.0, tenantId: 'labimg', slaDays: 9 },
+      { host: 'app.orchidbay.com.sg', product: 'HexaShield-tracked corporate portal (OrchidDesk)', cve: 'CVE-2026-52614', title: 'Authentication bypass on an internet-facing portal', cvss: 8.9, tenantId: 'corp', slaDays: 11 },
+    ],
+    studio: [
+      { host: 'vpn.starfallent.com', product: 'Palo Alto PAN-OS GlobalProtect', cve: 'CVE-2024-3400', title: 'Command injection in GlobalProtect', cvss: 10.0, tenantId: 'post', slaDays: 3 },
+      { host: 'aspera.starfallent.com', product: 'IBM Aspera Faspex', cve: 'CVE-2022-47986', title: 'Unauthenticated RCE in the file-exchange service', cvss: 9.8, tenantId: 'studios', slaDays: 5 },
+      { host: 'api.starfallplus.com', product: 'HexaShield-tracked streaming edge (EdgeCast)', cve: 'CVE-2026-55210', title: 'Request-routing authentication bypass on a streaming edge node', cvss: 9.3, tenantId: 'play', slaDays: 8 },
+      { host: 'tickets.starfallresorts.com', product: 'HexaShield-tracked ticketing platform (StarPass)', cve: 'CVE-2026-56331', title: 'Authentication bypass on an internet-facing portal', cvss: 9.1, tenantId: 'parks', slaDays: 7 },
+      { host: 'osaka.starfallresorts.com', product: 'HexaShield-tracked ticketing platform (StarPass)', cve: 'CVE-2026-56331', title: 'Authentication bypass on an internet-facing portal', cvss: 9.1, tenantId: 'parksasia', slaDays: 9 },
+      { host: 'remote.starfallent.com', product: 'HexaShield-tracked remote-access gateway (CorpAccess)', cve: 'CVE-2026-57440', title: 'Unauthenticated remote code execution on a remote-access gateway', cvss: 9.2, tenantId: 'corp', slaDays: 10 },
+    ],
   };
   void CVES;
   void r;
-  return map[c.id].filter((k) => tenantId === 'all' || k.tenantId === tenantId);
+  return forCustomer(map, c).filter((k) => tenantId === 'all' || k.tenantId === tenantId);
 }
 
 export function discoveryTrend(c: CustomerProfile, tenantId = 'all'): { labels: string[]; data: number[] } {

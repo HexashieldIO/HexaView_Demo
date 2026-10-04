@@ -43,7 +43,7 @@
 .auth-org-meta small { font-size: 11.5px; color: #8f9bb6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .auth-av { width: 34px; height: 34px; flex-shrink: 0; border-radius: 9px; display: grid; place-items: center; font-size: 12.5px; font-weight: 800; color: #fff; line-height: 1; }
 .auth-av.sm { width: 28px; height: 28px; font-size: 11px; border-radius: 8px; }
-.auth-org-list { position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 5; padding: 6px; border-radius: 12px; border: 1px solid rgba(125, 160, 230, .25); background: #0b1328; box-shadow: 0 20px 50px -20px rgba(0, 0, 0, .8); display: grid; gap: 2px; }
+.auth-org-list { position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 5; padding: 6px; border-radius: 12px; border: 1px solid rgba(125, 160, 230, .25); background: #0b1328; box-shadow: 0 20px 50px -20px rgba(0, 0, 0, .8); display: grid; gap: 2px; max-height: min(360px, 52vh); overflow-y: auto; overscroll-behavior: contain; }
 .auth-org-list button { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 8px; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .auth-org-list button:hover, .auth-org-list button[aria-selected="true"] { background: rgba(94, 234, 212, .08); }
 .auth-org-list svg { color: #5eead4; }

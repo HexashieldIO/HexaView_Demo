@@ -2,11 +2,12 @@
 // Every supplier in the vendor register is scored against up to twelve checks on its own
 // record, grouped into five domains. Higher is worse. Built on top of the vendor register in
 // comply.ts (read-only) so totals and high-risk counts agree with headlines().
-import type { CustomerId, CustomerProfile } from '../types';
-import { vendors, ratingsSource, type Vendor } from './comply';
+import type { CustomerProfile } from '../types';
+import { vendors, ratingsSource, vendorLens, type Vendor } from './comply';
 import { headlines } from '../core';
 import { rng } from '../../lib/rng';
 import { daysAgo, daysAhead, isoDate } from '../../lib/format';
+import { forCustomer, type CustomerMap } from '../customerMap';
 
 /* =====================================================================
    Domains and the twelve checks
@@ -135,50 +136,82 @@ export interface TpLogEntry { id: string; minutesAgo: number; supplierId: string
 /* =====================================================================
    Sector vocabulary
    ===================================================================== */
-const CONTACT_FIRST: Record<CustomerId, string[]> = {
+const CONTACT_FIRST: CustomerMap<string[]> = {
   maritime: ['Jeroen', 'Sanne', 'Lars', 'Ingrid', 'Ahmad', 'Mei Ling', 'Tomas', 'Fenna', 'Ricardo', 'Hamid', 'Eline', 'Bram'],
   finserv: ['Oliver', 'Hannah', 'Rajesh', 'Claire', 'Marcus', 'Aisha', 'Tom', 'Sophie', 'Daniel', 'Freya', 'Nikhil', 'Laura'],
   media: ['Jordan', 'Casey', 'Avery', 'Morgan', 'Riley', 'Dana', 'Quinn', 'Robin', 'Sam', 'Taylor', 'Jamie', 'Alex'],
   healthcare: ['Megan', 'Tyler', 'Brandon', 'Ashley', 'Nicole', 'Derek', 'Kayla', 'Justin', 'Monica', 'Travis', 'Heather', 'Luis'],
   automotive: ['Lukas', 'Anna', 'Jonas', 'Lea', 'Felix', 'Marie', 'Tobias', 'Katrin', 'Stefan', 'Eva', 'Miroslav', 'Paula'],
+  insurance: ['Brian', 'Kristen', 'Anil', 'Colleen', 'Mike', 'Deepa', 'Kevin', 'Shannon', 'Rob', 'Tanya', 'Greg', 'Maria'],
+  defence: ['Wade', 'Crystal', 'Dale', 'Tammy', 'Russell', 'Brandy', 'Clint', 'Lori', 'Jared', 'Misty', 'Curtis', 'Dawn'],
+  pharma: ['Matthias', 'Céline', 'Niamh', 'Reto', 'Aoife', 'Dominik', 'Chiara', 'Ciarán', 'Sandrine', 'Florian', 'Elena', 'Seán'],
+  sghospital: ['Wei Ling', 'Hafiz', 'Siew Mei', 'Arjun', 'Nurul', 'Kelvin', 'Pei Shan', 'Ravi', 'Farhana', 'Desmond', 'Huimin', 'Imran'],
+  studio: ['Jordan', 'Kenji', 'Avery', 'Sienna', 'Marco', 'Harper', 'Dev', 'Lucía', 'Theo', 'Naomi', 'Felix', 'Ivy'],
 };
-const CONTACT_LAST: Record<CustomerId, string[]> = {
+const CONTACT_LAST: CustomerMap<string[]> = {
   maritime: ['de Vries', 'Peeters', 'Hansen', 'Lindqvist', 'Tan', 'Rahman', 'Costa', 'Bakker', 'Jensen', 'Verhoeven'],
   finserv: ['Hughes', 'Patel', 'Clarke', 'Okafor', 'Reid', 'Shah', 'Fletcher', 'Moreau', 'Kaur', 'Whitfield'],
   media: ['Osei', 'Marino', 'Fernandez', 'Lindqvist', 'Tanaka', 'Verhoeven', 'Brooks', 'Nakamura', 'Ellis', 'Romero'],
   healthcare: ['Miller', 'Johnson', 'Kowalski', 'Nguyen', 'Brennan', 'Okonkwo', 'Schmidt', 'Reyes', 'Hayes', 'Patterson'],
   automotive: ['Müller', 'Schneider', 'Fischer', 'Weber', 'Becker', 'Novák', 'Horváth', 'Kowalczyk', 'Richter', 'Hoffmann'],
+  insurance: ['Sullivan', 'Mehta', 'Russo', 'Callahan', 'Dixon', 'Iyer', 'Martinez', 'Kowalczyk', 'Brennan', 'Thompson'],
+  defence: ['Whitaker', 'Holloway', 'Bishop', 'Crawford', 'Daniels', 'McAllister', 'Pruitt', 'Garrison', 'Lambert', 'Odom'],
+  pharma: ['Keller', 'Baumann', 'Rochat', 'Murphy', 'Brennan', 'Fischer', 'Dubois', 'Steiner', 'Gallagher', 'Moser'],
+  sghospital: ['Tan', 'Lim', 'Ng', 'Goh', 'Rahman', 'Kumar', 'Chua', 'Ismail', 'Wong', 'Pillai'],
+  studio: ['Caldwell', 'Ortega', 'Nakamura', 'Fitzgerald', 'Reyes', 'Hollis', 'Park', 'Delgado', 'Whitmore', 'Sato'],
 };
 
 function regimes(c: CustomerProfile, v: Vendor): string[] {
   const d = v.dataAccess;
   const out: string[] = [];
-  switch (c.id) {
-    case 'finserv':
+  switch (vendorLens(c)) {
+    case 'nydfs':
+      if (d.includes('NPI')) out.push('NYDFS 500.11', 'NAIC #668');
+      if (d.includes('Payments')) out.push('PCI DSS');
+      if (d.includes('NPI') && v.tier === 1) out.push('GLBA');
+      break;
+    case 'cmmc':
+      if (d.includes('CUI')) out.push('DFARS 7012', 'CMMC L2');
+      if (d.includes('ITAR')) out.push('ITAR');
+      if (d.includes('OT')) out.push('NIST 800-171 (OT)');
+      break;
+    case 'gxp':
+      if (d.includes('GxP data')) out.push('EU GMP Annex 11', 'Part 11');
+      if (d.includes('Clinical data')) out.push('ICH E6(R3) GCP');
+      if (d.some((x) => /Personal|Clinical/.test(x))) out.push('GDPR / revDSG');
+      if (v.tier === 1 && !d.includes('OT')) out.push('NIS2');
+      break;
+    case 'pdpa':
+      if (d.includes('Patient data')) out.push('HIA', 'PDPA');
+      if (d.includes('Medical device')) out.push('HSA GL-04');
+      if (v.xfer === 'Safeguards on file' || v.xfer === 'No safeguards') out.push('PDPA s26');
+      break;
+    case 'dora':
       if (v.cif) out.push('DORA CIF');
       if (d.includes('Payments')) out.push('PCI DSS');
       if (d.includes('Personal data')) out.push('GDPR');
       if (v.tier === 1 && /cloud|core|card|outsourc|coloc/i.test(v.category)) out.push('PRA SS2/21');
       break;
-    case 'healthcare':
+    case 'baa':
       if (d.includes('PHI')) out.push('HIPAA');
       if (d.includes('Medical device')) out.push('FDA 524B');
       if (d.includes('PHI') && v.tier <= 2) out.push('HITRUST');
       if (d.includes('Payments')) out.push('PCI DSS');
       break;
-    case 'automotive':
+    case 'tisax':
       if (d.includes('Prototype')) out.push('TISAX');
       if (d.includes('OT')) out.push('IEC 62443');
       if (d.includes('Vehicle data') || /telematics|OTA|ECU/i.test(v.access + v.category)) out.push('UNECE R155');
       if (d.includes('Personal data') || d.includes('Vehicle data')) out.push('GDPR');
       if (v.tier === 1 && !d.includes('Prototype')) out.push('NIS2');
       break;
-    case 'media':
+    case 'tpn':
       if (d.includes('Pre-release')) out.push('TPN');
       if (d.includes('Personal data')) out.push('GDPR / CCPA');
       if (d.includes('Payments')) out.push('PCI DSS');
+      if (d.includes('OT')) out.push('IEC 62443');
       break;
-    case 'maritime':
+    case 'ot':
       if (d.includes('OT')) out.push(/vessel|engine|cargo|VSAT|LEO|ship/i.test(v.access + v.category) ? 'IACS E27' : 'IEC 62443');
       if (/gate|guard|CCTV|badge|security/i.test(v.access + v.category)) out.push('ISPS');
       if (d.includes('Personal data')) out.push('GDPR');
@@ -191,55 +224,71 @@ function regimes(c: CustomerProfile, v: Vendor): string[] {
 
 function classification(v: Vendor): string {
   const d = v.dataAccess.join(' ');
-  if (/Pre-release|Prototype|PHI|Payments/.test(d)) return 'Restricted';
-  if (/Personal|Vehicle/.test(d)) return 'Confidential · personal data';
-  if (/OT|Medical device/.test(d)) return 'Confidential · operational';
+  if (/Pre-release|Prototype|PHI|Payments|CUI|ITAR|Clinical|Patient/.test(d)) return 'Restricted';
+  if (/Personal|Vehicle|NPI/.test(d)) return 'Confidential · personal data';
+  if (/OT|Medical device|GxP/.test(d)) return 'Confidential · operational';
   if (/Confidential/.test(d)) return 'Confidential';
   return 'Internal';
 }
 
-const regulated = (v: Vendor) => v.dataAccess.some((d) => /Personal|PHI|Payments|Vehicle/.test(d));
+const regulated = (v: Vendor) => v.dataAccess.some((d) => /Personal|PHI|Payments|Vehicle|NPI|Patient|Clinical/.test(d));
 
 /** Sector wording of a failed check: title + guidance sentence (the gap catalogue). */
 function gapText(c: CustomerProfile, v: Vendor, id: TpCheckId): { title: string; guidance: string } {
   const pam = c.connectors.find((k) => k.category === 'PAM')?.product ?? 'the PAM jump host';
   const src = ratingsSource(c);
+  const lens = vendorLens(c);
+  const medical = v.dataAccess.includes('Medical device');
   switch (id) {
     case 'cert':
-      if (c.id === 'automotive' && v.dataAccess.includes('Prototype')) return { title: v.tisax === 'No label' || !v.tisax ? 'Receives prototype data without a TISAX label' : `TISAX label ${v.tisax.toLowerCase()} for prototype protection`, guidance: 'VDA ISA requires an AL3 label with prototype protection before prototype data is shared. Hold OFTP2 transfers until it is assessed.' };
-      if (c.id === 'media' && v.dataAccess.includes('Pre-release')) return { title: 'Receives pre-release content without a current TPN shield', guidance: 'Ask for a TPN+ assessment. Custody policy can hold deliveries to this vendor until the shield is current.' };
-      if (c.id === 'healthcare' && v.dataAccess.includes('PHI')) return { title: 'No HITRUST or SOC 2 report on file', guidance: 'Request the current HITRUST r2 or SOC 2 Type II report, or record why the business associate is out of scope for one.' };
-      if (c.id === 'finserv' && v.cif) return { title: 'No independent assurance for a critical ICT provider', guidance: 'DORA Art. 28 expects ISO 27001 or SOC 2 Type II evidence, or a pooled audit, before relying on the provider.' };
-      if (c.id === 'maritime' && v.dataAccess.includes('OT')) return { title: 'No IEC 62443-2-4 or IACS E27 evidence on file', guidance: 'Ask for the service-provider certificate or the type-approval evidence for the systems they maintain.' };
+      if (lens === 'cmmc' && v.dataAccess.includes('CUI')) return { title: v.cmmc === 'No SPRS score' ? 'Holds CUI with no NIST 800-171 score in SPRS' : v.cmmc === 'POA&M open' ? 'Holds CUI with open CMMC Level 2 POA&M items' : 'CMMC Level 2 status not verified', guidance: 'DFARS 7012(m) and 7021 flow down to every sub-tier holding CUI. Verify the SPRS score and CMMC status through Exostar before the next TDP release.' };
+      if (lens === 'nydfs' && v.dataAccess.includes('NPI')) return { title: 'No SOC 2 Type II report for a provider holding NPI', guidance: 'NYDFS 500.11 expects due diligence on every third-party service provider with nonpublic information. Request the current SOC 2 Type II or ISO 27001 report.' };
+      if (lens === 'gxp' && (v.dataAccess.includes('GxP data') || v.dataAccess.includes('Clinical data'))) return { title: 'No supplier qualification audit on file', guidance: 'GAMP 5 and EU GMP Chapter 7 expect a supplier audit or postal assessment before GxP reliance. Schedule one or record the leverage rationale.' };
+      if (lens === 'pdpa' && medical) return { title: 'No HSA GL-04 cybersecurity evidence for the device fleet', guidance: 'Ask the OEM for the SBOM, MDS2 and patch plan expected under the HSA medical device cybersecurity guidelines.' };
+      if (lens === 'pdpa' && v.dataAccess.includes('Patient data')) return { title: 'No CSA Cyber Trust mark or ISO 27001 on file', guidance: 'Suppliers that hold patient data should show a Cyber Trust mark, ISO 27001 or SOC 2 report. Request it at renewal.' };
+      if (lens === 'tisax' && v.dataAccess.includes('Prototype')) return { title: v.tisax === 'No label' || !v.tisax ? 'Receives prototype data without a TISAX label' : `TISAX label ${v.tisax.toLowerCase()} for prototype protection`, guidance: 'VDA ISA requires an AL3 label with prototype protection before prototype data is shared. Hold OFTP2 transfers until it is assessed.' };
+      if (lens === 'tpn' && v.dataAccess.includes('Pre-release')) return { title: 'Receives pre-release content without a current TPN shield', guidance: 'Ask for a TPN+ assessment. Custody policy can hold deliveries to this vendor until the shield is current.' };
+      if (lens === 'baa' && v.dataAccess.includes('PHI')) return { title: 'No HITRUST or SOC 2 report on file', guidance: 'Request the current HITRUST r2 or SOC 2 Type II report, or record why the business associate is out of scope for one.' };
+      if (lens === 'dora' && v.cif) return { title: 'No independent assurance for a critical ICT provider', guidance: 'DORA Art. 28 expects ISO 27001 or SOC 2 Type II evidence, or a pooled audit, before relying on the provider.' };
+      if (lens === 'ot' && v.dataAccess.includes('OT')) return { title: 'No IEC 62443-2-4 or IACS E27 evidence on file', guidance: 'Ask for the service-provider certificate or the type-approval evidence for the systems they maintain.' };
       return { title: 'No third-party certification on file', guidance: 'Request the current ISO 27001 or SOC 2 report, or record why the supplier is out of scope for one.' };
     case 'nda':
       return { title: 'Security terms in place, but no NDA', guidance: 'The contract carries security terms. Add an NDA so confidentiality survives the contract ending.' };
     case 'access':
-      if (v.otRemote && c.id === 'healthcare') return { title: 'Remote device service with no session recording on file', guidance: `OEM sessions to clinical devices must be brokered and recorded in ${pam}. Medical devices are read-only in HexaView by policy.` };
+      if (v.otRemote && medical) return { title: 'Remote device service with no session recording on file', guidance: `OEM sessions to clinical devices must be brokered and recorded in ${pam}. Medical devices are read-only in HexaView by policy.` };
       if (v.otRemote) return { title: 'Remote OT access with no access controls recorded', guidance: `Sessions must run through ${pam} with recording and named accounts. OT is read-only in HexaView by policy.` };
       return { title: 'System access with no access controls recorded', guidance: 'They hold access and the register does not say how it is controlled. Confirm SSO, MFA and the review cycle.' };
     case 'dpa':
-      if (c.id === 'healthcare' && v.dataAccess.includes('PHI')) return { title: v.baa === 'Expired' ? 'Business Associate Agreement has expired' : 'PHI shared without a signed Business Associate Agreement', guidance: 'HIPAA 164.308(b) requires a BAA before ePHI is disclosed. Route the HexaShield BAA template to legal.' };
-      if (c.id === 'automotive' && v.dataAccess.includes('Vehicle data')) return { title: 'No processing agreement for vehicle and driver data', guidance: 'Connected-car data is personal data under GDPR. A processor agreement with sub-processor terms is needed before the next transfer.' };
-      if (c.id === 'finserv' && v.dataAccess.includes('Payments')) return { title: 'No PCI DSS responsibility matrix for cardholder data', guidance: 'Agree which PCI DSS 4.0 requirements the provider owns (Req. 12.8.5) and get its AOC.' };
-      if (c.id === 'media') return { title: 'No processing agreement for personal data', guidance: 'They process talent or subscriber data on our behalf, so a GDPR / CCPA processor agreement is required before the next transfer.' };
+      if (lens === 'gxp' && (v.dataAccess.includes('GxP data') || v.dataAccess.includes('Clinical data'))) return { title: v.qa === 'Expired' ? 'GxP quality agreement has expired' : 'No quality agreement for GxP or trial data', guidance: 'EU GMP Chapter 7, Annex 11 §3 and ICH E6(R3) require a written agreement on data integrity, audit trails and change notification. Where personal data is involved, add GDPR Art. 28 terms.' };
+      if (lens === 'pdpa' && v.xfer === 'No safeguards') return { title: 'Patient data processed overseas without PDPA s26 safeguards', guidance: 'Transfers out of Singapore need comparable protection. Put transfer clauses in place, or keep processing in Singapore.' };
+      if (lens === 'pdpa') return { title: 'No data protection clauses for patient data', guidance: 'They handle patient data on our behalf. Agree PDPA protection, retention and breach-notice terms that let us meet the MOH and PDPC clocks.' };
+      if (lens === 'nydfs' && v.dataAccess.includes('NPI')) return { title: 'No NPI security terms in the provider contract', guidance: 'NYDFS 500.11(b) expects contract terms on MFA, encryption of NPI and prompt notice of cybersecurity events. Add them at renewal.' };
+      if (lens === 'cmmc') return { title: 'No data handling terms for personnel records', guidance: 'Agree confidentiality and handling terms, and confirm no CUI is shared under this contract.' };
+      if (lens === 'baa' && v.dataAccess.includes('PHI')) return { title: v.baa === 'Expired' ? 'Business Associate Agreement has expired' : 'PHI shared without a signed Business Associate Agreement', guidance: 'HIPAA 164.308(b) requires a BAA before ePHI is disclosed. Route the HexaShield BAA template to legal.' };
+      if (lens === 'tisax' && v.dataAccess.includes('Vehicle data')) return { title: 'No processing agreement for vehicle and driver data', guidance: 'Connected-car data is personal data under GDPR. A processor agreement with sub-processor terms is needed before the next transfer.' };
+      if (lens === 'dora' && v.dataAccess.includes('Payments')) return { title: 'No PCI DSS responsibility matrix for cardholder data', guidance: 'Agree which PCI DSS 4.0 requirements the provider owns (Req. 12.8.5) and get its AOC.' };
+      if (lens === 'tpn') return { title: 'No processing agreement for personal data', guidance: 'They process talent or subscriber data on our behalf, so a GDPR / CCPA processor agreement is required before the next transfer.' };
       return { title: 'No processing agreement for personal data', guidance: 'They process personal data on our behalf, so a GDPR processor agreement is required before the next transfer.' };
     case 'class':
       return { title: 'Information shared is not classified', guidance: 'Record what we share and its classification, so the right handling rules follow it to the supplier.' };
     case 'sla':
-      if (c.id === 'maritime' && v.dataAccess.includes('OT')) return { title: 'No service level for OT fault response', guidance: 'Nothing commits them to a response time when a crane, AGV or vessel system is down. Agree one with the terminal.' };
-      if (c.id === 'healthcare' && v.otRemote) return { title: 'No uptime commitment for a clinical system', guidance: 'Agree response and restore times aligned to the clinical downtime procedure for this device.' };
+      if (lens === 'ot' && v.dataAccess.includes('OT')) return { title: 'No service level for OT fault response', guidance: 'Nothing commits them to a response time when a crane, AGV or vessel system is down. Agree one with the terminal.' };
+      if (medical && v.otRemote) return { title: 'No uptime commitment for a clinical system', guidance: 'Agree response and restore times aligned to the clinical downtime procedure for this device.' };
       return { title: 'No service level agreed', guidance: 'Nothing commits the supplier to a recovery time. Agree one, or record what we would do without them.' };
     case 'mitig':
-      if (c.id === 'finserv' && v.cif) return { title: 'No tested exit strategy for a critical ICT provider', guidance: 'DORA Art. 28(8) requires a documented and tested exit plan for ICT services supporting critical or important functions.' };
-      if (c.id === 'automotive' && /JIT|JIS|sequenc|parts|cell/i.test(v.access + v.category)) return { title: 'No fallback recorded for a line-feeding supplier', guidance: 'A stop here stops the line. Record the dual source, buffer stock or the recovery plan we rely on.' };
+      if (lens === 'dora' && v.cif) return { title: 'No tested exit strategy for a critical ICT provider', guidance: 'DORA Art. 28(8) requires a documented and tested exit plan for ICT services supporting critical or important functions.' };
+      if (lens === 'tisax' && /JIT|JIS|sequenc|parts|cell/i.test(v.access + v.category)) return { title: 'No fallback recorded for a line-feeding supplier', guidance: 'A stop here stops the line. Record the dual source, buffer stock or the recovery plan we rely on.' };
       return { title: 'No mitigation recorded against a medium-or-higher risk', guidance: 'The recorded risk level has no measures beside it. Note the fallback, or the compensating control we rely on.' };
     case 'route':
       return { title: 'No agreed route for reporting an incident', guidance: 'Set a named contact and a notification deadline — 72 hours in writing is the usual ask.' };
     case 'window':
-      if (c.id === 'finserv') return { title: `Incident notification window is ${v.obligations.breachNotifyHrs} h`, guidance: 'DORA major-incident timelines need the provider to tell us within 4 hours of classification. Tighten the clause at renewal.' };
-      if (c.id === 'healthcare') return { title: `Breach notice window is ${v.obligations.breachNotifyHrs} h`, guidance: 'The BAA should require notice of a breach of unsecured PHI within 24 hours so the 60-day HIPAA clock can be met.' };
-      if (c.id === 'automotive' || c.id === 'maritime') return { title: `Incident notification window is ${v.obligations.breachNotifyHrs} h`, guidance: 'NIS2 early warning is due within 24 hours, so the supplier must tell us sooner. Policy is notice within 24 hours in writing.' };
+      if (lens === 'dora') return { title: `Incident notification window is ${v.obligations.breachNotifyHrs} h`, guidance: 'DORA major-incident timelines need the provider to tell us within 4 hours of classification. Tighten the clause at renewal.' };
+      if (lens === 'baa') return { title: `Breach notice window is ${v.obligations.breachNotifyHrs} h`, guidance: 'The BAA should require notice of a breach of unsecured PHI within 24 hours so the 60-day HIPAA clock can be met.' };
+      if (lens === 'nydfs') return { title: `Cyber event notice window is ${v.obligations.breachNotifyHrs} h`, guidance: 'We owe NYDFS notice within 72 hours of determining a cybersecurity event, so providers holding NPI must tell us within 24 hours.' };
+      if (lens === 'cmmc') return { title: `Cyber incident notice window is ${v.obligations.breachNotifyHrs} h`, guidance: 'DFARS 7012 gives 72 hours to report through DIBNet, and sub-tiers must report to us and to DoD. Require notice within 24 hours.' };
+      if (lens === 'pdpa') return { title: `Breach notice window is ${v.obligations.breachNotifyHrs} h`, guidance: 'MOH must hear within 2 hours of us assessing a notifiable incident, so suppliers must tell us immediately, and within 24 hours at most.' };
+      if (lens === 'gxp') return { title: `Incident notification window is ${v.obligations.breachNotifyHrs} h`, guidance: 'NIS2 early warning is due within 24 hours and GxP impact must be assessed at once. Policy is notice within 24 hours in writing.' };
+      if (lens === 'tisax' || lens === 'ot') return { title: `Incident notification window is ${v.obligations.breachNotifyHrs} h`, guidance: 'NIS2 early warning is due within 24 hours, so the supplier must tell us sooner. Policy is notice within 24 hours in writing.' };
       return { title: `Breach notification window is ${v.obligations.breachNotifyHrs} h`, guidance: 'Policy requires notice within 24 hours in writing, with a named contact.' };
     case 'monitor':
       if (src.connector) return { title: `Not enrolled in ${src.name} monitoring`, guidance: `Add the supplier to the ${src.name} portfolio so rating drops raise an alert, and set a review cadence.` };
@@ -247,7 +296,7 @@ function gapText(c: CustomerProfile, v: Vendor, id: TpCheckId): { title: string;
     case 'review':
       return { title: 'Review overdue', guidance: 'The next review date has passed. Re-run the assessment before relying on the current risk level.' };
     case 'confirm':
-      if (c.id === 'finserv' && v.lei === false) return { title: 'No Legal Entity Identifier on the register', guidance: 'DORA Register of Information template RT.05 needs an LEI for every ICT third-party provider. Enrich it from GLEIF.' };
+      if (lens === 'dora' && v.lei === false) return { title: 'No Legal Entity Identifier on the register', guidance: 'DORA Register of Information template RT.05 needs an LEI for every ICT third-party provider. Enrich it from GLEIF.' };
       return { title: 'Register entry not confirmed', guidance: 'The record is still a draft, so nothing in it has been signed off. Confirm it or complete what is missing.' };
   }
 }
@@ -268,10 +317,13 @@ function domainScores(results: Partial<Record<TpCheckId, boolean>>) {
 
 /** Facts on the record that the score enforcement must not overturn. */
 function isFact(c: CustomerProfile, v: Vendor, id: TpCheckId): boolean {
+  const lens = vendorLens(c);
+  if (id === 'cert' && lens === 'cmmc' && v.dataAccess.includes('CUI')) return true;
+  if (id === 'dpa' && ((lens === 'gxp' && v.qa !== undefined && v.qa !== 'Not required') || (lens === 'pdpa' && v.xfer === 'No safeguards'))) return true;
   if (id === 'review' || id === 'window') return true;
   if (id === 'confirm') return true;
-  if (id === 'dpa' && c.id === 'healthcare' && v.dataAccess.includes('PHI')) return true;
-  if (id === 'cert' && ((c.id === 'automotive' && v.dataAccess.includes('Prototype')) || (c.id === 'media' && v.dataAccess.includes('Pre-release')))) return true;
+  if (id === 'dpa' && lens === 'baa' && v.dataAccess.includes('PHI')) return true;
+  if (id === 'cert' && ((lens === 'tisax' && v.dataAccess.includes('Prototype')) || (lens === 'tpn' && v.dataAccess.includes('Pre-release')))) return true;
   return false;
 }
 
@@ -280,27 +332,31 @@ function buildSupplier(c: CustomerProfile, v: Vendor, ratingsConnector: boolean)
   const f = (100 - v.rating) / 100 + (v.highRisk ? 0.3 : 0) + (v.tier === 1 ? 0.05 : 0);
   const res: Partial<Record<TpCheckId, boolean>> = {};
   const pass = (p: number) => !r.chance(Math.max(0, Math.min(0.95, p)));
+  const lens = vendorLens(c);
   // Cyber security
-  if (v.tier <= 2 || v.dataAccess.some((d) => /Prototype|Pre-release|PHI|OT/.test(d))) {
-    if (c.id === 'automotive' && v.dataAccess.includes('Prototype')) res.cert = v.tisax === 'AL3 valid';
-    else if (c.id === 'media' && v.dataAccess.includes('Pre-release')) res.cert = !(v.tpn === 'Not assessed' || v.tpn === 'Expired');
+  if (v.tier <= 2 || v.dataAccess.some((d) => /Prototype|Pre-release|PHI|OT|CUI|Patient|GxP/.test(d))) {
+    if (lens === 'cmmc' && v.dataAccess.includes('CUI')) res.cert = v.cmmc === 'L2 C3PAO' || v.cmmc === 'L2 self-assessed';
+    else if (lens === 'tisax' && v.dataAccess.includes('Prototype')) res.cert = v.tisax === 'AL3 valid';
+    else if (lens === 'tpn' && v.dataAccess.includes('Pre-release')) res.cert = !(v.tpn === 'Not assessed' || v.tpn === 'Expired');
     else res.cert = !(v.findings > 5 || v.rating < 64) && pass(0.14 + f * 0.45);
   }
   res.nda = pass(0.2 + f * 0.4);
   if (!/physical|badge|shred/i.test(v.access + v.category)) res.access = v.otRemote ? v.obligations.rightToAudit && pass(0.1 + f * 0.4) : pass(0.16 + f * 0.45);
   // Data privacy
-  if (regulated(v)) res.dpa = c.id === 'healthcare' && v.dataAccess.includes('PHI') ? v.baa === 'Signed' : pass(0.18 + f * 0.42);
+  if (lens === 'gxp' && v.qa !== undefined && v.qa !== 'Not required') res.dpa = v.qa === 'Signed';
+  else if (lens === 'pdpa' && v.xfer === 'No safeguards') res.dpa = false;
+  else if (regulated(v)) res.dpa = lens === 'baa' && v.dataAccess.includes('PHI') ? v.baa === 'Signed' : pass(0.18 + f * 0.42);
   res.class = pass(0.14 + f * 0.36);
   // Business continuity
   if (v.tier <= 2) res.sla = pass(0.2 + f * 0.45);
-  if (v.highRisk || v.rating < 72 || v.tier === 1) res.mitig = c.id === 'finserv' && v.cif ? v.obligations.exitPlan : pass(v.highRisk ? 0.55 : 0.28 + f * 0.3);
+  if (v.highRisk || v.rating < 72 || v.tier === 1) res.mitig = lens === 'dora' && v.cif ? v.obligations.exitPlan : pass(v.highRisk ? 0.55 : 0.28 + f * 0.3);
   // Incident reporting
   res.route = pass(0.18 + f * 0.42);
   res.window = v.obligations.breachNotifyHrs <= 24;
   // Oversight & review
   res.monitor = ratingsConnector ? !r.chance(v.tier === 3 ? 0.5 : v.tier === 2 ? 0.18 : 0.06) : pass(0.24 + f * 0.4);
   res.review = v.assessment !== 'Overdue';
-  res.confirm = !(v.assessment === 'Not started' || v.assessment === 'Sent' || (c.id === 'finserv' && v.lei === false));
+  res.confirm = !(v.assessment === 'Not started' || v.assessment === 'Sent' || (lens === 'dora' && v.lei === false));
 
   // Keep the score consistent with the high-risk headline: high-risk suppliers score at least 62,
   // everyone else at most 58.
@@ -335,10 +391,14 @@ function buildSupplier(c: CustomerProfile, v: Vendor, ratingsConnector: boolean)
 
   const certs: string[] = [];
   if (res.cert !== false) {
-    if (c.id === 'automotive' && v.tisax && v.tisax !== 'No label' && v.tisax !== 'Expired') certs.push(`TISAX ${v.tisax.replace(' valid', '')}`);
-    if (c.id === 'media' && v.tpn && v.tpn !== 'Not assessed' && v.tpn !== 'Expired') certs.push(`TPN ${v.tpn}`);
-    if (c.id === 'healthcare' && v.dataAccess.includes('PHI')) certs.push(r.chance(0.5) ? 'HITRUST r2' : 'SOC 2 Type II');
-    if (c.id === 'maritime' && v.dataAccess.includes('OT')) certs.push(r.chance(0.5) ? 'IEC 62443-2-4' : 'IACS E27 type approval');
+    if (lens === 'tisax' && v.tisax && v.tisax !== 'No label' && v.tisax !== 'Expired') certs.push(`TISAX ${v.tisax.replace(' valid', '')}`);
+    if (lens === 'tpn' && v.tpn && v.tpn !== 'Not assessed' && v.tpn !== 'Expired') certs.push(`TPN ${v.tpn}`);
+    if (lens === 'baa' && v.dataAccess.includes('PHI')) certs.push(r.chance(0.5) ? 'HITRUST r2' : 'SOC 2 Type II');
+    if (lens === 'cmmc' && (v.cmmc === 'L2 C3PAO' || v.cmmc === 'L2 self-assessed')) certs.push(`CMMC ${v.cmmc}`);
+    if (lens === 'gxp' && v.qa === 'Signed') certs.push(r.chance(0.5) ? 'GMP supplier audit (passed)' : 'ISO 13485');
+    if (lens === 'pdpa' && v.dataAccess.includes('Patient data')) certs.push(r.chance(0.5) ? 'CSA Cyber Trust' : 'ISO 27001:2022');
+    if (lens === 'nydfs' && v.dataAccess.includes('NPI')) certs.push('SOC 2 Type II');
+    if (lens === 'ot' && v.dataAccess.includes('OT')) certs.push(r.chance(0.5) ? 'IEC 62443-2-4' : 'IACS E27 type approval');
     if (res.cert === true || r.chance(0.5)) certs.push(r.pick(['ISO 27001:2022', 'SOC 2 Type II', 'ISO 27001:2022', 'Cyber Essentials Plus']));
   }
   const src = ratingsSource(c);
@@ -350,7 +410,7 @@ function buildSupplier(c: CustomerProfile, v: Vendor, ratingsConnector: boolean)
     name: v.name,
     mono: v.name.replace(/[()/,.&-]/g, ' ').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase(),
     service: v.category,
-    contact: `${contactR.pick(CONTACT_FIRST[c.id])} ${contactR.pick(CONTACT_LAST[c.id])}`,
+    contact: `${contactR.pick(forCustomer(CONTACT_FIRST, c))} ${contactR.pick(forCustomer(CONTACT_LAST, c))}`,
     score,
     level,
     applicable: Object.keys(res).length,
@@ -416,14 +476,19 @@ export function tpTasks(c: CustomerProfile, tenantId: string, sup: TpSupplier[])
 }
 
 export function tpQuestionSets(c: CustomerProfile): QSet[] {
-  const annex: Record<CustomerId, Record<QSetId, string>> = {
+  const annex: CustomerMap<Record<QSetId, string>> = {
     finserv: { initial: 'DORA RoI data capture (RT.05, RT.06)', annual: 'PRA SS2/21 outsourcing review', critical: 'DORA ICT annex · exit & substitutability', privacy: 'UK GDPR / GDPR Art. 28 · PCI DSS 12.8' },
     healthcare: { initial: 'HIPAA business associate intake', annual: 'HITRUST inheritance check', critical: 'MDS2 + FDA 524B device annex', privacy: 'BAA and ePHI flow addendum' },
     automotive: { initial: 'VDA ISA self-assessment (TISAX scope)', annual: 'TISAX label & prototype protection refresh', critical: 'UNECE R155 supplier CSMS + IEC 62443-2-4', privacy: 'GDPR connected-vehicle data addendum' },
     media: { initial: 'TPN+ self-assessment', annual: 'MPA content security refresh', critical: 'TPN Gold Shield pre-release annex', privacy: 'GDPR / CCPA talent & subscriber data' },
     maritime: { initial: 'NIS2 supplier intake', annual: 'IMO / ISPS supplier refresh', critical: 'IEC 62443-2-4 & IACS E27 OT annex', privacy: 'GDPR crew & port-user data addendum' },
+    insurance: { initial: 'NYDFS 500.11 third-party service provider intake', annual: 'NAIC #668 provider oversight refresh', critical: 'Claims & policy platform resilience annex (NYDFS 500.16)', privacy: 'GLBA / NPI handling addendum' },
+    defence: { initial: 'DFARS 7012 flow-down & SPRS verification', annual: 'CMMC Level 2 status refresh (Exostar)', critical: 'NIST SP 800-171 r3 03.17 supply-chain annex', privacy: 'ITAR technical-data handling addendum' },
+    pharma: { initial: 'GxP supplier qualification (GAMP 5)', annual: 'Quality agreement & data-integrity refresh', critical: 'CRO / CMO critical-supplier annex (Annex 11 §3, ICH E6(R3))', privacy: 'GDPR Art. 28 & revDSG trial-data addendum' },
+    sghospital: { initial: 'HIA third-party intake (CS/DS Essentials)', annual: 'Cyber Trust and PDPA refresh', critical: 'HSA GL-04 medical device annex', privacy: 'PDPA s24 / s26 patient-data addendum' },
+    studio: { initial: 'TPN+ self-assessment', annual: 'MPA content security refresh', critical: 'TPN Gold Shield pre-release annex', privacy: 'CCPA / CPRA talent & subscriber data' },
   };
-  const a = annex[c.id];
+  const a = forCustomer(annex, c);
   return [
     { id: 'initial', name: 'Initial assessment', questions: 25, blurb: 'Onboarding baseline: what they do for us, what they hold, and the controls around it.', domains: [...TP_DOMAINS], annex: a.initial, use: 'New suppliers and records still in draft', sample: ['What information will you hold or process on our behalf?', 'Which independent certifications do you hold, and when do they expire?', 'How is access to our systems controlled and reviewed?'] },
     { id: 'annual', name: 'Annual assessment', questions: 16, blurb: 'The yearly refresh: what has changed since the last review, and whether evidence is still current.', domains: ['Cyber security', 'Business continuity', 'Oversight & review'], annex: a.annual, use: 'Tier 2 and 3 suppliers at their review date', sample: ['Have there been any security incidents affecting our data in the last 12 months?', 'Have your sub-processors or hosting locations changed?', 'Please attach your current certificate or audit report.'] },
@@ -459,12 +524,17 @@ export function tpQuestionnaires(c: CustomerProfile, tenantId: string, sup: TpSu
   return out;
 }
 
-const LOG_TEMPLATES: Record<CustomerId, string[]> = {
+const LOG_TEMPLATES: CustomerMap<string[]> = {
   finserv: ['LEI added from GLEIF lookup', 'Exit plan attached — tabletop on 14 Aug', 'Marked as supporting a critical or important function', 'Sub-outsourcing chain updated (RT.05.02)'],
   healthcare: ['BAA countersigned by legal', 'MDS2 form uploaded for device fleet', 'Remote access moved to CyberArk brokered sessions', 'PHI data flow updated'],
   automotive: ['TISAX AL3 label recorded (prototype protection)', 'OFTP2 partner certificate renewed', 'Robot cell remote access moved behind PAM', 'Supplier CSMS evidence for R155 attached'],
   media: ['TPN Gold Shield recorded', 'Forensic watermark profile assigned', 'Pre-release delivery route moved to Aspera', 'Custody agent enforced on vendor workstations'],
   maritime: ['Jump-host route confirmed for crane PLC maintenance', 'IACS E27 evidence uploaded for newbuild systems', 'VSAT terminal firmware baseline recorded', 'ISPS gate access list refreshed'],
+  insurance: ['SOC 2 Type II bridge letter received', 'NPI encryption clause added at renewal (NYDFS 500.11)', 'BPO users moved to Island browser access', 'Notice window tightened to 24 h'],
+  defence: ['SPRS score verified through Exostar', 'DFARS 7012 flow-down countersigned', 'TDP release moved to HexaCustody with export marking', 'Machine-tool OEM access moved behind BeyondTrust'],
+  pharma: ['Quality agreement countersigned by QA', 'Supplier audit report uploaded (GMP)', 'CRO partner accounts moved to FIDO2', 'DeltaV OEM access moved to BeyondTrust recorded sessions'],
+  sghospital: ['PDPA transfer clauses countersigned', 'MDS2 and SBOM uploaded for device fleet (HSA GL-04)', 'OEM remote access moved to CyberArk brokered sessions', 'Cyber Trust mark recorded'],
+  studio: ['TPN Gold Shield recorded', 'Forensic watermark profile assigned', 'Custody agent enforced on vendor workstations', 'Ride OEM access moved behind CyberArk'],
 };
 
 export function tpChangeLog(c: CustomerProfile, tenantId: string, sup: TpSupplier[], tasks: TpTask[]): TpLogEntry[] {
@@ -479,7 +549,7 @@ export function tpChangeLog(c: CustomerProfile, tenantId: string, sup: TpSupplie
     let event = '';
     switch (type) {
       case 'Created': event = `Added to the register — ${s.service.toLowerCase()}`; break;
-      case 'Updated': event = r.chance(0.5) ? r.pick(LOG_TEMPLATES[c.id]) : r.pick([`Contact changed to ${s.contact}`, `Contract end set to ${s.renewal.date ?? 'open-ended'}`, `Certification uploaded — ${s.certifications[0] ?? 'ISO 27001:2022'}`, `Classification set to ${s.classification.toLowerCase()}`, 'Service level agreement attached']); break;
+      case 'Updated': event = r.chance(0.5) ? r.pick(forCustomer(LOG_TEMPLATES, c)) : r.pick([`Contact changed to ${s.contact}`, `Contract end set to ${s.renewal.date ?? 'open-ended'}`, `Certification uploaded — ${s.certifications[0] ?? 'ISO 27001:2022'}`, `Classification set to ${s.classification.toLowerCase()}`, 'Service level agreement attached']); break;
       case 'Status changed': event = s.state === 'Pending docs' ? 'Moved to Pending docs — certification requested' : s.state === 'Escalated' ? `Escalated — ${s.gaps[0]?.title.toLowerCase() ?? 'review overdue'}` : s.state === 'Active' ? 'Moved to Active — assessment approved' : s.state === 'Archived' ? 'Moved to Archived — contract ended' : 'Moved to Under review — questionnaire returned'; break;
       case 'Closed': { const t = r.pick(done); out.push({ minutesAgo: (t.completedDaysAgo ?? 3) * 1440 + r.int(0, 600), supplierId: t.supplierId, supplierName: t.supplierName, event: `Task ${t.id} completed — ${t.title}`, type, by: t.owner }); continue; }
       case 'Removed': event = r.pick([`Sub-processor removed — ${s.v.fourthParties[0] ?? 'legacy host'}`, 'Access right removed after review', 'Duplicate contact removed']); break;

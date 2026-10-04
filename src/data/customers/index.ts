@@ -4,9 +4,14 @@ import { finserv } from './finserv';
 import { media } from './media';
 import { healthcare } from './healthcare';
 import { automotive } from './automotive';
+import { insurance } from './insurance';
+import { defence } from './defence';
+import { pharma } from './pharma';
+import { sghospital } from './sghospital';
+import { studio } from './studio';
 
-export const CUSTOMERS: Record<CustomerId, CustomerProfile> = { maritime, finserv, media, healthcare, automotive };
-export const CUSTOMER_LIST: CustomerProfile[] = [maritime, finserv, media, healthcare, automotive];
+export const CUSTOMERS: Record<CustomerId, CustomerProfile> = { maritime, finserv, media, healthcare, automotive, insurance, defence, pharma, sghospital, studio };
+export const CUSTOMER_LIST: CustomerProfile[] = [maritime, finserv, media, healthcare, automotive, insurance, defence, pharma, sghospital, studio];
 
 /** Tenants in scope for the current tenant filter ('all' = group roll-up). */
 export function scopedTenants(c: CustomerProfile, tenantId: string): Tenant[] {

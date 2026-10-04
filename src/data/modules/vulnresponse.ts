@@ -11,6 +11,7 @@
 import type { CustomerId, CustomerProfile, Env, Severity, Tenant } from '../types';
 import { rng, type Rng } from '../../lib/rng';
 import { tpSuppliers } from './tprm';
+import { forCustomer, type CustomerMap } from '../customerMap';
 
 /* =====================================================================
    Types
@@ -125,7 +126,11 @@ export interface VrEvent { minAgo: number; title: string; body?: string; color?:
 /* =====================================================================
    Seeds per sector
    ===================================================================== */
-interface Stem { kind: string; code: string; sites: string[]; tenants?: string[]; internet: number; versions: string[] }
+interface Stem {
+  kind: string; code: string; sites: string[]; tenants?: string[]; internet: number; versions: string[];
+  /** Real site names per tenant (multi-site customers); falls back to `sites`. */
+  siteByTenant?: Record<string, string[]>;
+}
 interface AdvSeed {
   cve: string; vendor: string; product: string; family: string; weakness: string; cvss: number; kev: boolean; exploited: boolean;
   minAgo: number; summary: string; verdict: VrVerdict; phase: VrPhase;
@@ -138,7 +143,7 @@ interface AdvSeed {
 const D = 1440;
 const VECTOR = 'Network · no authentication · no user interaction · scope changed';
 
-const HEADLINE: Record<CustomerId, AdvSeed> = {
+const HEADLINE: CustomerMap<AdvSeed> = {
   maritime: {
     cve: 'CVE-2026-41877', vendor: 'Tessaro Industrial', product: 'Tessaro RemoteLink OT Gateway', family: 'OT remote-access gateway',
     weakness: 'Authentication bypass leading to remote command execution', cvss: 9.9, kev: true, exploited: true, minAgo: 372,
@@ -209,9 +214,119 @@ const HEADLINE: Record<CustomerId, AdvSeed> = {
     },
     supplierRe: /robot|PLC|paint|automation|KUKA|Siemens|Dürr|Magna|assembly|MES/i, supplierN: 4, outreach: 7,
   },
+  insurance: {
+    cve: 'CVE-2026-43702', vendor: 'Bramwell Software', product: 'Bramwell SecureXchange MFT', family: 'Managed file transfer',
+    weakness: 'Unauthenticated injection in the transfer web service', cvss: 9.9, kev: true, exploited: true, minAgo: 349,
+    summary: 'A flaw in the transfer server’s web service lets an unauthenticated attacker read, alter and delete stored files and transfer records. FS-ISAC reports a mass-exploitation campaign by an extortion crew against insurers and third-party claims administrators. A fixed release is available.',
+    verdict: 'Affected', phase: 'Active response', counts: { core: 7, tooling: 0, ot: 0 },
+    versions: '2024.2 to 2026.1.4', fixedIn: '2026.1.5',
+    mitigation: 'Take the web interface off the internet behind Zscaler ZPA so TPAs, EXL and Broadridge keep access through named accounts, rotate the service-account keys and review downloads of claims and policyholder files since disclosure.',
+    remediation: ['Preserve the transfer server logs and database before changing anything (possible NYDFS 500.17 72-hour notice and NAIC #668 state notices).', 'Upgrade to 2026.1.5 under an emergency change in ServiceNow (CAB chair approval).', 'Rotate the SFTP keys and service accounts used by EXL, CCC and Broadridge; re-issue partner access through named accounts only.', 'Ask HexaCustody and Varonis to list claims and policyholder files downloaded since disclosure.', 'Request a HexaStrike external validation check and attach the Qualys rescan as evidence.'],
+    stems: {
+      core: { kind: 'MFT transfer node', code: 'MFT', sites: ['Windsor DC1', 'Phoenix DC2 (colo)', 'AWS us-east-1', 'Azure East US 2'], tenants: ['group', 'claims', 'personal', 'life', 'commercial'], internet: 0.45, versions: ['2025.2.1', '2025.4.0', '2026.1.4'], siteByTenant: { group: ['Windsor DC1', 'Phoenix DC2 (colo)'], claims: ['Azure East US 2', 'Windsor DC1'], personal: ['AWS us-east-1'], life: ['Windsor DC1'], commercial: ['Azure East US 2'] } },
+    },
+    supplierRe: /claims|BPO|servicing|print|payments|estimating|EXL|Broadridge|CCC|One Inc|Cognizant|Majesco/i, supplierN: 4, outreach: 8,
+  },
+  defence: {
+    cve: 'CVE-2026-44263', vendor: 'Talgarth Networks', product: 'Talgarth PerimeterOne VPN', family: 'VPN / remote-access gateway',
+    weakness: 'Pre-authentication remote code execution in the portal service', cvss: 9.9, kev: true, exploited: true, minAgo: 361,
+    summary: 'A flaw in the appliance’s portal service lets an unauthenticated attacker on the internet run code on the gateway and reach the networks behind it. CISA and DC3 DCISE report exploitation by a state-sponsored group against defence industrial base suppliers. Fixed builds and an integrity-check tool are available.',
+    verdict: 'Affected', phase: 'Active response', counts: { core: 2, tooling: 3, ot: 0 },
+    versions: '7.2 to 7.5.3', fixedIn: '7.5.4',
+    mitigation: 'Limit the portal to US-person staff on managed devices through Zscaler ZPA Government, run the vendor integrity-check tool, end every active session and rotate the gateway’s LDAP bind account and certificate after patching.',
+    remediation: ['Run the vendor integrity-check tool and image each appliance before changing anything (DFARS 7012: preserve images for 90 days and report within 72 hours via DIBNet if compromise is found).', 'Upgrade to 7.5.4 under an emergency change in ServiceNow GCC (CISO approval).', 'End all active VPN sessions; rotate the LDAP bind account and re-issue the gateway certificate from Keyfactor.', 'Hunt in Sentinel (Azure Government) for unexpected admin logins and new connections into the CUI enclave since disclosure.', 'Request a HexaStrike external validation check and attach the Tenable Security Center rescan as evidence.'],
+    stems: {
+      core: { kind: 'VPN portal node (VM)', code: 'VPN-PRT', sites: ['Huntsville data centre', 'Azure Government (US Gov Virginia)'], tenants: ['programs', 'engineering', 'corporate'], internet: 0.5, versions: ['7.4.1', '7.5.3'], siteByTenant: { programs: ['Azure Government (US Gov Virginia)'], engineering: ['Huntsville data centre'], corporate: ['Azure East US 2 (commercial)'] } },
+      tooling: { kind: 'PerimeterOne appliance (remote-access tier)', code: 'VPN', sites: ['Enclave DMZ', 'Corporate DMZ', 'Range DMZ'], tenants: ['programs', 'corporate', 'tucson'], internet: 1, versions: ['7.4.1', '7.5.2', '7.5.3'], siteByTenant: { programs: ['Enclave DMZ'], corporate: ['Corporate DMZ'], tucson: ['Range DMZ'] } },
+    },
+    supplierRe: /sub-tier|telemetry|Exostar|PLM|machin|finishing|C3PAO|freight/i, supplierN: 3, outreach: 7,
+  },
+  pharma: {
+    cve: 'CVE-2026-42894', vendor: 'Velden Systems', product: 'Velden ProcessBridge OPC UA Gateway', family: 'OT data gateway (OPC UA)',
+    weakness: 'Authentication bypass in the gateway configuration service', cvss: 9.9, kev: true, exploited: true, minAgo: 377,
+    summary: 'A flaw in the gateway’s configuration service lets an unauthenticated attacker on the plant network change data mappings, read process values and write set-points to connected controllers. Health-ISAC and NCSC Switzerland report exploitation attempts against life-sciences manufacturers. A fixed build is available but must pass GxP change control before installation.',
+    verdict: 'Affected', phase: 'Active response', counts: { core: 3, tooling: 0, ot: 12 },
+    versions: '4.0 to 4.6.2', fixedIn: '4.6.3',
+    mitigation: 'Restrict the configuration service to the Level 3.5 engineering jump hosts, switch gateways to read-only mode where batch execution allows, and alert on mapping changes and PAS-X audit-trail gaps until patched.',
+    remediation: ['Confirm the build on each gateway from the Claroty and Dragos passive fingerprints (no active scanning in GMP areas).', 'Raise a GxP change in ServiceNow with a computerised-system validation impact assessment; Head of IT Quality approval required.', 'Install 4.6.3 at the next campaign changeover; re-run the DeltaV and PAS-X interface qualification scripts afterwards.', 'Review PAS-X and DeltaV audit trails for set-point or mapping changes since disclosure and tell the Qualified Person of any batch impact.', 'Request a HexaStrike validation check and attach the passive re-fingerprint as evidence.'],
+    stems: {
+      core: { kind: 'MES & historian integration server', code: 'OPC-INT', sites: ['Plant DMZ (Level 3.5)', 'Basel data centre'], tenants: ['valais', 'cork', 'corporate'], internet: 0, versions: ['4.5.1', '4.6.2'], siteByTenant: { valais: ['Sierre plant DMZ (Level 3.5)'], cork: ['Ringaskiddy plant DMZ (Level 3.5)'], corporate: ['Basel data centre'] } },
+      ot: { kind: 'ProcessBridge gateway appliance', code: 'OPCGW', sites: ['Production building', 'Process control room', 'Utilities & CIP', 'Packaging hall', 'QC laboratory'], tenants: ['valais', 'cork'], internet: 0, versions: ['4.2.0', '4.5.1', '4.6.2'], siteByTenant: { valais: ['Bioreactor suite (2,000 L)', 'Purification & chromatography', 'API synthesis building', 'Utilities & CIP/SIP', 'QC laboratory'], cork: ['Filling isolator line', 'Lyophiliser hall', 'Serialisation & aggregation', 'Utilities & CIP/SIP'] } },
+    },
+    supplierRe: /DCS|Automation|MES|Emerson|Siemens|Körber|CDMO|Lonza|Samsung|fill-finish|Catalent/i, supplierN: 4, outreach: 7,
+  },
+  sghospital: {
+    cve: 'CVE-2026-43126', vendor: 'Sorrell Imaging', product: 'Sorrell RouteMaster DICOM Gateway', family: 'Imaging gateway (DICOM / PACS)',
+    weakness: 'Authentication bypass in the web administration service', cvss: 9.9, kev: true, exploited: true, minAgo: 383,
+    summary: 'A flaw in the gateway’s administration service lets an unauthenticated attacker on the network change routing rules, read imaging studies with patient identifiers and send studies to an outside node. CSA SingCERT and H-ISAC report exploitation by ransomware groups against hospitals in the region. A fixed build is available.',
+    verdict: 'Affected', phase: 'Active response', counts: { core: 4, tooling: 0, ot: 7 },
+    versions: '6.0 to 6.3.4', fixedIn: '6.3.5',
+    mitigation: 'Restrict the administration service to the PACS team’s jump host, block outbound DICOM to unknown nodes at the FortiGate and alert on routing-rule changes until patched.',
+    remediation: ['Confirm the build on each gateway (InsightVM credentialed scan for servers; Claroty passive fingerprint for modality-side units).', 'Upgrade the PACS-side gateways to 6.3.5 in the radiology downtime window; tell the PACS Administrator and the TrakCare interface team.', 'For modality-side units, install only the OEM-validated build (HSA GL-04); until then restrict them by VLAN ACL.', 'Review routing changes and outbound study transfers since disclosure; if patient data left the network, start the MOH 2-hour and PDPC 3-day assessments.', 'Request a HexaStrike validation check and attach the rescan as evidence.'],
+    stems: {
+      core: { kind: 'PACS gateway server', code: 'DCMGW', sites: ['Novena campus DC', 'Tai Seng DR site', 'Azure Southeast Asia'], tenants: ['obh', 'labimg', 'specialist'], internet: 0.1, versions: ['6.2.0', '6.3.1', '6.3.4'], siteByTenant: { obh: ['Novena campus DC', 'Tai Seng DR site'], labimg: ['Science Park comms room'], specialist: ['Azure Southeast Asia'] } },
+      ot: { kind: 'Modality-side DICOM gateway', code: 'MODGW', sites: ['CT suite', 'MRI suite', 'General X-ray', 'Radiation oncology', 'Interventional radiology'], tenants: ['obh', 'labimg', 'specialist', 'daysurg'], internet: 0, versions: ['6.0.2', '6.2.0'], siteByTenant: { obh: ['CT suite', 'MRI suite', 'General X-ray', 'Interventional radiology'], labimg: ['Science Park CT', 'Science Park MRI', 'Mammography'], specialist: ['Radiation oncology', 'Heart centre cath lab'], daysurg: ['Day surgery imaging room'] } },
+    },
+    supplierRe: /imaging|PACS|laborator|Philips|GE HealthCare|Siemens Healthineers|InterSystems|Synapxe|telehealth/i, supplierN: 4, outreach: 7,
+  },
+  studio: {
+    cve: 'CVE-2026-43958', vendor: 'Quillon Media', product: 'Quillon StreamPort Transfer Server', family: 'Accelerated file transfer',
+    weakness: 'Unauthenticated path traversal in the transfer web service', cvss: 9.9, kev: true, exploited: true, minAgo: 344,
+    summary: 'A flaw in the transfer server’s web service lets an unauthenticated attacker read and overwrite files in any transfer share, including pre-release media. Extortion crews are using it against studios and VFX houses, and the MPA has issued a member alert. A fixed release is available.',
+    verdict: 'Affected', phase: 'Active response', counts: { core: 6, tooling: 0, ot: 3 },
+    versions: '5.0 to 5.8.1', fixedIn: '5.8.2',
+    mitigation: 'Put the web service behind Cloudflare Zero Trust so VFX vendors keep access through named accounts, rotate the transfer service keys and ask HexaCustody to review pre-release transfers since disclosure.',
+    remediation: ['Move the web service behind Cloudflare Zero Trust; ILM, Weta FX, DNEG and Northlight Pixel keep named-account access.', 'Upgrade to 5.8.2 and restart the transfer service (Jira change for Studios and Post; ServiceNow for Starfall+ and the resorts).', 'Rotate the S3 and service-account keys the server uses and revoke open share links.', 'Ask HexaCustody and NexGuard to review transfers of pre-release titles since disclosure; brief the SEC 8-K materiality group if content left.', 'For park show media servers, install the show-control vendor’s validated build at the next overnight maintenance; until then keep them inside the show DMZ.'],
+    stems: {
+      core: { kind: 'Transfer server node', code: 'XFER', sites: ['AWS us-west-2', 'Soho machine room', 'Burbank data centre'], tenants: ['studios', 'post', 'play', 'corp'], internet: 0.45, versions: ['5.6.0', '5.7.2', '5.8.1'], siteByTenant: { studios: ['AWS us-west-2', 'Burbank data centre'], post: ['Soho machine room', 'AWS eu-west-2'], play: ['AWS us-east-1'], corp: ['New York data centre'] } },
+      ot: { kind: 'Show media server content loader', code: 'SHOWMS', sites: ['Show control room', 'Projection dome', 'Night spectacular control'], tenants: ['parks', 'parksasia'], internet: 0, versions: ['5.6.0'], siteByTenant: { parks: ['Show control room', 'Projection dome', 'Night spectacular control'], parksasia: ['Show control room', 'Projection dome'] } },
+    },
+    supplierRe: /VFX|Colour|Locali|Dubbing|Screener|Trailer|Mastering|Projection|Christie/i, supplierN: 5, outreach: 8,
+  },
 };
 
-const RECENT: Record<CustomerId, AdvSeed[]> = {
+/** Host-name prefix per tenant, from each customer's own naming (template customers keep tenant-id codes). */
+const HOST_CODE: CustomerMap<Record<string, string>> = {
+  maritime: {}, finserv: {}, media: {}, healthcare: {}, automotive: {},
+  insurance: { group: 'KMI', personal: 'KMI-PL', commercial: 'KMI-CL', claims: 'KMI-CC', life: 'KMI-LA', specialty: 'KMI-ES' },
+  defence: { programs: 'SPD-CUI', engineering: 'SPD-ENG', manufacturing: 'B3', corporate: 'SPD', tucson: 'TUS' },
+  pharma: { corporate: 'BSL', rnd: 'RND', clinops: 'DUB', valais: 'VLS', cork: 'CRK', commercial: 'RHN-US' },
+  sghospital: { obh: 'OBH', specialist: 'SPC', daysurg: 'DSC', labimg: 'LAB', corp: 'OBH-CORP' },
+  studio: { studios: 'SFE', post: 'POST', play: 'PLUS', parks: 'PARKS', parksasia: 'PARKS-OSA', corp: 'SFE-NY' },
+};
+
+/** Keep one internet-facing asset open on the headline advisory (only where the headline story is internet-facing). */
+const KEEP_OPEN: CustomerMap<boolean> = {
+  maritime: false, finserv: true, media: true, healthcare: false, automotive: false,
+  insurance: true, defence: true, pharma: false, sghospital: false, studio: true,
+};
+
+/** Who applies fixes to OT assets (HexaView is read-only on OT). */
+const OT_TEMPLATE_NOTE = 'OT is read-only by policy: HexaView tracks status; plant or terminal engineers apply the fix.';
+const OT_NOTE: CustomerMap<string> = {
+  maritime: OT_TEMPLATE_NOTE, finserv: OT_TEMPLATE_NOTE, media: OT_TEMPLATE_NOTE, healthcare: OT_TEMPLATE_NOTE, automotive: OT_TEMPLATE_NOTE,
+  insurance: 'Facilities systems are read-only by policy: HexaView tracks status; data-centre facilities engineering applies the fix in a planned maintenance window.',
+  defence: 'OT is read-only by policy: HexaView tracks status; Building 3 or Tucson engineers apply the fix at a planned machine stop.',
+  pharma: 'Validated GMP system, read-only by policy: HexaView tracks status; site automation engineers apply the fix under GxP change control.',
+  sghospital: 'Clinical device, read-only by policy: HexaView tracks status; Biomedical Engineering applies the OEM-validated fix.',
+  studio: 'Ride and show systems are read-only by policy: HexaView tracks status; ride and show control engineers applythe fix outside park hours.',
+};
+
+/** One-line "who fixes it" for the OT asset drawer. */
+const OT_TEMPLATE_FIXER = 'Plant or terminal engineers apply the fix in a maintenance window.';
+const OT_FIXER: CustomerMap<string> = {
+  maritime: OT_TEMPLATE_FIXER, finserv: OT_TEMPLATE_FIXER, media: OT_TEMPLATE_FIXER, healthcare: OT_TEMPLATE_FIXER, automotive: OT_TEMPLATE_FIXER,
+  insurance: 'Data-centre facilities engineering applies the fix in a planned maintenance window.',
+  defence: 'Building 3 or Tucson engineers apply the fix at a planned machine stop or range stand-down.',
+  pharma: 'Site automation engineers apply the fix under GxP change control at a campaign changeover.',
+  sghospital: 'Biomedical Engineering applies the OEM-validated fix (HSA GL-04) in a clinical downtime window.',
+  studio: 'Ride and show control engineers apply the fix outside park hours, through the ride safety change process.',
+};
+export function vrOtFixer(c: CustomerProfile): string {
+  return forCustomer(OT_FIXER, c);
+}
+
+const RECENT: CustomerMap<AdvSeed[]> = {
   maritime: [
     { cve: 'CVE-2026-41552', vendor: 'Brightfield Marine', product: 'Brightfield VSAT Terminal Manager', family: 'Satellite terminal management', weakness: 'Command injection in the web console', cvss: 9.6, kev: false, exploited: false, minAgo: 3 * D + 220, verdict: 'Affected', phase: 'Monitoring', counts: { ot: 6 }, summary: 'The terminal manager’s web console lets a low-privilege user run system commands on the terminal. Fixed in 3.2.1; vessels are patched as satellite windows allow.' },
     { cve: 'CVE-2026-40981', vendor: 'Quayline Systems', product: 'Quayline Gate OCR Server', family: 'Gate automation', weakness: 'Path traversal exposing configuration', cvss: 9.1, kev: false, exploited: false, minAgo: 9 * D + 300, verdict: 'Not affected', phase: 'Closed', counts: {}, summary: 'Gate OCR server 7.x exposes configuration files to unauthenticated users. Halcyon runs 8.2 at every gate, which is not affected.' },
@@ -247,15 +362,76 @@ const RECENT: Record<CustomerId, AdvSeed[]> = {
     { cve: 'CVE-2026-39455', vendor: 'Varnel', product: 'Varnel LogRelay collector', family: 'SIEM log collector (security tooling)', weakness: 'Remote code execution in the syslog listener', cvss: 9.8, kev: true, exploited: true, minAgo: 24 * D + 300, verdict: 'Affected', phase: 'Closed', counts: { tooling: 3 }, summary: 'Three collectors forwarding plant DMZ logs into QRadar ran a vulnerable listener. Upgraded within 22 hours; TISAX and R155 monitoring evidence refreshed.' },
     { cve: 'CVE-2026-38590', vendor: 'Brandt Web', product: 'Brandt Dealer Portal Framework', family: 'Dealer portal framework', weakness: 'Authentication bypass on partner login', cvss: 9.1, kev: false, exploited: false, minAgo: 39 * D + 150, verdict: 'Not affected', phase: 'Closed', counts: {}, summary: 'Partner logins in the portal framework can be bypassed. The Vireo dealer portal is built on a different framework; DealerCore DMS confirmed it is not affected.' },
   ],
+  insurance: [
+    { cve: 'CVE-2026-41964', vendor: 'Pennant Labs', product: 'Pennant AgentGate Portal Server', family: 'Agent & broker portal gateway', weakness: 'Authorisation bypass in the quote API', cvss: 9.2, kev: false, exploited: false, minAgo: 4 * D + 180, verdict: 'Affected', phase: 'Monitoring', counts: { core: 3 }, summary: 'A missing authorisation check lets a signed-in agent retrieve quotes and policyholder details belonging to other agencies. Two AgentHub nodes are patched; the third is shielded by a Cloudflare API Shield rule until the month-end quote-and-bind freeze lifts.' },
+    { cve: 'CVE-2026-40832', vendor: 'Holbrook Systems', product: 'Holbrook PrintStream Composer', family: 'Document composition (policy print)', weakness: 'Path traversal exposing templates and spool files', cvss: 9.0, kev: false, exploited: false, minAgo: 10 * D + 200, verdict: 'Not affected', phase: 'Closed', counts: {}, summary: 'Older composer builds expose document templates and print spool files to unauthenticated users. The Windsor print & mail plant runs 10.2, which is not affected; Broadridge confirmed its overflow site does not use the product.' },
+    { cve: 'CVE-2026-42381', vendor: 'Larch Analytics', product: 'Larch Telematics Ingest Broker', family: 'Telematics data ingestion', weakness: 'Unsafe deserialisation in the ingest API', cvss: 9.4, kev: false, exploited: false, minAgo: 650, verdict: 'Investigating', phase: 'Active response', counts: {}, candidates: 2, summary: 'The broker accepts crafted trip payloads that can run code on the server. Two hosts in the telematics data lake account respond like the product; a credentialed Qualys check is running and Cambridge Mobile Telematics has been asked which build feeds them.' },
+    { cve: 'CVE-2026-39718', vendor: 'Tamsin Security', product: 'Tamsin LogForward collector', family: 'SIEM log collector (security tooling)', weakness: 'Remote code execution in the syslog listener', cvss: 9.8, kev: true, exploited: true, minAgo: 25 * D + 90, verdict: 'Affected', phase: 'Closed', counts: { tooling: 4 }, summary: 'Four collectors forwarding z/OS SMF and Guidewire logs into Splunk ran a vulnerable listener. All were upgraded within 30 hours and the NYDFS 500.6 audit-trail evidence was refreshed.' },
+    { cve: 'CVE-2026-38227', vendor: 'Quarry Point', product: 'Quarry Point ClaimDesk Photo Intake', family: 'Claims photo upload service', weakness: 'Unauthenticated file upload', cvss: 9.1, kev: false, exploited: true, minAgo: 37 * D + 300, verdict: 'Not affected', phase: 'Closed', counts: {}, summary: 'Photo-intake servers used for first notice of loss accept unauthenticated uploads. Kingsbridge’s photo estimating runs through CCC, which confirmed its platform does not use the product.' },
+  ],
+  defence: [
+    { cve: 'CVE-2026-41629', vendor: 'Corlis Machine Data', product: 'Corlis DNC Programme Server', family: 'DNC programme distribution', weakness: 'Missing authentication on the programme upload service', cvss: 9.6, kev: false, exploited: false, minAgo: 4 * D + 420, verdict: 'Affected', phase: 'Monitoring', counts: { core: 1, ot: 3 }, summary: 'The DNC server accepts programme uploads without authentication, so anyone on the shop-floor network could replace a CNC programme. The Building 3 server and two cell controllers are patched; the last cell is mitigated by a conduit rule until the weekend machine stop.' },
+    { cve: 'CVE-2026-40514', vendor: 'Hollis Test Systems', product: 'Hollis TestExec ATE Runtime', family: 'Automated test executive', weakness: 'Unsafe handling of test sequence files', cvss: 9.0, kev: false, exploited: false, minAgo: 12 * D + 80, verdict: 'Not affected', phase: 'Closed', counts: {}, summary: 'Crafted sequence files can run code on test stations. Sentry Peak’s avionics ATE benches use an in-house test executive; confirmed against the Armis and HexaOT inventories for Building 3 and Tucson.' },
+    { cve: 'CVE-2026-42947', vendor: 'Ravelin Data', product: 'Ravelin Telemetry Ground Station', family: 'Range telemetry processing', weakness: 'Command injection in the web console', cvss: 9.3, kev: false, exploited: false, minAgo: 600, verdict: 'Investigating', phase: 'Active response', counts: {}, candidates: 2, summary: 'The ground-station console lets an unauthenticated user run system commands. Two Tucson range hosts respond like the product; Desert Sky Telemetry is confirming the build and HexaOT is fingerprinting passively.' },
+    { cve: 'CVE-2026-39391', vendor: 'Ostler Software', product: 'Ostler SecureFile Exchange', family: 'Secure file exchange', weakness: 'Authentication bypass on shared links', cvss: 9.1, kev: true, exploited: true, minAgo: 26 * D + 150, verdict: 'Affected', phase: 'Closed', counts: { core: 2 }, stems: { core: { kind: 'File exchange node', code: 'SFX', sites: ['Huntsville data centre'], tenants: ['programs'], internet: 0.5, versions: ['3.2.0'] } }, summary: 'Shared links on the legacy file-exchange server could be opened without signing in. Both nodes were patched within 20 hours and retired in favour of PreVeil; the DFARS 7012 review found no CUI accessed.' },
+    { cve: 'CVE-2026-38066', vendor: 'Brackley Software', product: 'Brackley PDM Vault', family: 'Engineering data vault (PDM)', weakness: 'Privilege escalation through the replication service', cvss: 9.0, kev: false, exploited: false, minAgo: 40 * D + 500, verdict: 'Not affected', phase: 'Closed', counts: {}, summary: 'A flaw lets a low-privilege user take over vault administration. Sentry Peak’s PDM vault is a different product and ITAR technical data sits in Teamcenter; Cumberland Precision Machining confirmed it does not run the vault.' },
+  ],
+  pharma: [
+    { cve: 'CVE-2026-41257', vendor: 'Aldwych Informatics', product: 'Aldwych LabView Reporting Client', family: 'LIMS web reporting client', weakness: 'Audit-trail bypass through the bulk-edit API', cvss: 9.1, kev: false, exploited: false, minAgo: 5 * D + 140, verdict: 'Affected', phase: 'Monitoring', counts: { core: 3 }, summary: 'A flaw lets a signed-in analyst change results through the bulk-edit API without an audit-trail entry. Basel and Cork are patched; Valais QC is mitigated by disabling bulk edit until the validated build clears CSV testing.' },
+    { cve: 'CVE-2026-40149', vendor: 'Tolland Clinical', product: 'Tolland TrialGate RTSM Connector', family: 'Randomisation & supply connector', weakness: 'Insecure direct object reference on randomisation lists', cvss: 9.3, kev: false, exploited: false, minAgo: 11 * D + 420, verdict: 'Not affected', phase: 'Closed', counts: {}, summary: 'Older connector builds expose randomisation lists to any authenticated site user. Rhenara uses Medidata RTSM directly; Medidata, IQVIA and Parexel confirmed they do not run the connector.' },
+    { cve: 'CVE-2026-42618', vendor: 'Brisco Serialisation', product: 'Brisco SerialLink Line Controller', family: 'Serialisation & aggregation (Level 3)', weakness: 'Missing authentication on the line-master API', cvss: 9.5, kev: false, exploited: false, minAgo: 590, verdict: 'Investigating', phase: 'Active response', counts: {}, candidates: 3, summary: 'The line-master API accepts commissioning requests without authentication. Three Cork packaging-line servers expose a similar API; Dragos is fingerprinting them passively and Catalent has been asked about its overflow line.' },
+    { cve: 'CVE-2026-39587', vendor: 'Fenmore', product: 'Fenmore EventShip collector', family: 'SIEM log collector (security tooling)', weakness: 'Remote code execution in the syslog listener', cvss: 9.8, kev: true, exploited: true, minAgo: 24 * D + 330, verdict: 'Affected', phase: 'Closed', counts: { tooling: 3 }, summary: 'Three collectors forwarding plant DMZ and SAP logs into Sentinel ran a vulnerable listener. All were upgraded within 28 hours and the Annex 11 audit-trail review evidence was refreshed.' },
+    { cve: 'CVE-2026-38455', vendor: 'Quenby Bio', product: 'Quenby ELN Sync Service', family: 'Electronic lab notebook sync', weakness: 'Unauthenticated access to notebook exports', cvss: 9.0, kev: false, exploited: true, minAgo: 42 * D + 90, verdict: 'Not affected', phase: 'Closed', counts: {}, summary: 'The sync service exposes notebook exports to unauthenticated requests. The Cambridge ELN uses a different sync path; WuXi AppTec confirmed it does not run the service.' },
+  ],
+  sghospital: [
+    { cve: 'CVE-2026-41803', vendor: 'Ashcombe Health', product: 'Ashcombe ClinView Portal', family: 'Clinician web portal', weakness: 'Session reuse after single sign-on', cvss: 9.1, kev: false, exploited: false, minAgo: 4 * D + 260, verdict: 'Affected', phase: 'Monitoring', counts: { core: 3 }, summary: 'A session flaw lets an attacker reuse a clinician’s portal session after badge-tap sign-on. Two portal nodes are patched; the Tanglin node is restricted to the clinical VLAN until the TrakCare upgrade weekend.' },
+    { cve: 'CVE-2026-40367', vendor: 'Harrowgate Systems', product: 'Harrowgate TubeNet Controller', family: 'Pneumatic tube system controller', weakness: 'Hard-coded maintenance credential', cvss: 9.0, kev: false, exploited: false, minAgo: 9 * D + 300, verdict: 'Not affected', phase: 'Closed', counts: {}, summary: 'Older tube-system controllers ship a fixed maintenance password. The Novena and Tanglin systems run the current generation; confirmed by Claroty and the vendor.' },
+    { cve: 'CVE-2026-42513', vendor: 'Wynford Medical', product: 'Wynford DoseLib Sync', family: 'Infusion drug-library distribution', weakness: 'Unauthenticated drug-library change', cvss: 9.4, kev: false, exploited: false, minAgo: 620, verdict: 'Investigating', phase: 'Active response', counts: {}, candidates: 2, summary: 'The sync service accepts drug-library changes without authentication. Two servers on the Novena clinical VLAN match the product family; Biomedical Engineering is checking with BD and Fresenius Kabi whether their pump servers embed it.' },
+    { cve: 'CVE-2026-39824', vendor: 'Brightline Logix', product: 'Brightline LogShip collector', family: 'SIEM log collector (security tooling)', weakness: 'Remote code execution in the syslog listener', cvss: 9.8, kev: true, exploited: true, minAgo: 21 * D + 400, verdict: 'Affected', phase: 'Closed', counts: { tooling: 3 }, summary: 'Three collectors forwarding FortiGate and TrakCare audit logs into Sentinel ran a vulnerable listener. All were upgraded within 26 hours and the HIA CS/DS logging evidence was refreshed.' },
+    { cve: 'CVE-2026-38519', vendor: 'Tamar Health', product: 'Tamar TeleConsult Bridge', family: 'Telehealth video gateway', weakness: 'Predictable meeting tokens', cvss: 9.0, kev: false, exploited: true, minAgo: 35 * D + 200, verdict: 'Not affected', phase: 'Closed', counts: {}, summary: 'Predictable tokens let an outsider join video consultations. Orchid Bay’s telehealth runs on CareLink, which confirmed the bridge is not in its stack.' },
+  ],
+  studio: [
+    { cve: 'CVE-2026-41376', vendor: 'Thornbury Licensing', product: 'Thornbury FlexKey Licence Server', family: 'Floating licence server (VFX tools)', weakness: 'Remote code execution in the vendor daemon', cvss: 9.5, kev: false, exploited: false, minAgo: 5 * D + 30, verdict: 'Affected', phase: 'Monitoring', counts: { core: 3 }, summary: 'The licence server’s vendor daemon accepts crafted requests that run code on the host. London and Burbank are patched; the render-burst licence node is isolated on the content network until Lodestar batch 58 finishes rendering.' },
+    { cve: 'CVE-2026-40698', vendor: 'Marston Ticketing', product: 'Marston GateFlow Turnstile Controller', family: 'Park turnstile & ticket gates', weakness: 'Hard-coded service credential', cvss: 9.1, kev: false, exploited: false, minAgo: 13 * D + 120, verdict: 'Not affected', phase: 'Closed', counts: {}, summary: 'Older turnstile controllers ship a fixed service password. The Orlando and Osaka gates run controllers from a different maker integrated with accesso; confirmed by Armis.' },
+    { cve: 'CVE-2026-42736', vendor: 'Corbin Show Systems', product: 'Corbin CueMaster Show Controller', family: 'Show control system', weakness: 'Missing authentication on the cue API', cvss: 9.6, kev: false, exploited: false, minAgo: 560, verdict: 'Investigating', phase: 'Active response', counts: {}, candidates: 3, summary: 'The show controller accepts cue commands without authentication. Three Osaka show-control nodes expose a similar API; Claroty is fingerprinting them passively (read-only by policy) and ride & show engineering is checking with the integrator.' },
+    { cve: 'CVE-2026-39264', vendor: 'Tamberlane', product: 'Tamberlane LogPipe collector', family: 'SIEM log collector (security tooling)', weakness: 'Remote code execution in the syslog listener', cvss: 9.8, kev: true, exploited: true, minAgo: 22 * D + 210, verdict: 'Affected', phase: 'Closed', counts: { tooling: 4 }, summary: 'Four collectors forwarding Soho content-network and resort firewall logs into Google SecOps and Splunk ran a vulnerable listener. All were upgraded within 22 hours; TPN and PCI logging evidence was refreshed.' },
+    { cve: 'CVE-2026-38712', vendor: 'Ferrier Commerce', product: 'Ferrier CheckoutKit', family: 'Payment page script library', weakness: 'Script injection on hosted checkout pages', cvss: 9.0, kev: false, exploited: true, minAgo: 34 * D + 500, verdict: 'Not affected', phase: 'Closed', counts: {}, summary: 'Checkout pages built on the library can be injected with card-skimming script. Starfall+ and park retail checkouts use Adyen hosted fields, and Adyen confirmed the library is not in use; the PCI DSS 6.4.3 script inventory was updated.' },
+  ],
 };
 
 /** Default stems for recent advisories, per sector and source. */
-const DEFAULT_STEMS: Record<CustomerId, Partial<Record<VrAssetSource, Omit<Stem, 'kind'>>>> = {
+const DEFAULT_STEMS: CustomerMap<Partial<Record<VrAssetSource, Omit<Stem, 'kind'>>>> = {
   maritime: { core: { code: 'SRV', sites: ['Group DC Rotterdam', 'Azure West Europe'], tenants: ['hq', 'rtm'], internet: 0.1, versions: ['3.1.0'] }, tooling: { code: 'LOG', sites: ['Group DC Rotterdam', 'Maasvlakte DMZ', 'Antwerp DMZ'], internet: 0, versions: ['4.2.0'] }, ot: { code: 'VST', sites: ['Bridge network', 'Comms room'], tenants: ['fleet'], internet: 0, versions: ['3.1.4', '3.2.0'] } },
   finserv: { core: { code: 'PAY', sites: ['Slough DC1', 'Basildon DC2'], tenants: ['pay', 'ukbank'], internet: 0, versions: ['6.3.1'] }, tooling: { code: 'LOG', sites: ['Slough DC1', 'Basildon DC2', 'AWS eu-central-1'], internet: 0, versions: ['4.2.0'] } },
   media: { core: { code: 'RQM', sites: ['Soho machine room', 'AWS us-west-2'], tenants: ['post', 'studios'], internet: 0, versions: ['11.2'] }, tooling: { code: 'LOG', sites: ['Soho machine room', 'AWS us-west-2'], internet: 0, versions: ['4.2.0'] } },
   healthcare: { core: { code: 'PACS', sites: ['Columbus DC', 'Research data centre'], tenants: ['mrmc', 'research'], internet: 0.3, versions: ['8.0.4'] }, tooling: { code: 'LOG', sites: ['Columbus DC', 'Azure Central US'], internet: 0, versions: ['4.2.0'] } },
   automotive: { core: { code: 'MES', sites: ['Ingolstadt plant DMZ', 'Győr plant DMZ', 'Puebla server room'], tenants: ['ingolstadt', 'gyor', 'puebla'], internet: 0, versions: ['5.0.2'] }, tooling: { code: 'LOG', sites: ['Ingolstadt plant DMZ', 'Azure Germany West Central'], internet: 0, versions: ['4.2.0'] }, ot: { code: 'MESC', sites: ['Final assembly'], tenants: ['puebla', 'gyor'], internet: 0, versions: ['5.0.2'] } },
+  // OT only where the customer has it: insurance facilities sit in `group`; defence Building 3 / Tucson; pharma Valais / Cork; hospital clinical sites; studio resorts.
+  insurance: {
+    core: { code: 'APP', sites: ['Azure East US 2'], tenants: ['personal', 'commercial', 'specialty'], internet: 0.3, versions: ['8.4.1'], siteByTenant: { personal: ['AWS us-east-1'], commercial: ['Azure East US 2'], specialty: ['Azure West US 3'] } },
+    tooling: { code: 'LOG', sites: ['Windsor CT DC1'], tenants: ['group', 'personal', 'claims'], internet: 0, versions: ['4.2.0'], siteByTenant: { group: ['Windsor CT DC1', 'Phoenix DC2 (colo)'], personal: ['AWS us-east-1'], claims: ['Azure East US 2'] } },
+    ot: { code: 'FAC', sites: ['Windsor DC1 data hall', 'Print & mail plant'], tenants: ['group'], internet: 0, versions: ['2.6.1'] },
+  },
+  defence: {
+    core: { code: 'DNC', sites: ['Building 3 DNC server room'], tenants: ['manufacturing'], internet: 0, versions: ['4.1.2'] },
+    tooling: { code: 'LOG', sites: ['Huntsville data centre'], tenants: ['programs', 'engineering', 'manufacturing'], internet: 0, versions: ['4.2.0'], siteByTenant: { programs: ['Azure Government (US Gov Virginia)'], engineering: ['Huntsville data centre'], manufacturing: ['Building 3 Level 3.5 DMZ'] } },
+    ot: { code: 'CELL', sites: ['5-axis machining cell', 'Turning cell', 'Vertical mill cell'], tenants: ['manufacturing'], internet: 0, versions: ['4.1.0', '4.1.2'] },
+  },
+  pharma: {
+    core: { code: 'LIMS', sites: ['QC laboratory'], tenants: ['corporate', 'cork', 'valais'], internet: 0, versions: ['11.3.2'], siteByTenant: { corporate: ['Basel QC laboratory'], cork: ['Ringaskiddy QC laboratory'], valais: ['Sierre QC laboratory'] } },
+    tooling: { code: 'LOG', sites: ['Azure Switzerland North'], tenants: ['corporate', 'valais', 'cork'], internet: 0, versions: ['4.2.0'], siteByTenant: { corporate: ['Azure Switzerland North', 'Basel data centre'], valais: ['Sierre plant DMZ (Level 3.5)'], cork: ['Ringaskiddy plant DMZ (Level 3.5)'] } },
+    ot: { code: 'SER', sites: ['Serialisation & aggregation'], tenants: ['cork'], internet: 0, versions: ['3.2.1'] },
+  },
+  sghospital: {
+    core: { code: 'PRT', sites: ['Novena campus DC'], tenants: ['obh', 'specialist'], internet: 0.2, versions: ['6.1.4'], siteByTenant: { obh: ['Novena campus DC', 'Tai Seng DR site'], specialist: ['Tanglin server room'] } },
+    tooling: { code: 'LOG', sites: ['Novena campus DC'], tenants: ['obh', 'corp'], internet: 0, versions: ['4.2.0'], siteByTenant: { obh: ['Novena campus DC'], corp: ['Azure Southeast Asia'] } },
+    ot: { code: 'MED', sites: ['Clinical VLAN'], tenants: ['obh', 'specialist', 'daysurg'], internet: 0, versions: ['2.4.0'], siteByTenant: { obh: ['ICU', 'Emergency department'], specialist: ['Heart centre'], daysurg: ['Day surgery theatres'] } },
+  },
+  studio: {
+    core: { code: 'LIC', sites: ['Soho machine room'], tenants: ['post', 'studios'], internet: 0, versions: ['11.18.2'], siteByTenant: { post: ['Soho machine room', 'AWS eu-west-2 (render burst)'], studios: ['Burbank data centre'] } },
+    tooling: { code: 'LOG', sites: ['Soho machine room'], tenants: ['post', 'play', 'parks', 'parksasia'], internet: 0, versions: ['4.2.0'], siteByTenant: { post: ['Soho machine room'], play: ['AWS us-east-1'], parks: ['Orlando resort data centre'], parksasia: ['Osaka resort operations centre'] } },
+    ot: { code: 'SHOW', sites: ['Show control room'], tenants: ['parks', 'parksasia'], internet: 0, versions: ['2.9.0'] },
+  },
 };
 
 const VESSELS = ['Halcyon Aurora', 'Halcyon Borealis', 'Halcyon Meridian', 'Halcyon Tide', 'Halcyon Solent', 'Halcyon Kestrel', 'Halcyon Fjord'];
@@ -318,7 +494,7 @@ function build(c: CustomerProfile): Base {
   const hit = CACHE.get(c.id);
   if (hit) return hit;
   const r = rng(`vulnresponse-${c.id}`);
-  const seeds = [HEADLINE[c.id], ...RECENT[c.id]];
+  const seeds = [forCustomer(HEADLINE, c), ...forCustomer(RECENT, c)];
   const advisories = seeds.map((s, i) => toAdvisory(s, i === 0, r, c));
   const seedMap = new Map(advisories.map((a, i) => [a.id, seeds[i]]));
   const itsm = vrItsm(c);
@@ -332,7 +508,7 @@ function build(c: CustomerProfile): Base {
     (['tooling', 'core', 'ot'] as VrAssetSource[]).forEach((src) => {
       const n = s.counts[src] ?? 0;
       if (!n) return;
-      const def = DEFAULT_STEMS[c.id][src];
+      const def = forCustomer(DEFAULT_STEMS, c)[src];
       const stem: Stem | undefined = s.stems?.[src] ?? (def ? { kind: `${a.family.replace(/ \(security tooling\)/, '')} ${src === 'ot' ? 'controller' : 'host'}`, ...def } : undefined);
       if (!stem) return;
       const tenantPool: Tenant[] = c.tenants.filter((t) => (stem.tenants ? stem.tenants.includes(t.id) : src === 'ot' ? t.env.includes('ot') : true));
@@ -340,8 +516,8 @@ function build(c: CustomerProfile): Base {
       const own = owners(c, src);
       for (let i = 0; i < n; i++) {
         const t = pool[i % pool.length];
-        const site = c.id === 'maritime' && t.id === 'fleet' ? ar.pick(VESSELS) : `${t.short} · ${ar.pick(stem.sites)}`;
-        const code = t.id.slice(0, 3).toUpperCase();
+        const site = c.dataKey === 'maritime' && t.id === 'fleet' ? ar.pick(VESSELS) : `${t.short} · ${ar.pick(stem.siteByTenant?.[t.id] ?? stem.sites)}`;
+        const code = forCustomer(HOST_CODE, c)[t.id] ?? t.id.slice(0, 3).toUpperCase();
         const internet = stem.internet >= 1 ? true : ar.chance(stem.internet);
         const airGapped = /Air-gapped/.test(c.dataPlanes.find((d) => d.id === t.dataPlaneId)?.placement ?? '');
         const tool = src === 'ot' ? otTool(c, t.id) : src === 'tooling' ? 'Security Tooling inventory' : ar.chance(0.6) ? scanner : vrEdr(c);
@@ -373,7 +549,7 @@ function build(c: CustomerProfile): Base {
           validation: 'Not run',
           validationRequested: false,
           detections: 0,
-          note: airGapped ? 'Air-gapped plant: evidence arrives by offline import from the sealed HexaOT store.' : src === 'ot' ? 'OT is read-only by policy: HexaView tracks status; plant or terminal engineers apply the fix.' : undefined,
+          note: airGapped ? 'Air-gapped plant: evidence arrives by offline import from the sealed HexaOT store.' : src === 'ot' ? forCustomer(OT_NOTE, c) : undefined,
         });
       }
     });
@@ -386,8 +562,8 @@ function build(c: CustomerProfile): Base {
     const nNa = closed && total > 3 ? 1 : a.headline && total > 8 ? 1 : 0;
     const nMit = closed ? 0 : a.phase === 'Monitoring' ? 1 : Math.max(2, Math.round(total * 0.2));
     order.forEach((x, i) => {
-      // Keep exactly one internet-facing asset open on the live advisory for finserv and media (the urgent story).
-      const keepOpen = a.headline && x.internet && i === order.findIndex((o) => o.internet && o.source !== 'ot') && (c.id === 'finserv' || c.id === 'media');
+      // Keep exactly one internet-facing asset open on the live advisory where the headline is internet-facing (the urgent story).
+      const keepOpen = a.headline && x.internet && i === order.findIndex((o) => o.internet && o.source !== 'ot') && forCustomer(KEEP_OPEN, c);
       let st: VrStatus = 'Unpatched';
       if (keepOpen) st = 'Unpatched';
       else if (i < nPatched) st = x.source === 'ot' && a.headline && ar.chance(0.4) ? 'Mitigated' : 'Patched';

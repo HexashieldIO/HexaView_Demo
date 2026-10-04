@@ -7,6 +7,7 @@ import type { CapabilityId, CustomerId, ServiceId, Tier } from '../types';
 import { CUSTOMER_LIST } from '../customers';
 import { headlines, resilienceIndex, riTrend, riDrivers } from '../core';
 import { rng } from '../../lib/rng';
+import { forCustomer, type CustomerMap } from '../customerMap';
 
 /* =====================================================================
    The partner
@@ -233,12 +234,17 @@ export function arrFor(tier: Tier, services: ServiceId[], employees: number, int
   return Math.round((t.listUsd + extra * EXTRA_INTEGRATION_USD + services.reduce((s, x) => s + SERVICE_LIST_USD[x] * f, 0)) / 100) * 100;
 }
 
-const DEMO_EXTRA: Record<CustomerId, { city: string; country: string; lat: number; lon: number; renewalDays: number; sinceMonths: number; csm: string; owner: string; status: ClientStatus }> = {
+const DEMO_EXTRA: CustomerMap<{ city: string; country: string; lat: number; lon: number; renewalDays: number; sinceMonths: number; csm: string; owner: string; status: ClientStatus }> = {
   maritime: { city: 'Rotterdam', country: 'NL', lat: 51.92, lon: 4.48, renewalDays: 142, sinceMonths: 31, csm: 'Freya Watts', owner: 'Daniel Moretti', status: 'active' },
   finserv: { city: 'London', country: 'GB', lat: 51.51, lon: -0.09, renewalDays: 268, sinceMonths: 27, csm: 'Ravi Patel', owner: 'Grace Okafor', status: 'active' },
   media: { city: 'Burbank', country: 'US', lat: 34.18, lon: -118.31, renewalDays: 47, sinceMonths: 19, csm: 'Freya Watts', owner: 'Grace Okafor', status: 'at-risk' },
   healthcare: { city: 'Columbus', country: 'US', lat: 39.96, lon: -83.0, renewalDays: 201, sinceMonths: 14, csm: 'Ravi Patel', owner: 'Grace Okafor', status: 'active' },
   automotive: { city: 'Munich', country: 'DE', lat: 48.14, lon: 11.58, renewalDays: 318, sinceMonths: 6, csm: 'Freya Watts', owner: 'Daniel Moretti', status: 'active' },
+  insurance: { city: 'Hartford', country: 'US', lat: 41.76, lon: -72.69, renewalDays: 176, sinceMonths: 11, csm: 'Ravi Patel', owner: 'Grace Okafor', status: 'active' },
+  defence: { city: 'Huntsville', country: 'US', lat: 34.73, lon: -86.59, renewalDays: 63, sinceMonths: 8, csm: 'Freya Watts', owner: 'Daniel Moretti', status: 'active' },
+  pharma: { city: 'Basel', country: 'CH', lat: 47.56, lon: 7.59, renewalDays: 284, sinceMonths: 22, csm: 'Ravi Patel', owner: 'Grace Okafor', status: 'active' },
+  sghospital: { city: 'Singapore', country: 'SG', lat: 1.32, lon: 103.84, renewalDays: 238, sinceMonths: 4, csm: 'Ravi Patel', owner: 'Grace Okafor', status: 'onboarding' },
+  studio: { city: 'Burbank', country: 'US', lat: 34.15, lon: -118.34, renewalDays: 212, sinceMonths: 16, csm: 'Freya Watts', owner: 'Grace Okafor', status: 'active' },
 };
 
 interface SmallSeed {
@@ -267,7 +273,7 @@ export function clientBook(): PartnerClient[] {
     const ri = resilienceIndex(c).value;
     const active = (Object.keys(c.services) as ServiceId[]).filter((s) => c.services[s] === 'active');
     const trial = (Object.keys(c.services) as ServiceId[]).filter((s) => c.services[s] === 'trial');
-    const x = DEMO_EXTRA[c.id];
+    const x = forCustomer(DEMO_EXTRA, c);
     const healthy = c.connectors.filter((k) => k.status === 'healthy').length;
     const notes: string[] = [];
     if (h.soc.critical) notes.push(`${h.soc.critical} critical incident${h.soc.critical > 1 ? 's' : ''} open`);

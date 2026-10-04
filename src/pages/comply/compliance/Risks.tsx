@@ -11,6 +11,7 @@ import { fmtMoney, fmtNum } from '../../../lib/format';
 import { MetricBand, HeatGrid, Facet, StateKey } from '../parts';
 import { useRiskData, useContinuityData, useWorkspaceData } from '../useComply';
 import { useQuery, useDeepLink, SectionHead, Toggles, CountLine, RecordDrawer, RSec, LinkedRecords, Cia, ago, ahead } from './shared';
+import { forCustomer } from '../../../data/customerMap';
 
 const tone = MODULE_BY_ID.comply.tone;
 const LEVELS: RiskLevel[] = ['High', 'Medium', 'Low'];
@@ -141,7 +142,7 @@ export default function RisksSection() {
       {open && (() => {
         const r = open;
         const d = riskDetail(c, r, assets);
-        const dimNames = RISK_DIMS[c.id];
+        const dimNames = forCustomer(RISK_DIMS, c);
         const close = () => { setOpen(null); set({ id: null }); };
         const assetRec = assets.filter((a) => a.base === r.asset);
         const biaHits = bia.filter((b) => b.systems.some((s) => r.asset.toLowerCase().includes(s.split(' ')[0].toLowerCase())) || (r.asset && b.name.toLowerCase().includes(r.asset.split(' ')[0].toLowerCase())));

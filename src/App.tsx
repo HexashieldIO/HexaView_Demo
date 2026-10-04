@@ -12,7 +12,6 @@ import { isSignedIn } from './pages/auth/SignIn';
 
 const SignIn = lazy(() => import('./pages/auth/SignIn'));
 const CommandCentre = lazy(() => import('./pages/overview/CommandCentre'));
-const BoardView = lazy(() => import('./pages/overview/BoardView'));
 const ClosedLoop = lazy(() => import('./pages/overview/ClosedLoop'));
 
 function Loading() {
@@ -74,16 +73,6 @@ function Authed() {
           <Suspense fallback={<Loading />}>
             <Routes>
               <Route path="/" element={<CommandCentre />} />
-              <Route
-                path="/board"
-                element={
-                  <RoleGuard moduleId="board">
-                    <ModuleLayout moduleId="board">
-                      <BoardView />
-                    </ModuleLayout>
-                  </RoleGuard>
-                }
-              />
               <Route
                 path="/loop"
                 element={

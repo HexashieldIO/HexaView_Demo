@@ -3,13 +3,17 @@
 // > connector instance, with assets, identities, findings, detections, cases,
 // controls, evidence, techniques, validations and loops underneath.
 
-export type CustomerId = 'maritime' | 'finserv' | 'media' | 'healthcare' | 'automotive';
+/** The five original demo customers: every per-customer data table has an entry for each. */
+export type BaseCustomerId = 'maritime' | 'finserv' | 'media' | 'healthcare' | 'automotive';
+/** Customers added later; their module data falls back to a template (`dataKey`) until tailored. */
+export type ExtraCustomerId = 'insurance' | 'defence' | 'pharma' | 'sghospital' | 'studio';
+export type CustomerId = BaseCustomerId | ExtraCustomerId;
 export type Tier = 'Essentials' | 'Professional' | 'Enterprise / CNI';
 export type Env = 'cloud' | 'onprem' | 'ot' | 'saas';
 export type Severity = 'critical' | 'high' | 'medium' | 'low' | 'info';
 export type Health = 'healthy' | 'degraded' | 'failing' | 'paused';
 export type Persona = 'master' | 'executive' | 'ciso' | 'finance' | 'socmanager' | 'analyst' | 'threat' | 'grc' | 'risk' | 'privacy' | 'ot' | 'cloud' | 'admin';
-export type Currency = 'USD' | 'GBP' | 'EUR';
+export type Currency = 'USD' | 'GBP' | 'EUR' | 'CHF' | 'SGD';
 
 export type CapabilityId = 'soc' | 'int' | 'strike' | 'ot' | 'comply' | 'custody';
 
@@ -117,6 +121,12 @@ export interface ThirdParty {
 
 export interface CustomerProfile {
   id: CustomerId;
+  /**
+   * Which original customer's module data this customer reads when a data table
+   * has no entry of its own (see forCustomer in ../customerMap). Original
+   * customers point at themselves.
+   */
+  dataKey: BaseCustomerId;
   name: string;
   short: string;
   initials: string;
@@ -152,6 +162,8 @@ export interface CustomerProfile {
     board: Person;
     staff: Person[];
   };
+  /** Named person for each signed-in role (roles.ts falls back to `people` when absent). */
+  rolePeople?: Partial<Record<Persona, Person>>;
   thirdParties: ThirdParty[];
   vocab: {
     hostPrefix: string;

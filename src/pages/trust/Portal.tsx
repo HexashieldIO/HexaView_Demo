@@ -33,7 +33,7 @@ function PortalInner() {
   const assured = loopSummary(loops(c, tenantId)).assuredPct;
   const pt = lastPenTest(c);
   const [links, setLinks] = useState<ShareLink[]>(() => shareLinks(c, tenantId));
-  const [shared, setShared] = useState<Record<ShareKey, boolean>>({ ri: true, attest: true, certs: true, pentest: c.id !== 'media', docs: true });
+  const [shared, setShared] = useState<Record<ShareKey, boolean>>({ ri: true, attest: true, certs: true, pentest: c.dataKey !== 'media', docs: true });
   const { docs, reqs, portal, lib, qns } = useTrust();
   const [gates, setGates] = useState<Record<string, TrGate>>(() => Object.fromEntries(docs.map((d) => [d.id, d.gate])));
   const pendingReq = reqs.filter((r) => r.status === 'Pending').length;

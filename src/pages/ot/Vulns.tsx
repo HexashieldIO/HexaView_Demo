@@ -5,7 +5,8 @@ import { useApp, rangeDays, rangeLabel } from '../../state/AppContext';
 import { trackedAssets } from '../../data/modules/ot';
 import { useNavigate } from 'react-router-dom';
 import { BarRow } from '../../components/ui';
-import { otScope, otVulns, otAssets, REACH_LABEL, type OtVuln, type PatchState } from '../../data/modules/ot';
+import { otScope, otVulns, otAssets, REACH_LABEL, SECTOR, type OtVuln, type PatchState } from '../../data/modules/ot';
+import { forCustomer } from '../../data/customerMap';
 import { KpiStrip, Card, Badge, SevBadge, StatusBadge, KV, IcoBox, Legend, Callout, Bar, Chip } from '../../components/ui';
 import { Chart, SEV_HEX } from '../../components/Chart';
 import { DataTable } from '../../components/DataTable';
@@ -293,7 +294,7 @@ export default function OtVulns() {
             </>
           )}
           <div style={{ marginTop: 16 }}>
-            <Callout kind="info" color={OT_TONE}>Evidence for this decision is filed in HexaComply against {c.id === 'maritime' ? 'IEC 62443-2-3 and IACS UR E26' : 'IEC 62443-2-3'} patch-management requirements.</Callout>
+            <Callout kind="info" color={OT_TONE}>Evidence for this decision is filed in HexaComply against {forCustomer(SECTOR, c).patchEvidence ?? 'IEC 62443-2-3'} patch-management requirements.</Callout>
           </div>
           <div style={{ marginTop: 12 }}><OtSources sc={sc} /></div>
         </Drawer>
