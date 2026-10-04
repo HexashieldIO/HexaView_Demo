@@ -235,54 +235,56 @@ export default function SignIn() {
   );
 }
 
-/** Drifting hex lattice with signals flowing between nodes. */
+const WAVE_S = 10;
+
+/** Honeycomb with a band of light rolling across it in a gentle wave. */
 function Backdrop() {
-  const nodes = useMemo(() => {
-    const out: { x: number; y: number; d: number }[] = [];
-    for (let row = 0; row < 9; row++) {
-      for (let col = 0; col < 14; col++) {
-        out.push({ x: col * 110 + (row % 2 ? 55 : 0), y: row * 95, d: ((row * 7 + col * 13) % 17) / 17 });
+  const cells = useMemo(() => {
+    const R = 34;
+    const w = Math.sqrt(3) * R;
+    const out: { d: string; delay: number }[] = [];
+    for (let row = -1; row < 18; row++) {
+      for (let col = -1; col < 28; col++) {
+        const cx = col * w + (row % 2 ? w / 2 : 0);
+        const cy = row * R * 1.5;
+        const r = R - 3;
+        const pts = Array.from({ length: 6 }, (_, k) => {
+          const ang = (Math.PI / 3) * k - Math.PI / 2;
+          return `${(cx + r * Math.cos(ang)).toFixed(1)},${(cy + r * Math.sin(ang)).toFixed(1)}`;
+        });
+        // Wave front: left to right, bowed by a slow sine so it reads as a wave, not a wipe.
+        const front = (cx + 150 * Math.sin(cy / 170)) / 1600;
+        out.push({ d: `M${pts.join('L')}Z`, delay: front * WAVE_S });
       }
     }
     return out;
   }, []);
-  const links = useMemo(() => {
-    const pick: [number, number][] = [];
-    for (let i = 0; i < nodes.length; i += 5) {
-      const j = i + 14 < nodes.length ? i + 14 : i + 1;
-      if (j < nodes.length) pick.push([i, j]);
-    }
-    return pick;
-  }, [nodes]);
+  const motion = !reduced();
   return (
     <svg className="auth-bg" viewBox="0 0 1500 820" preserveAspectRatio="xMidYMid slice" aria-hidden>
       <defs>
-        <radialGradient id="auth-glow" cx="30%" cy="40%" r="60%">
-          <stop offset="0" stopColor="#1d4ed8" stopOpacity=".35" />
+        <radialGradient id="auth-glow" cx="30%" cy="40%" r="65%">
+          <stop offset="0" stopColor="#1d4ed8" stopOpacity=".32" />
           <stop offset="1" stopColor="#020617" stopOpacity="0" />
         </radialGradient>
+        <linearGradient id="auth-beam" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stopColor="#2dd4bf" stopOpacity="0" />
+          <stop offset=".5" stopColor="#2dd4bf" stopOpacity=".1" />
+          <stop offset="1" stopColor="#2dd4bf" stopOpacity="0" />
+        </linearGradient>
+        <filter id="auth-blur" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="30" /></filter>
       </defs>
       <rect width="1500" height="820" fill="url(#auth-glow)" />
-      <g className="auth-lattice">
-        {nodes.map((n, i) => (
-          <path key={i} d={`M${n.x},${n.y - 26} l22.5,13 v26 l-22.5,13 l-22.5,-13 v-26 z`} className="auth-cell" style={{ animationDelay: `${n.d * 6}s` }} />
+      {motion && (
+        <g className="auth-beam-g">
+          <rect x="-420" y="-200" width="420" height="1220" fill="url(#auth-beam)" filter="url(#auth-blur)" transform="skewX(-12)" className="auth-beam" />
+        </g>
+      )}
+      <g className={motion ? 'auth-comb wave' : 'auth-comb'}>
+        {cells.map((c, i) => (
+          <path key={i} d={c.d} className="auth-cell" style={motion ? { animationDelay: `${c.delay.toFixed(2)}s, ${(c.delay + WAVE_S / 2).toFixed(2)}s` } : undefined} />
         ))}
       </g>
-      {links.map(([a, b], i) => {
-        const A = nodes[a];
-        const B = nodes[b];
-        const d = `M${A.x},${A.y} Q${(A.x + B.x) / 2 + 30},${(A.y + B.y) / 2 - 20} ${B.x},${B.y}`;
-        return (
-          <g key={i}>
-            <path d={d} className="auth-link" />
-            {!reduced() && (
-              <circle r="2.2" className="auth-spark">
-                <animateMotion dur={`${3 + (i % 5)}s`} begin={`${(i % 7) * 0.6}s`} repeatCount="indefinite" path={d} />
-              </circle>
-            )}
-          </g>
-        );
-      })}
     </svg>
   );
 }
