@@ -154,14 +154,16 @@ button { font-family: inherit; font-size: inherit; color: inherit; cursor: point
 .mod-score { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .mod-score-label { text-align: right; font-size: 11px; font-weight: 600; line-height: 1.2; }
 .mod-score-label span { display: block; font-size: 9px; letter-spacing: .12em; color: var(--text-muted); text-transform: uppercase; }
-.mod-tabs { display: flex; gap: 2px; padding: 0 12px; overflow-x: auto; scrollbar-width: none; border-top: 1px solid var(--hairline); }
+/* Module tab bar: a clear segmented strip, active tab filled in the module colour. */
+.mod-tabs { display: flex; gap: 4px; padding: 8px 12px; overflow-x: auto; scrollbar-width: none; border-top: 1px solid var(--hairline); background: color-mix(in srgb, var(--surface-sunken) 70%, transparent); }
 .mod-tabs a, .mod-tabs button {
-  border: 0; background: none; padding: 10px 10px 9px; font-size: 12.5px; font-weight: 600;
-  color: var(--text-secondary); border-bottom: 2px solid transparent; white-space: nowrap;
-  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid transparent; background: none; padding: 7px 14px; border-radius: 999px; font-size: 13px; font-weight: 600;
+  color: color-mix(in srgb, var(--text-primary) 82%, var(--text-secondary)); white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer; transition: background .15s, color .15s, border-color .15s, box-shadow .15s;
 }
-.mod-tabs a:hover, .mod-tabs button:hover { color: var(--text-primary); }
-.mod-tabs a.active, .mod-tabs button.active { color: var(--tone); border-bottom-color: var(--tone); }
+.mod-tabs a:hover, .mod-tabs button:hover { color: var(--text-primary); background: color-mix(in srgb, var(--tone) 10%, var(--surface-hover)); border-color: color-mix(in srgb, var(--tone) 30%, transparent); }
+.mod-tabs a.active, .mod-tabs button.active { color: var(--text-primary); background: color-mix(in srgb, var(--tone) 24%, transparent); border-color: color-mix(in srgb, var(--tone) 70%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--tone) 25%, transparent), 0 6px 16px -8px var(--tone); }
+.mod-tabs a.active::before, .mod-tabs button.active::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--tone); box-shadow: 0 0 6px var(--tone); }
 .svc-tag { font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 1px 5px; border-radius: 4px; background: color-mix(in srgb, var(--tone) 14%, transparent); color: var(--tone); }
 
 /* ============ Cards & grids ============ */
@@ -677,3 +679,18 @@ svg text, .chart text { text-rendering: geometricPrecision; }
 .rh-foot .rh-spark { display: flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 9px; border: 1px solid var(--card-border); background: color-mix(in srgb, var(--surface-sunken) 80%, transparent); }
 .rh-foot .rh-spark:hover { border-color: color-mix(in srgb, var(--good) 55%, transparent); }
 .rh-foot .rh-ticker { margin: 0; flex: 0 1 400px; min-width: 240px; }
+
+/* In-page section bars (every module's ?section= strip): brighter labels and a clearly filled active section. */
+.content [class*="-subtabs"] > button[class*="-subtab"], .content .tr-nav button, .content .nt-tabs button {
+  color: color-mix(in srgb, var(--text-primary) 80%, var(--text-secondary)); font-weight: 600; border-radius: 999px;
+  transition: background .15s, color .15s, border-color .15s, box-shadow .15s;
+}
+.content [class*="-subtabs"] > button[class*="-subtab"]:hover, .content .tr-nav button:hover, .content .nt-tabs button:hover {
+  color: var(--text-primary); background: color-mix(in srgb, var(--tone, #2fbfa0) 10%, var(--surface-hover));
+}
+.content [class*="-subtabs"] > button[class*="-subtab"]:is(.on, .active), .content .tr-nav button:is(.on, .active), .content .nt-tabs button.on {
+  color: var(--text-primary); font-weight: 700;
+  background: color-mix(in srgb, var(--tone, #2fbfa0) 22%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tone, #2fbfa0) 65%, transparent);
+  box-shadow: 0 4px 14px -8px var(--tone, #2fbfa0);
+}

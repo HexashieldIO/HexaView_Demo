@@ -89,6 +89,7 @@ export const ICS_TECHNIQUES: Technique[] = [
   { id: 'T0847', name: 'Replication Through Removable Media', tactic: 'Initial Access', matrix: 'ics' },
   { id: 'T0862', name: 'Supply Chain Compromise', tactic: 'Initial Access', matrix: 'ics' },
   { id: 'T0866', name: 'Exploitation of Remote Services', tactic: 'Lateral Movement', matrix: 'ics' },
+  { id: 'T0872', name: 'Indicator Removal on Host', tactic: 'Evasion', matrix: 'ics' },
   { id: 'T0859', name: 'Valid Accounts', tactic: 'Lateral Movement', matrix: 'ics' },
   { id: 'T0846', name: 'Remote System Discovery', tactic: 'Discovery', matrix: 'ics' },
   { id: 'T0888', name: 'Remote System Information Discovery', tactic: 'Discovery', matrix: 'ics' },

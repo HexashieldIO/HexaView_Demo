@@ -1072,7 +1072,7 @@ export function surfaceHosts(c: CustomerProfile, tenantId = 'all'): SurfaceHost[
 
 /* =====================================================================
    Supply chain watchlist (outside-in signals on suppliers). All supplier
-   names here are fictional; contracts live in the HexaComply vendor register.
+   names mix real suppliers (from each profile) and fictional ones; contracts live in the HexaComply vendor register.
    ===================================================================== */
 export type SupplierFindingKind = 'Leak-site mention' | 'Leaked credentials' | 'Infected machine' | 'Lookalike domain' | 'Vendor breach';
 export const SUPPLIER_KIND_COLOR: Record<SupplierFindingKind, string> = {

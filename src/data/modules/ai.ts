@@ -1763,13 +1763,13 @@ function scriptedAnswerWave2(c: CustomerProfile, tenantId: string, qid: string, 
     b.tool('count', { entity: 'custody_event', asset: 'eCTD sequence 0042', group_by: 'organisation', window: '7d' }, 3);
     b.tool('get_connector_health', { ids: ['c-hexacustody', 'c-netskope'] }, 2);
     const asset = b.cite({ id: 'custody:ECTD-0042@v12', kind: 'custody', title: 'eCTD sequence 0042 (FDA BLA, rhenatumab)', source: 'HexaCustody ledger', fields: [['Classification', 'Regulatory submission · Tier A'], ['Custodians (7 d)', '3 organisations, 14 users'], ['Planned submission', 'FDA ESG in 9 days'], ['Hash', 'sha256:7b2d…11ac']] });
-    const tr = b.cite({ id: 'custody:TRF-ECTD-7d@v3', kind: 'custody', title: 'Dossier transfers (7 d)', source: 'HexaCustody ledger', fields: [['IQVIA (medical writing)', 'Module 2.7 clinical summaries'], ['Accenture (publishing)', 'Full sequence for eCTD build'], ['Lonza', 'Module 3 CMC sections only']] });
-    const ev = b.cite({ id: 'custody:CE-RP-5512@v1', kind: 'custody', title: 'Module 3 download to an unmanaged device', source: 'HexaCustody + Netskope', fields: [['User', 'Accenture publisher'], ['Destination', 'Personal OneDrive (blocked)'], ['Action', 'Blocked; session revoked'], ['When', '3 h ago']] });
+    const tr = b.cite({ id: 'custody:TRF-ECTD-7d@v3', kind: 'custody', title: 'Dossier transfers (7 d)', source: 'HexaCustody ledger', fields: [['IQVIA (medical writing)', 'Module 2.7 clinical summaries'], ['Kessler Regulatory Publishing (publishing)', 'Full sequence for eCTD build'], ['Lonza', 'Module 3 CMC sections only']] });
+    const ev = b.cite({ id: 'custody:CE-RP-5512@v1', kind: 'custody', title: 'Module 3 download to an unmanaged device', source: 'HexaCustody + Netskope', fields: [['User', 'Kessler publisher'], ['Destination', 'Personal OneDrive (blocked)'], ['Action', 'Blocked; session revoked'], ['When', '3 h ago']] });
     b.say('This week eCTD sequence 0042 for the rhenatumab BLA was handled by 3 external organisations and 14 named users, all under HexaCustody.', asset, cc(b, 'c-hexacustody'));
-    b.say('IQVIA received the Module 2.7 clinical summaries, Accenture holds the full sequence for publishing, and Lonza received the Module 3 CMC sections only.', tr, vendorRec(b, 'IQVIA'), vendorRec(b, 'Accenture'), vendorRec(b, 'Lonza'));
-    b.say('An Accenture publisher tried to save Module 3 to a personal OneDrive from an unmanaged device; Netskope blocked it and the session was revoked 3 hours ago.', ev, cc(b, 'c-netskope'));
+    b.say('IQVIA received the Module 2.7 clinical summaries, Kessler Regulatory Publishing holds the full sequence for publishing, and Lonza received the Module 3 CMC sections only.', tr, vendorRec(b, 'IQVIA'), vendorRec(b, 'Kessler Regulatory Publishing'), vendorRec(b, 'Lonza'));
+    b.say('A Kessler Regulatory Publishing user tried to save Module 3 to a personal OneDrive from an unmanaged device; Netskope blocked it and the session was revoked 3 hours ago.', ev, cc(b, 'c-netskope'));
     b.say('The EMA and Swissmedic MAA dossier for RHN-2290 had no external transfers this week.', asset);
-    return b.done({ action: { label: 'Require managed devices for Accenture on sequence 0042', connector: 'HexaShield HexaCustody agent', operation: 'Revoke access (supplier / user / session)', risk: 'medium', change: 'Limits Accenture access to sequence 0042 to managed, sensor-covered devices until submission; watermark keys rotate. IQVIA and Lonza are unaffected.', approvers: [p.grcLead.name] } });
+    return b.done({ action: { label: 'Require managed devices for Kessler Regulatory Publishing on sequence 0042', connector: 'HexaShield HexaCustody agent', operation: 'Revoke access (supplier / user / session)', risk: 'medium', change: 'Limits Kessler Regulatory Publishing access to sequence 0042 to managed, sensor-covered devices until submission; watermark keys rotate. IQVIA and Lonza are unaffected.', approvers: [p.grcLead.name] } });
   }
   if (qid === 'p-part11') {
     const b = new AnswerBuilder(`cp-p-part11-${tenantId}`);
@@ -2044,8 +2044,8 @@ const QUESTION_ROUTES: CustomerMap<{ early: [RegExp, string][]; late: [RegExp, s
     late: [[/device|pump|alaris|biomed|scanner|mri|iomt/, 'o-devices'], [/\bhia\b|pdpa/, 'loops']],
   },
   studio: {
-    early: [[/nexguard|watermark|lodestar|teaser|leak/, 's-leak']],
-    late: [[/crown of ash|locked cut|vendor|bluebird/, 's-cut'], [/shadow|\bai\b|voice|likeness|midjourney/, 's-shadow'], [/tpn|mpa/, 'loops']],
+    early: [[/crown of ash|locked cut/, 's-cut'], [/nexguard|watermark|lodestar|teaser|leak/, 's-leak']],
+    late: [[/vendor|bluebird/, 's-cut'], [/shadow|\bai\b|voice|likeness|midjourney/, 's-shadow'], [/tpn|mpa/, 'loops']],
   },
 };
 

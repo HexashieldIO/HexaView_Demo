@@ -491,7 +491,9 @@ export function reportTemplates(c: CustomerProfile): ReportTemplate[] {
     { id: 'exercise-aar', title: 'Crisis exercise after-action report', audience: 'Executive', owner: p.grcLead.name, frequency: 'Event-driven', period: 'quarterly', lastGeneratedDays: 9, pages: 12, citations: 48, format: 'PDF', description: 'Scenario, timeline of injects and decisions, scores by capability (detect, decide, communicate, recover, notify), lessons learned and owned actions, with evidence pushed to HexaComply for the regulator or auditor.', sections: ['incidents', 'frameworks', 'risks'], status: 'ready' },
     { id: 'value', title: 'Value & outcomes summary', audience: 'Board', owner: p.ciso.name, frequency: 'Quarterly', lastGeneratedDays: 87, pages: 6, citations: 39, format: 'PPTX', description: 'What HexaView and HexaShield services delivered against cost: incidents contained, hours saved, loss avoided, premium and tool savings, ROI multiple and top outcome stories, for the board and renewal.', sections: ['capability', 'incidents', 'insurance', 'risks'], status: 'due', deadline: 'Due before the HexaView renewal review' },
   ];
-  return [...common.slice(0, 3), ...forCustomer(reg, c), ...common.slice(3), ...programmeTpl].map(withPeriod);
+  const hasIso = c.frameworks.some((f) => /ISO[ /]*(IEC[ ]*)?27001/i.test(`${f.short} ${f.name}`));
+  const base = common.filter((t) => t.id !== 'iso' || hasIso);
+  return [...base.slice(0, 3), ...forCustomer(reg, c), ...base.slice(3), ...programmeTpl].map(withPeriod);
 }
 
 /* =====================================================================
