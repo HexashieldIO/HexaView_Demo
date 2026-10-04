@@ -511,7 +511,7 @@ svg text, .chart text { text-rendering: geometricPrecision; }
 
 /* ============ Role menu & workspace ============ */
 .rm-wrap { position: relative; }
-.rm-panel { position: absolute; right: 0; top: calc(100% + 8px); width: min(560px, calc(100vw - 24px)); max-height: min(640px, calc(100vh - 90px)); overflow-y: auto; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; box-shadow: 0 24px 60px rgba(0,0,0,.35); z-index: 50; animation: fade .15s ease; padding-bottom: 8px; }
+.rm-panel { position: absolute; right: 0; top: calc(100% + 8px); width: min(560px, calc(100vw - var(--sidebar-width, 0px) - 32px)); max-height: min(640px, calc(100vh - 90px)); overflow-y: auto; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; box-shadow: 0 24px 60px rgba(0,0,0,.35); z-index: 50; animation: fade .15s ease; padding-bottom: 8px; }
 :root[data-theme=dark] .rm-panel { background: #111a2e; }
 .rm-head { padding: 14px 16px 6px; }
 .rm-head b { display: block; font-family: var(--font-display); font-size: 15px; }
@@ -519,7 +519,12 @@ svg text, .chart text { text-rendering: geometricPrecision; }
 .rm-groups { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 8px; padding: 4px 10px; }
 .rm-group-label { font-size: 9.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--text-muted); padding: 10px 6px 4px; }
 .rm-item { display: grid; grid-template-columns: 30px minmax(0,1fr) 16px; gap: 9px; align-items: start; width: 100%; text-align: left; font: inherit; color: inherit; border: 1px solid transparent; background: none; border-radius: 10px; padding: 8px; }
-.rm-item:hover { background: var(--surface-hover); }
+.rm-item { cursor: pointer; transition: background .15s, border-color .15s, box-shadow .15s, transform .15s; }
+.rm-item .rm-av { transition: box-shadow .15s, transform .15s; }
+.rm-item .rm-main b { transition: color .15s; }
+.rm-item:hover, .rm-item:focus-visible { background: color-mix(in srgb, var(--accent) 12%, var(--surface-hover)); border-color: color-mix(in srgb, var(--accent) 60%, transparent); box-shadow: 0 6px 18px -10px var(--accent); transform: translateY(-1px); outline: none; }
+.rm-item:hover .rm-av, .rm-item:focus-visible .rm-av { transform: scale(1.08); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent), 0 0 14px -2px var(--accent); }
+.rm-item:hover .rm-main b, .rm-item:focus-visible .rm-main b { color: var(--accent); }
 .rm-item.on { border-color: color-mix(in srgb, var(--accent) 45%, transparent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
 .rm-av, .ws-av { line-height: 1; text-align: center; flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 700; font-family: var(--font-display); color: #fff; background: linear-gradient(135deg, #2563eb, #7c3aed); }
 .rm-main { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
@@ -542,6 +547,9 @@ svg text, .chart text { text-rendering: geometricPrecision; }
 .rm-group.rm-master .rm-group-label { color: #eab308; }
 .rm-group.rm-master .rm-item { border-color: #eab30855; background: #eab30812; }
 .rm-group.rm-master .rm-item.on { border-color: #eab308; background: #eab30822; }
+.rm-group.rm-master .rm-item:hover, .rm-group.rm-master .rm-item:focus-visible { border-color: #eab308; background: #eab3082e; box-shadow: 0 6px 18px -10px #eab308; }
+.rm-group.rm-master .rm-item:hover .rm-main b, .rm-group.rm-master .rm-item:focus-visible .rm-main b { color: #facc15; }
+.rm-group.rm-master .rm-item:hover .rm-av { box-shadow: 0 0 0 3px #eab30855, 0 0 14px -2px #eab308; }
 .rm-group.rm-master .rm-av { background: linear-gradient(135deg, #eab308, #ea580c); }
 
 /* ============ User profile ============ */
@@ -694,3 +702,4 @@ svg text, .chart text { text-rendering: geometricPrecision; }
   border: 1px solid color-mix(in srgb, var(--tone, #2fbfa0) 65%, transparent);
   box-shadow: 0 4px 14px -8px var(--tone, #2fbfa0);
 }
+.rm-panel.align-left { right: auto; left: 0; }

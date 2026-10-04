@@ -12,6 +12,8 @@ export function RoleMenu() {
   const { customer, persona, setPersona, toast } = useApp();
   const nav = useNavigate();
   const [open, setOpen] = useState(false);
+  // Open towards whichever side has room, so the panel never slides under the sidebar.
+  const [alignLeft, setAlignLeft] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const current = ROLE_BY_ID[persona] ?? ROLE_BY_ID.ciso;
 
@@ -36,13 +38,21 @@ export function RoleMenu() {
 
   return (
     <div className="rm-wrap" ref={ref}>
-      <button className="tb-ctl" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="menu" title="Role-based view">
+      <button
+        className="tb-ctl"
+        onClick={() => {
+          const r = ref.current?.getBoundingClientRect();
+          const side = document.querySelector('.sidebar')?.getBoundingClientRect();
+          const width = Math.min(560, window.innerWidth - 24);
+          setAlignLeft(!!r && r.right - width < (side && side.width < window.innerWidth / 2 && getComputedStyle(document.querySelector('.sidebar')!).position !== 'fixed' ? side.right : 0) + 8);
+          setOpen((o) => !o);
+        }} aria-expanded={open} aria-haspopup="menu" title="Role-based view">
         <UserRound size={14} className="muted" />
         View: {current.label}
         <ChevronDown size={13} style={{ opacity: 0.6, marginLeft: 2 }} />
       </button>
       {open && (
-        <div className="rm-panel" role="menu">
+        <div className={`rm-panel ${alignLeft ? 'align-left' : ''}`} role="menu">
           <div className="rm-head">
             <b>Role-based view</b>
             <span>Each role opens its own home page and workspace for {customer.short}</span>
