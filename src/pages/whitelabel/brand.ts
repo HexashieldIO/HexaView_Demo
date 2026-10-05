@@ -95,3 +95,29 @@ export function serviceName(product: string, brand: Brand): string {
   };
   return map[product] ?? product;
 }
+
+// Published theme: what the console itself shows (logo top-left, sign-in). Editing
+// the draft above does not change the console until it is published again.
+const PUB_KEY = 'hv.brand.published';
+let published: Brand | null = (() => {
+  try { return JSON.parse(localStorage.getItem(PUB_KEY) ?? 'null') as Brand | null; } catch { return null; }
+})();
+const pubSubs = new Set<() => void>();
+function emitPublished(next: Brand | null) {
+  published = next;
+  try {
+    if (next) localStorage.setItem(PUB_KEY, JSON.stringify(next));
+    else localStorage.removeItem(PUB_KEY);
+  } catch { /* storage full or unavailable: keep it for this session only */ }
+  pubSubs.forEach((f) => f());
+}
+/** Publish the current draft: the console now shows this brand instead of HexaView. */
+export function publishBrand() { emitPublished({ ...state }); }
+/** Go back to the HexaView brand in the console. */
+export function revertToHexaView() { emitPublished(null); }
+export function usePublishedBrand(): Brand | null {
+  return useSyncExternalStore(
+    (f) => { pubSubs.add(f); return () => pubSubs.delete(f); },
+    () => published,
+  );
+}

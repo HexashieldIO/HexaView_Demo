@@ -15,6 +15,7 @@ import { fmtDate, fmtNum, NOW } from '../../lib/format';
 import { tenantName } from '../../data/customers';
 import { attention } from '../../data/overview';
 import './reports.css';
+import { CustomerLogo } from '../../components/CustomerLogo';
 
 export const REP_TONE = MODULE_BY_ID.reports.tone;
 
@@ -453,7 +454,7 @@ export function ReportPaper({
       {draft && <div className="rep-watermark">DRAFT</div>}
       <div className="rep-cover">
         <div className="rep-cover-top">
-          <span className="rep-logo" style={{ background: c.colour }}>{c.initials}</span>
+          <CustomerLogo c={c} size={40} className="rep-logo" />
           <div>
             <small>HexaView Reporting · {PERIOD_KINDS.find((k) => k.id === period.kind)?.adj} report</small>
             <b>{c.name}</b>

@@ -7,7 +7,9 @@ import { resilienceIndex } from '../../data/core';
 import { ROLES, ROLE_BY_ID, initialsOf } from '../../modules/roles';
 import { MODULES } from '../../modules/registry';
 import type { CustomerId, Persona } from '../../data/types';
+import { BrandMark } from '../../components/BrandMark';
 import './auth.css';
+import { CustomerLogo } from '../../components/CustomerLogo';
 
 export const SESSION_KEY = 'hv.session';
 
@@ -104,7 +106,7 @@ export default function SignIn() {
       <Backdrop />
 
       <div className="auth-side">
-        <img src="/brand/HexaView_logo_reverse.png" alt="HexaView" className="auth-logo" />
+        <BrandMark className="auth-logo" large />
         <span className="auth-slogan">The trust console. Visibility you can act on.</span>
         <div className="auth-hero" onMouseEnter={() => setPause(true)} onMouseLeave={() => setPause(false)}>
           <h1 key={hero}>{HERO[hero].line}</h1>
@@ -148,7 +150,7 @@ export default function SignIn() {
               <label className="auth-label">Organisation</label>
               <div className="auth-org">
                 <button className="auth-org-btn" onClick={() => setOrgOpen((o) => !o)} aria-expanded={orgOpen}>
-                  <span className="auth-av" style={{ background: customer.colour }}>{customer.initials}</span>
+                  <CustomerLogo c={customer} size={34} radius={9} />
                   <span className="auth-org-meta">
                     <b>{customer.name}</b>
                     <small>{customer.domain} · {customer.sector}</small>
@@ -159,7 +161,7 @@ export default function SignIn() {
                   <div className="auth-org-list" role="listbox">
                     {CUSTOMER_LIST.map((c) => (
                       <button key={c.id} role="option" aria-selected={c.id === customer.id} onClick={() => { setCustomerId(c.id as CustomerId); setOrgOpen(false); }}>
-                        <span className="auth-av sm" style={{ background: c.colour }}>{c.initials}</span>
+                        <CustomerLogo c={c} size={28} radius={8} />
                         <span className="auth-org-meta"><b>{c.name}</b><small>{c.domain}</small></span>
                         {c.id === customer.id && <Check size={14} />}
                       </button>

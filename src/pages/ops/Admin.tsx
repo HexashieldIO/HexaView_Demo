@@ -9,6 +9,7 @@ import { Card, KpiStrip, Badge, StatusBadge, Btn, Callout, KV, HealthBadge, Chip
 import { DataTable } from '../../components/DataTable';
 import { fmtAgo, fmtCompact, fmtNum, fmtDate, daysAgo, daysAhead } from '../../lib/format';
 import { OPS_TONE, Switch, useParamFilter, FilterChip, HBars, scrollToId } from './parts';
+import { CustomerLogo } from '../../components/CustomerLogo';
 
 const ROLE_COLOR: Record<HvRole, string> = {
   Analyst: 'var(--m-soc)', Approver: 'var(--m-core)', 'Tenant Admin': 'var(--m-ops)', GRC: 'var(--m-comply)', Auditor: 'var(--sev-info)', 'Board viewer': 'var(--m-view)', 'OT engineer': 'var(--m-ot)', 'Support (read-only)': 'var(--sev-high)',
@@ -137,7 +138,7 @@ function AdminInner() {
         <Card title="Tenancy hierarchy" sub="Organisation → tenants → data planes → connector instances · click a tenant to expand">
           <div className="ops-tree">
             <div className="ops-tree-row" style={{ fontWeight: 700 }}>
-              <span className="org-avatar" style={{ background: c.colour, width: 22, height: 22, fontSize: 9 }}>{c.initials}</span>
+              <CustomerLogo c={c} size={22} radius={6} />
               {c.name}
               <span className="muted" style={{ fontWeight: 500, fontSize: 11 }}>organisation · {c.stamp}</span>
             </div>

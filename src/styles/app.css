@@ -703,3 +703,11 @@ svg text, .chart text { text-rendering: geometricPrecision; }
   box-shadow: 0 4px 14px -8px var(--tone, #2fbfa0);
 }
 .rm-panel.align-left { right: auto; left: 0; }
+
+/* Partner white-label mark (replaces the HexaView logo when a brand is published) */
+.wl-mark { display: inline-grid; gap: 3px; justify-items: start; }
+.wl-mark-row { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
+.wl-mono { flex-shrink: 0; display: grid; place-items: center; border-radius: 10px; font-family: var(--font-display); font-weight: 800; color: #fff; background: linear-gradient(135deg, var(--wl-primary), color-mix(in srgb, var(--wl-primary) 55%, var(--wl-accent))); box-shadow: 0 6px 16px -8px var(--wl-primary); }
+.wl-name { font-family: var(--font-display); font-weight: 700; color: #f1f5ff; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px; }
+.wl-mark.large .wl-name { max-width: 320px; }
+.wl-powered { font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; color: #8f9bb6; padding-left: 2px; }

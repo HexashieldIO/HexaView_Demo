@@ -5,7 +5,7 @@ import { Card, KpiStrip, Badge, Btn, Callout, KV, SectionLabel, Timeline } from 
 import { Modal } from '../../components/Overlay';
 import { clientBook } from '../../data/modules/partner';
 import { Field, PT_TONE, Seg, Toggle } from '../partner/parts';
-import { PRESETS, contrast, resetBrand, setBrand, useBrand, DEFAULT_BRAND, type Brand } from './brand';
+import { PRESETS, contrast, resetBrand, setBrand, useBrand, DEFAULT_BRAND, publishBrand, revertToHexaView, usePublishedBrand, type Brand } from './brand';
 import { BrandPreview } from './Preview';
 
 const SURFACES = [
@@ -21,6 +21,7 @@ const SURFACES = [
 
 export default function WhiteLabelBranding() {
   const brand = useBrand();
+  const live = usePublishedBrand();
   const { toast } = useApp();
   const book = useMemo(() => clientBook(), []);
   const [clientId, setClientId] = useState(book[0].id);
@@ -116,6 +117,13 @@ export default function WhiteLabelBranding() {
               <span className="spacer" />
               <Btn primary color={PT_TONE} onClick={() => setPublish(true)}><Rocket /> Publish to clients</Btn>
             </div>
+            {live && (
+              <div className="row wrap" style={{ gap: 8, padding: '8px 10px', borderRadius: 10, background: 'color-mix(in srgb, var(--good) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--good) 35%, transparent)', fontSize: 12 }}>
+                <CheckCircle2 size={14} color="var(--good)" />
+                <span style={{ flex: 1 }}><b>{live.productName}</b> is live: it replaces the HexaView logo top-left and on the sign-in page.</span>
+                <Btn sm ghost onClick={() => { revertToHexaView(); toast('Console logo reverted to HexaView'); }}><RotateCcw /> Revert to HexaView</Btn>
+              </div>
+            )}
           </div>
         </Card>
 
@@ -156,7 +164,7 @@ export default function WhiteLabelBranding() {
           title="Publish theme v8"
           sub={`Applies to ${book.length} client tenants · risk class: low · approved by you as partner admin`}
           onClose={() => setPublish(false)}
-          footer={<><Btn onClick={() => setPublish(false)}>Cancel</Btn><Btn primary color={PT_TONE} onClick={() => { toast(`Theme v8 published to ${book.length} client tenants: users see it on next page load`); setPublish(false); }}>Publish v8</Btn></>}
+          footer={<><Btn onClick={() => setPublish(false)}>Cancel</Btn><Btn primary color={PT_TONE} onClick={() => { publishBrand(); toast(`Theme v8 published to ${book.length} client tenants · your logo now replaces HexaView in the console`); setPublish(false); }}>Publish v8</Btn></>}
         >
           {changed.length ? (
             <KV rows={changed.map((k) => [k, k === 'logoImage' ? 'New logo uploaded' : `${String(DEFAULT_BRAND[k])} → ${String(brand[k])}`])} />
