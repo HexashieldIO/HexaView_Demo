@@ -52,6 +52,8 @@ export default function CommandCentre() {
     insurance: { id: 'insurance', metrics: [{ value: `${h.insurance.insurability}`, label: 'Insurability score' }, { value: `${h.insurance.premiumDeltaPct > 0 ? '+' : ''}${h.insurance.premiumDeltaPct}%`, label: 'Modelled premium impact' }], status: h.insurance.premiumDeltaPct > 0 ? 'Needs review' : 'Nominal' },
     reports: { id: 'reports', metrics: [{ value: '14', label: 'Reports scheduled' }, { value: '3', label: 'Drafts awaiting sign-off' }], status: 'Nominal' },
   };
+  const mapStatus = { Nominal: 0, 'Needs review': 0, 'Action required': 0 } as Record<MapNodeInfo['status'], number>;
+  Object.values(info).forEach((x) => { mapStatus[x.status] += 1; });
   const coreInfo: MapNodeInfo = {
     id: 'core',
     metrics: [
@@ -140,8 +142,18 @@ export default function CommandCentre() {
         </Card>
       </div>
 
-      <Card>
+      <Card
+        title="How your security works together"
+        sub={`Every HexaShield capability ${c.short} uses, connected through HexaCore. A finding in one sharpens all the others, live.`}
+        actions={<Legend items={[{ label: `${mapStatus.Nominal} nominal`, color: 'var(--good)' }, { label: `${mapStatus['Needs review']} needs review`, color: 'var(--sev-medium)' }, { label: `${mapStatus['Action required']} action required`, color: 'var(--bad)' }]} />}
+      >
         <PlatformMap info={info} coreInfo={coreInfo} />
+        <div className="pm-explain">
+          <div><b>The centre: HexaCore</b><span>One shared data, identity and AI layer. All {h.fabric.connectors} of your connected tools and every HexaShield service read from it and write to it; credentials and raw data stay in your own data planes.</span></div>
+          <div><b>The hexagons: your capabilities</b><span>SOC, threat intelligence, offensive testing, OT, compliance, custody, AI, insurance and reporting. The dot on each shows its health right now; hover for its live numbers, click to open it.</span></div>
+          <div><b>The lines and the sweep: shared signals</b><span>Each line is a live feed into the core. The sweep is HexaCore correlating them: a leaked credential from HexaInt raises the risk on that user in HexaSOC, a HexaStrike finding becomes a new detection, and the evidence lands in HexaComply automatically.</span></div>
+          <div><b>Why it matters to you</b><span>Instead of {h.fabric.connectors} tools that do not talk, you get one picture that answers "are we covered?" and proves it, with {fmtCompact(h.fabric.eventsPerDay)} events a day turned into a handful of decisions.</span></div>
+        </div>
       </Card>
 
       <div className="grid g4">
