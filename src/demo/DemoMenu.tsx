@@ -5,12 +5,15 @@ import { CUSTOMER_LIST } from '../data/customers';
 import { Modal } from '../components/Overlay';
 import { STORIES, STORY_BY_ID, type Story } from './stories';
 import { resetDemo, tour, useTour } from './tour';
+import { usePanelFit } from '../components/usePanelFit';
 
 /** Topbar "Demo" button: guided stories for presenters, and a full reset. */
 export function DemoMenu() {
   const { setCustomerId, setPersona, setAccount, setTenantId } = useApp();
   const active = useTour();
   const [open, setOpen] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  usePanelFit(panelRef, open);
   const [confirm, setConfirm] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -48,7 +51,7 @@ export function DemoMenu() {
         <span>{playing ? `${playing.title} · ${active!.step + 1}/${playing.steps.length}` : 'Demo'}</span>
       </button>
       {open && (
-        <div className="dm-panel" role="dialog" aria-label="Guided demo stories">
+        <div ref={panelRef} className="dm-panel" role="dialog" aria-label="Guided demo stories">
           <div className="dm-head">
             <b>Guided demo stories</b>
             <span>Each story sets the customer and role, then walks you page to page with a narrator card.</span>

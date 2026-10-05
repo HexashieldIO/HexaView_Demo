@@ -5,12 +5,15 @@ import { useApp } from '../state/AppContext';
 import { ROLE_BY_ID, initialsOf } from '../modules/roles';
 import { MODULES } from '../modules/registry';
 import { signOut } from '../pages/auth/SignIn';
+import { usePanelFit } from './usePanelFit';
 
 /** Avatar button that opens the signed-in user's role-based profile. */
 export function UserProfile() {
   const { customer: c, persona, toast } = useApp();
   const nav = useNavigate();
   const [open, setOpen] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  usePanelFit(panelRef, open);
   const ref = useRef<HTMLDivElement>(null);
   const role = ROLE_BY_ID[persona] ?? ROLE_BY_ID.ciso;
   const p = role.person(c);
@@ -40,7 +43,7 @@ export function UserProfile() {
         {initialsOf(p.name)}
       </button>
       {open && (
-        <div className="up-panel" role="dialog" aria-label="Your profile">
+        <div ref={panelRef} className="up-panel" role="dialog" aria-label="Your profile">
           <div className={`up-head ${master ? 'master' : ''}`}>
             <span className={`up-av ${master ? 'master' : ''}`}>{initialsOf(p.name)}</span>
             <div style={{ minWidth: 0 }}>

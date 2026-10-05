@@ -6,6 +6,7 @@ import { notifications, CATEGORY_META, type NotifCategory, type Notif } from '..
 import { isRead, markRead, useNotifRead } from '../state/notificationStore';
 import { SEV_COLOR } from './ui';
 import { fmtAgo } from '../lib/format';
+import { usePanelFit } from './usePanelFit';
 
 /** Shared hook: the feed for the current customer, tenant and persona, plus unread count. */
 export function useNotifications() {
@@ -43,6 +44,8 @@ export function NotificationBell() {
   const nav = useNavigate();
   const { all, unread } = useNotifications();
   const [open, setOpen] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  usePanelFit(panelRef, open);
   const [tab, setTab] = useState<'all' | NotifCategory>('all');
   const ref = useRef<HTMLDivElement>(null);
 
@@ -73,7 +76,7 @@ export function NotificationBell() {
         {unread > 0 && <span className="nt-badge">{unread > 99 ? '99+' : unread}</span>}
       </button>
       {open && (
-        <div className="nt-panel" role="dialog" aria-label="Notifications">
+        <div ref={panelRef} className="nt-panel" role="dialog" aria-label="Notifications">
           <div className="nt-head">
             <div>
               <b>Notifications</b>

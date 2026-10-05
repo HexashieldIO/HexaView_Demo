@@ -191,7 +191,7 @@ export function RTile({ value, label, d, color, to, onClick, source }: { value: 
   );
 }
 
-function HBar({ label, value, max, color, display }: { label: string; value: number; max: number; color: string; display: ReactNode }) {
+export function HBar({ label, value, max, color, display }: { label: string; value: number; max: number; color: string; display: ReactNode }) {
   return (
     <div className="rep-hbar">
       <span>{label}</span>
@@ -523,7 +523,7 @@ export function ReportPaper({
 }
 
 /** Progress-stepped generation modal. Optionally asks for the reporting period first. Calls onDone when finished. */
-export function GenerateModal({ title, steps, onClose, onDone, period, onPeriod }: { title: string; steps: string[]; onClose: () => void; onDone: () => void; period?: PeriodState; onPeriod?: (p: PeriodState) => void }) {
+export function GenerateModal({ title, steps, onClose, onDone, period, onPeriod, tone = REP_TONE }: { title: string; steps: string[]; onClose: () => void; onDone: () => void; period?: PeriodState; onPeriod?: (p: PeriodState) => void; tone?: string }) {
   const [started, setStarted] = useState(!period);
   const [i, setI] = useState(0);
   useEffect(() => {
@@ -542,16 +542,16 @@ export function GenerateModal({ title, steps, onClose, onDone, period, onPeriod 
         title={`Generate · ${title}`}
         sub="Choose the period this run covers; numbers, charts and deltas are recomputed for it"
         onClose={onClose}
-        footer={<><Btn onClick={onClose}>Cancel</Btn><Btn primary color={REP_TONE} onClick={() => setStarted(true)}><Play /> Generate for {p.label}</Btn></>}
+        footer={<><Btn onClick={onClose}>Cancel</Btn><Btn primary color={tone} onClick={() => setStarted(true)}><Play /> Generate for {p.label}</Btn></>}
       >
-        <PeriodPicker value={period} onChange={onPeriod} />
+        <div style={{ ['--m-reports' as string]: tone }}><PeriodPicker value={period} onChange={onPeriod} /></div>
         <Callout>The draft covers <b>{p.range}</b>{period.compare ? <> and compares every number with <b>{p.prev.range}</b></> : null}. Nothing is released until a named approver signs.</Callout>
       </Modal>
     );
   }
   return (
     <Modal title={`Generating · ${title}`} sub="Drafted from live data; nothing is released until a named approver signs" onClose={onClose} footer={<Btn onClick={onClose}>Run in background</Btn>}>
-      <div className="rep-steps">
+      <div className="rep-steps" style={{ ['--m-reports' as string]: tone }}>
         {steps.map((s, k) => (
           <div key={s} className={`rep-step ${k < i ? 'done' : k === i ? 'run' : ''}`}>
             <span className="rep-step-ico">{k < i ? <Check size={13} /> : k === i ? <Loader2 size={13} className="rep-spin" /> : k + 1}</span>
@@ -559,28 +559,33 @@ export function GenerateModal({ title, steps, onClose, onDone, period, onPeriod 
           </div>
         ))}
       </div>
-      <Bar value={Math.min(i, steps.length)} max={steps.length} color={REP_TONE} />
+      <Bar value={Math.min(i, steps.length)} max={steps.length} color={tone} />
     </Modal>
   );
 }
 
 /** Named-approver sign-off before release. */
 export function SignOffModal({
-  title, approvers, defaultApprover, format, onClose, onSubmit, extra,
+  title, approvers, defaultApprover, format, onClose, onSubmit, extra, tone = REP_TONE, heading = 'Send for approval', cta = 'Send to',
 }: {
   title: string; approvers: string[]; defaultApprover?: string; format: Format; onClose: () => void; onSubmit: (approver: string, note: string) => void; extra?: ReactNode;
+  /** Accent colour (defaults to the Reporting tone). */
+  tone?: string;
+  /** Modal heading and button verb, e.g. "Request sign-off" / "Request from". */
+  heading?: string;
+  cta?: string;
 }) {
   const [who, setWho] = useState(defaultApprover ?? approvers[0]);
   const [note, setNote] = useState('');
   return (
     <Modal
-      title="Send for approval"
+      title={heading}
       sub={title}
       onClose={onClose}
       footer={
         <>
           <Btn onClick={onClose}>Cancel</Btn>
-          <Btn primary color={REP_TONE} onClick={() => onSubmit(who, note)}><PenLine /> Send to {who.split(' ').filter((x) => !x.endsWith('.'))[0]}</Btn>
+          <Btn primary color={tone} onClick={() => onSubmit(who, note)}><PenLine /> {cta} {who.split(' ').filter((x) => !x.endsWith('.'))[0]}</Btn>
         </>
       }
     >

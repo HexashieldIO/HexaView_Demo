@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, ChevronDown, UserRound } from 'lucide-react';
 import { useApp } from '../state/AppContext';
+import { usePanelFit } from './usePanelFit';
 import { ROLES, ROLE_BY_ID, ROLE_GROUPS, initialsOf, type RoleDef } from '../modules/roles';
 
 /**
@@ -15,6 +16,8 @@ export function RoleMenu() {
   // Open towards whichever side has room, so the panel never slides under the sidebar.
   const [alignLeft, setAlignLeft] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  usePanelFit(panelRef, open);
   const current = ROLE_BY_ID[persona] ?? ROLE_BY_ID.ciso;
 
   useEffect(() => {
@@ -52,7 +55,7 @@ export function RoleMenu() {
         <ChevronDown size={13} style={{ opacity: 0.6, marginLeft: 2 }} />
       </button>
       {open && (
-        <div className={`rm-panel ${alignLeft ? 'align-left' : ''}`} role="menu">
+        <div ref={panelRef} className={`rm-panel ${alignLeft ? 'align-left' : ''}`} role="menu">
           <div className="rm-head">
             <b>Role-based view</b>
             <span>Each role opens its own home page and workspace for {customer.short}</span>

@@ -1,0 +1,97 @@
+/* HexaSOC › Reports › Report builder. Every class is prefixed socr-.
+   The builder reuses the Reporting Centre's rep-* paper and controls and
+   retones them to HexaSOC by overriding --m-reports inside .socr-scope. */
+.socr-scope { display: flex; flex-direction: column; gap: 16px; --m-reports: var(--m-soc); }
+.socr-scope .chips { --tone: var(--m-soc); }
+.socr-views { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.socr-views-note { font-size: 11.5px; color: var(--text-muted); display: inline-flex; gap: 6px; align-items: center; }
+
+.socr-tag { margin-left: 8px; font-size: 9.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--m-soc); background: color-mix(in srgb, var(--m-soc) 14%, transparent); border-radius: 4px; padding: 1px 5px; vertical-align: 1px; }
+.socr-chip-saved { border-style: dashed !important; border-color: color-mix(in srgb, var(--m-soc) 40%, transparent) !important; }
+
+/* Paper additions */
+.socr-paper .rep-p.socr-narr { color: var(--text-primary); }
+.socr-paper .rep-lead { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+.socr-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.socr-split .rep-chart { min-width: 0; }
+.socr-table td.num, .socr-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.socr-table th:last-child, .socr-table td:last-child { text-align: right; }
+.socr-table td { vertical-align: top; }
+.socr-link { cursor: pointer; }
+.socr-link:hover td { background: color-mix(in srgb, var(--m-soc) 7%, transparent); }
+.socr-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; vertical-align: 0; }
+.socr-tid { font-size: 10.5px; color: var(--m-soc); font-weight: 700; margin-right: 4px; }
+.socr-pill { --pc: var(--m-soc); display: inline-block; font-size: 10.5px; font-weight: 700; color: var(--pc); background: color-mix(in srgb, var(--pc) 15%, transparent); border: 1px solid color-mix(in srgb, var(--pc) 35%, transparent); border-radius: 999px; padding: 0 8px; line-height: 18px; white-space: nowrap; text-transform: capitalize; }
+.socr-why { font-size: 11.5px; color: var(--text-muted); line-height: 1.45; margin: 2px 0 0; }
+
+/* SLA bullets */
+.socr-bullets { display: grid; grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); gap: 10px; }
+.socr-bullet { display: flex; flex-direction: column; gap: 7px; text-align: left; background: var(--surface-sunken); border: 1px solid var(--hairline); border-radius: 9px; padding: 10px 12px; color: inherit; font: inherit; cursor: pointer; transition: border-color .15s; min-width: 0; }
+.socr-bullet:hover { border-color: color-mix(in srgb, var(--m-soc) 55%, var(--hairline)); }
+.socr-bullet-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 11.5px; color: var(--text-muted); }
+.socr-bullet-h b { font-family: var(--font-display); font-size: 19px; font-weight: 700; white-space: nowrap; }
+.socr-bullet-track { position: relative; height: 8px; background: var(--track); border-radius: 4px; }
+.socr-bullet-track i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; }
+.socr-bullet-track em { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; background: var(--text-primary); border-radius: 1px; }
+.socr-bullet-f { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 2px 8px; font-size: 10.5px; color: var(--text-muted); }
+.socr-bullet-f .good { color: var(--good); font-weight: 700; }
+.socr-bullet-f .bad { color: var(--bad); font-weight: 700; }
+.socr-bullet-f .flat { font-weight: 700; }
+
+/* Funnel */
+.socr-funnel { display: flex; flex-direction: column; gap: 5px; padding: 2px 0 8px; }
+.socr-funnel button { display: grid; grid-template-columns: 150px minmax(0, 1fr) 64px; gap: 10px; align-items: center; background: none; border: 0; padding: 3px 4px; border-radius: 6px; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.socr-funnel button:hover { background: color-mix(in srgb, var(--m-soc) 8%, transparent); }
+.socr-funnel span { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+.socr-funnel div { height: 10px; background: var(--track); border-radius: 5px; overflow: hidden; }
+.socr-funnel i { display: block; height: 100%; border-radius: 5px; }
+.socr-funnel b { text-align: right; font-family: var(--font-display); font-size: 13px; font-variant-numeric: tabular-nums; }
+
+/* Horizontal bars inside charts */
+.socr-hbars { display: flex; flex-direction: column; gap: 7px; padding: 4px 0 8px; }
+.socr-hbars .rep-hbar { grid-template-columns: 128px minmax(0, 1fr) 40px; }
+.socr-hbars .rep-hbar span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 11.5px; }
+.socr-hbars.wide .rep-hbar { grid-template-columns: 170px minmax(0, 1fr) 48px; }
+.socr-cov { display: grid; grid-template-columns: 70px minmax(0, 1fr) auto; gap: 10px; align-items: center; font-size: 11.5px; margin: 10px 0 8px; }
+.socr-cov span { font-weight: 600; color: var(--text-secondary); }
+.socr-cov div { display: flex; flex-direction: column; gap: 3px; }
+.socr-cov div i { display: block; height: 5px; border-radius: 3px; }
+.socr-cov b { font-family: var(--font-display); font-size: 12px; }
+
+/* Posture rings */
+.socr-rings { display: flex; gap: 12px; align-items: stretch; flex-wrap: wrap; }
+.socr-ring { display: flex; align-items: center; gap: 10px; background: var(--surface-sunken); border: 1px solid var(--hairline); border-radius: 9px; padding: 8px 12px; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.socr-ring:hover { border-color: color-mix(in srgb, var(--m-soc) 55%, var(--hairline)); }
+.socr-ring b { display: block; font-size: 12.5px; }
+.socr-ring small { display: block; font-size: 11px; color: var(--text-muted); }
+
+/* Top incidents */
+.socr-incs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.socr-inc { --pc: var(--m-soc); display: flex; flex-direction: column; gap: 4px; text-align: left; background: var(--surface-sunken); border: 1px solid var(--hairline); border-left: 3px solid var(--pc); border-radius: 8px; padding: 9px 12px; color: inherit; font: inherit; cursor: pointer; min-width: 0; transition: border-color .15s; }
+.socr-inc:hover { border-color: color-mix(in srgb, var(--pc) 55%, var(--hairline)); border-left-color: var(--pc); }
+.socr-inc > b { font-size: 12.5px; line-height: 1.35; }
+.socr-inc-h { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 10.5px; color: var(--text-muted); }
+.socr-inc-h .mono { font-size: 10.5px; }
+.socr-inc-st { margin-left: auto; text-transform: capitalize; font-weight: 600; }
+
+/* Reports view: in-session templates and schedules */
+.socr-list { display: flex; flex-direction: column; }
+.socr-list-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 16px; border-top: 1px solid var(--hairline); }
+.socr-list-row:first-child { border-top: 0; }
+.socr-list-row b { font-size: 13px; }
+.socr-list-row small { display: block; font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+
+@media (max-width: 1100px) {
+  .socr-split, .socr-incs { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .socr-funnel button { grid-template-columns: 110px minmax(0, 1fr) 56px; }
+}
+
+@media print {
+  body * { visibility: hidden !important; }
+  .socr-print, .socr-print * { visibility: visible !important; }
+  .socr-print { position: absolute; left: 0; top: 0; width: 100%; max-height: none !important; overflow: visible !important; padding: 0 !important; background: none !important; }
+  .socr-print .rep-paper { box-shadow: none; border: 0; }
+  @page { size: A4; margin: 12mm; }
+}
