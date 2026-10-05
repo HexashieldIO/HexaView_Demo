@@ -30,6 +30,8 @@ export function signOut() {
 }
 
 type Method = 'sso' | 'passkey';
+type Idp = 'entra' | 'okta';
+const IDP_NAME: Record<Idp, string> = { entra: 'Microsoft Entra ID', okta: 'Okta' };
 type Phase = 'form' | 'auth' | 'enter';
 
 const reduced = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -47,7 +49,10 @@ export default function SignIn() {
   const person = role.person(customer);
   const ids = customer.connectors.filter((k) => k.category === 'Identity');
   const idpConn = ids.find((k) => /Entra|Okta|Workforce|Ping/i.test(`${k.vendor} ${k.product}`)) ?? ids[0];
-  const idp = idpConn ? (idpConn.product.startsWith(idpConn.vendor) ? idpConn.product : `${idpConn.vendor} ${idpConn.product}`) : 'your identity provider';
+  // Both enterprise IdPs are offered; the customer's own one is highlighted and used by Enter.
+  const homeIdp: Idp = idpConn && /okta|workforce/i.test(`${idpConn.vendor} ${idpConn.product}`) ? 'okta' : 'entra';
+  const [chosenIdp, setChosenIdp] = useState<Idp>(homeIdp);
+  const idp = IDP_NAME[chosenIdp];
   const ri = resilienceIndex(customer, 'all').value;
   const region = customer.hq.split(',').slice(-1)[0]?.trim() ?? '';
   const timers = useRef<number[]>([]);
@@ -63,8 +68,9 @@ export default function SignIn() {
     { icon: Check, text: 'Computing your Resilience Index', done: `Resilience Index ${ri} · ready` },
   ], [method, idp, customer, region, role, ri]);
 
-  const start = (m: Method) => {
+  const start = (m: Method, via?: Idp) => {
     if (phase !== 'form') return;
+    if (via) setChosenIdp(via);
     setMethod(m);
     setPhase('auth');
     setStep(0);
@@ -87,7 +93,7 @@ export default function SignIn() {
   // Enter starts SSO, the presenter's quickest path.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Enter' && phase === 'form' && !(e.target instanceof HTMLSelectElement)) start('sso');
+      if (e.key === 'Enter' && phase === 'form' && !(e.target instanceof HTMLSelectElement)) start('sso', homeIdp);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -190,9 +196,19 @@ export default function SignIn() {
                 {ROLES.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
               </select>
 
-              <button className="auth-primary" onClick={() => start('sso')}>
-                <KeyRound size={16} /> Continue with {idp} SSO <ArrowRight size={16} />
-              </button>
+              <div className="auth-idps">
+                {(homeIdp === 'okta' ? (['okta', 'entra'] as Idp[]) : (['entra', 'okta'] as Idp[])).map((id) => (
+                  <button key={id} className={id === homeIdp ? 'auth-primary auth-idp' : 'auth-secondary auth-idp'} onClick={() => start('sso', id)}>
+                    <IdpMark id={id} />
+                    <span className="auth-idp-txt">
+                      <b>Continue with {IDP_NAME[id]}</b>
+                      {id === homeIdp && <small>{customer.short}'s identity provider</small>}
+                    </span>
+                    <ArrowRight size={16} />
+                  </button>
+                ))}
+              </div>
+              <div className="auth-or"><span>or</span></div>
               <button className="auth-secondary" onClick={() => start('passkey')}>
                 <Fingerprint size={16} /> Sign in with a passkey
               </button>
@@ -246,6 +262,23 @@ export default function SignIn() {
 }
 
 const WAVE_S = 10;
+
+/** Simple marks for the two identity providers (drawn inline, no external assets). */
+function IdpMark({ id }: { id: Idp }) {
+  if (id === 'entra') {
+    return (
+      <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden>
+        <rect x="1" y="1" width="8.5" height="8.5" fill="#f25022" /><rect x="10.5" y="1" width="8.5" height="8.5" fill="#7fba00" />
+        <rect x="1" y="10.5" width="8.5" height="8.5" fill="#00a4ef" /><rect x="10.5" y="10.5" width="8.5" height="8.5" fill="#ffb900" />
+      </svg>
+    );
+  }
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden>
+      <circle cx="10" cy="10" r="8.6" fill="#ffffff" /><circle cx="10" cy="10" r="6.2" fill="none" stroke="#007dc1" strokeWidth="3.4" />
+    </svg>
+  );
+}
 
 /** Honeycomb with a band of light rolling across it in a gentle wave. */
 function Backdrop() {
