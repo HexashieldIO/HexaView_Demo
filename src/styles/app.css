@@ -722,3 +722,38 @@ svg text, .chart text { text-rendering: geometricPrecision; }
 .wl-bar-txt span { font-size: 11.5px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .wl-bar-save { --tone: var(--m-partner); }
 .wl-bar-list { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 12.5px; }
+
+/* Horizontal slide bar (HScroll) */
+.hs { display: grid; gap: 10px; min-width: 0; }
+.hs-bar { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; gap: 8px; padding: 6px 4px; }
+.hs-btn { width: 30px; height: 30px; flex-shrink: 0; display: grid; place-items: center; border-radius: 8px; border: 1px solid var(--card-border); background: var(--surface); color: var(--text-primary); cursor: pointer; transition: background .15s, border-color .15s; }
+.hs-btn:hover:not(:disabled) { background: var(--surface-hover); border-color: color-mix(in srgb, var(--accent) 50%, transparent); }
+.hs-btn:disabled { opacity: .35; cursor: default; }
+.hs-track { position: relative; flex: 1; height: 12px; border-radius: 999px; background: var(--surface-sunken); border: 1px solid var(--card-border); cursor: pointer; touch-action: none; }
+.hs-track:focus-visible { outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent); outline-offset: 2px; }
+.hs-thumb { position: absolute; top: 1px; bottom: 1px; min-width: 40px; border-radius: 999px; cursor: grab; background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 75%, #fff 0%), color-mix(in srgb, var(--accent) 55%, #8b5cf6)); box-shadow: 0 0 10px -2px var(--accent); transition: filter .15s; }
+.hs-thumb:hover { filter: brightness(1.15); }
+.hs-thumb:active { cursor: grabbing; }
+.hs-label { flex-shrink: 0; font-size: 11.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; min-width: 118px; text-align: right; }
+.hs-box { overflow-x: auto; scrollbar-width: thin; }
+
+/* Module tab rail: arrows, edge fades and a slim slide bar when tabs overflow */
+.tab-rail { position: relative; border-top: 1px solid var(--hairline); background: color-mix(in srgb, var(--surface-sunken) 70%, transparent); }
+.tab-rail .mod-tabs { border-top: 0; background: none; }
+.tab-rail-row { position: relative; display: flex; align-items: center; }
+.tab-rail-row .mod-tabs { flex: 1; min-width: 0; }
+.tab-rail.overflow .mod-tabs { -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 28px, #000 calc(100% - 28px), transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 28px, #000 calc(100% - 28px), transparent 100%); }
+.tab-rail.overflow.at-start .mod-tabs { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent 100%); mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent 100%); }
+.tab-rail.overflow.at-end .mod-tabs { -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 28px); mask-image: linear-gradient(90deg, transparent 0, #000 28px); }
+.tr-arrow { flex-shrink: 0; width: 30px; height: 30px; margin: 0 6px; display: grid; place-items: center; border-radius: 50%; border: 1px solid color-mix(in srgb, var(--tone) 45%, var(--card-border)); background: var(--surface); color: var(--text-primary); cursor: pointer; box-shadow: 0 4px 12px -6px rgba(0, 0, 0, .6); transition: background .15s, opacity .15s, border-color .15s; }
+.tr-arrow:hover:not(:disabled) { background: color-mix(in srgb, var(--tone) 20%, var(--surface)); border-color: var(--tone); }
+.tr-arrow:disabled { opacity: .3; cursor: default; }
+.tr-track { position: relative; height: 8px; margin: 2px 48px 8px; border-radius: 999px; background: color-mix(in srgb, var(--text-muted) 18%, transparent); cursor: pointer; touch-action: none; }
+.tr-thumb { position: absolute; top: 0; bottom: 0; min-width: 36px; border-radius: 999px; background: var(--tone); opacity: .85; cursor: grab; box-shadow: 0 0 8px -1px var(--tone); }
+.tr-thumb:active { cursor: grabbing; }
+.tr-track:hover .tr-thumb { opacity: 1; }
+
+/* Dragging a slide bar: no text selection, instant thumb, grab cursor everywhere */
+body.hs-dragging { user-select: none; cursor: grabbing; }
+body.hs-dragging .hs-thumb, body.hs-dragging .tr-thumb { transition: none; filter: brightness(1.15); }
+.tr-track::before, .hs-track::before { content: ""; position: absolute; inset: -8px 0; }
