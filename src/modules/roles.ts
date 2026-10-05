@@ -44,7 +44,7 @@ export const ROLES: RoleDef[] = [
     person: (c) => c.rolePeople?.executive ?? c.people.board,
     licence: 'Viewer',
     rights: ['Read-only summaries', 'Approve board reports for release'],
-    access: ['trust', 'programme', 'command', 'board', 'loop', 'aisec', 'insurance', 'reports', 'ops', 'comms'],
+    access: ['incident', 'trust', 'programme', 'command', 'board', 'loop', 'aisec', 'insurance', 'reports', 'ops', 'comms'],
   },
   {
     id: 'ciso', label: 'CISO / Head of security', group: 'Leadership',
@@ -74,7 +74,7 @@ export const ROLES: RoleDef[] = [
     person: (c) => c.rolePeople?.socmanager ?? c.people.socLead,
     licence: 'Approver',
     rights: ['Approve low and medium-risk write-back', 'Second approver on high-risk actions', 'Set agent autonomy (not OT)'],
-    access: ['command', 'loop', 'soc', 'int', 'strike', 'ai', 'aisec', 'fabric', 'tooling', 'ops', 'reports', 'comms'],
+    access: ['incident', 'command', 'loop', 'soc', 'int', 'strike', 'ai', 'aisec', 'fabric', 'tooling', 'ops', 'reports', 'comms'],
   },
   {
     id: 'analyst', label: 'SOC analyst', group: 'Security operations',
@@ -84,7 +84,7 @@ export const ROLES: RoleDef[] = [
     person: (c) => c.rolePeople?.analyst ?? c.people.socLead,
     licence: 'Analyst',
     rights: ['Request write-back actions (cannot approve own)', 'Use the copilot', 'Update incidents and hunts'],
-    access: ['command', 'soc', 'int', 'strike', 'ai', 'fabric', 'comms'],
+    access: ['incident', 'command', 'soc', 'int', 'strike', 'ai', 'fabric', 'comms'],
   },
   {
     id: 'threat', label: 'Threat intelligence', group: 'Security operations',
@@ -94,7 +94,7 @@ export const ROLES: RoleDef[] = [
     person: (c) => c.rolePeople?.threat ?? c.people.socLead,
     licence: 'Analyst',
     rights: ['Request IOC pushes and takedowns', 'Publish intel briefs'],
-    access: ['command', 'int', 'soc', 'strike', 'comms'],
+    access: ['incident', 'command', 'int', 'soc', 'strike', 'comms'],
   },
   {
     id: 'grc', label: 'GRC & audit', group: 'Governance & risk',
@@ -104,7 +104,7 @@ export const ROLES: RoleDef[] = [
     person: (c) => c.rolePeople?.grc ?? c.people.grcLead,
     licence: 'Approver',
     rights: ['Approve control status changes', 'Scope requirements (SoA)', 'Export evidence and the audit ledger'],
-    access: ['trust', 'programme', 'command', 'board', 'loop', 'comply', 'aisec', 'custody', 'reports', 'ops', 'comms'],
+    access: ['incident', 'trust', 'programme', 'command', 'board', 'loop', 'comply', 'aisec', 'custody', 'reports', 'ops', 'comms'],
   },
   {
     id: 'risk', label: 'Risk & resilience', group: 'Governance & risk',
@@ -114,7 +114,7 @@ export const ROLES: RoleDef[] = [
     person: (c) => c.rolePeople?.risk ?? c.people.grcLead,
     licence: 'Full',
     rights: ['Accept and treat risks', 'Run crisis war rooms', 'Approve vendor assessments'],
-    access: ['trust', 'programme', 'command', 'board', 'comply', 'insurance', 'ops', 'reports', 'comms'],
+    access: ['incident', 'trust', 'programme', 'command', 'board', 'comply', 'insurance', 'ops', 'reports', 'comms'],
   },
   {
     id: 'privacy', label: 'Privacy & legal', group: 'Governance & risk',
@@ -124,7 +124,7 @@ export const ROLES: RoleDef[] = [
     person: (c) => c.rolePeople?.privacy ?? c.people.grcLead,
     licence: 'Full',
     rights: ['Submit regulatory notifications', 'Place legal holds on evidence', 'Approve AI systems'],
-    access: ['trust', 'command', 'comply', 'aisec', 'custody', 'insurance', 'ops', 'reports', 'comms'],
+    access: ['incident', 'trust', 'command', 'comply', 'aisec', 'custody', 'insurance', 'ops', 'reports', 'comms'],
   },
   {
     id: 'ot', label: 'OT engineer', group: 'Engineering & platform',
@@ -134,7 +134,7 @@ export const ROLES: RoleDef[] = [
     person: (c) => c.rolePeople?.ot ?? c.people.otLead ?? c.people.admin,
     licence: 'Analyst',
     rights: ['Read-only OT views (no write-back to OT, ever)', 'Acknowledge OT alerts', 'Approve OT test windows'],
-    access: ['command', 'ot', 'fabric', 'tooling', 'comms'],
+    access: ['incident', 'command', 'ot', 'fabric', 'tooling', 'comms'],
   },
   {
     id: 'cloud', label: 'Cloud & IT operations', group: 'Engineering & platform',
@@ -144,7 +144,7 @@ export const ROLES: RoleDef[] = [
     person: (c) => c.rolePeople?.cloud ?? c.people.admin,
     licence: 'Analyst',
     rights: ['Raise remediation tickets', 'Request identity actions'],
-    access: ['command', 'fabric', 'tooling', 'strike', 'soc', 'comms'],
+    access: ['incident', 'command', 'fabric', 'tooling', 'strike', 'soc', 'comms'],
   },
   {
     id: 'admin', label: 'Platform admin', group: 'Engineering & platform',

@@ -180,7 +180,7 @@ export default function SocIr() {
 }
 
 function IncidentDrawer({ inc, onClose, onAction }: { inc: Incident; onClose: () => void; onAction: (w: WriteBack) => void }) {
-  const { c, tone } = useSoc();
+  const { c, tone, nav } = useSoc();
   const t = socTools(c, inc.tenantId);
   const tl = incidentTimeline(c, inc);
   const clocks = regClocks(c, inc);
@@ -240,6 +240,14 @@ function IncidentDrawer({ inc, onClose, onAction }: { inc: Incident; onClose: ()
           ...(inc.actor ? [['Tradecraft overlap', `${inc.actor} (HexaInt, medium confidence)`] as [string, string]] : []),
           ['Correlated alerts', fmtNum(inc.alerts)],
         ]} />
+
+        {inc.sev !== 'low' && (
+          <div className="row wrap" style={{ gap: 8 }}>
+            <Btn sm color="var(--m-ir)" onClick={() => nav(`/incident-response/escalations?soc=${inc.id}`)} title="Escalate to L4 Incident Response, or open the incident if one is already declared">
+              <Siren size={14} /> {inc.status === 'closed' ? 'Open in Incident Response' : 'Escalate to IR (L4) / open in Incident Response'}
+            </Btn>
+          </div>
+        )}
 
         <div>
           <div className="section-label">Containment (write-back)</div>

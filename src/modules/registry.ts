@@ -270,6 +270,23 @@ export const MODULES: ModuleDef[] = [
       { id: 'bridges', label: 'Calls & Bridges' },
     ],
   },
+  {
+    id: 'incident', group: 'ops', product: 'Incident Response', title: 'Incident Response (L4)', isNew: true,
+    tagline: 'From SOC escalation to closed incident in one place: declare, open a war room, bring in the right people, keep an audited timeline and produce the report.',
+    glyph: 'Siren', tone: 'var(--m-ir)', basePath: '/incident-response',
+    tabs: [
+      { id: 'overview', label: 'Overview', service: 'ir' },
+      { id: 'escalations', label: 'Escalations (L4)', service: 'ir' },
+      { id: 'warroom', label: 'War Room', service: 'ir' },
+      { id: 'stakeholders', label: 'Stakeholders', service: 'ir' },
+      { id: 'timeline', label: 'Timeline & Audit', service: 'ir' },
+      { id: 'playbooks', label: 'IR Playbooks', service: 'ir' },
+      { id: 'evidence', label: 'Evidence & Forensics', service: 'ir' },
+      { id: 'notifications', label: 'Notifications', service: 'ir' },
+      { id: 'report', label: 'Incident Report', service: 'ir' },
+      { id: 'review', label: 'Post-Incident Review', service: 'ir' },
+    ],
+  },
 
   // ---------- Operations ----------
   {

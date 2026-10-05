@@ -118,6 +118,9 @@ function WarroomInner() {
           <span className="mono" style={{ fontSize: 22, fontWeight: 700 }}>T+{fmtCountdown(elapsedMin * 60)}</span>
           <span className="muted" style={{ fontSize: 11 }}>Commander {w.commander}</span>
           <div className="row" style={{ gap: 6 }}>
+            <Btn sm ghost onClick={() => nav('/incident-response/warroom')} title="Run the L4 incident lifecycle in Incident Response">
+              <Siren size={13} /> Open in Incident Response
+            </Btn>
             <Btn sm ghost onClick={() => nav('/ops/exercises')} title="Quarterly crisis exercise programme">
               <CalendarCheck size={13} /> Exercise programme
             </Btn>
