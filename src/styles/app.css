@@ -711,3 +711,14 @@ svg text, .chart text { text-rendering: geometricPrecision; }
 .wl-name { font-family: var(--font-display); font-weight: 700; color: #f1f5ff; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px; }
 .wl-mark.large .wl-name { max-width: 320px; }
 .wl-powered { font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; color: #8f9bb6; padding-left: 2px; }
+
+/* White Label save & publish bar */
+.wl-bar { position: sticky; bottom: 12px; z-index: 20; display: flex; align-items: center; gap: 10px; margin-top: 14px; padding: 10px 14px; border-radius: 14px; border: 1px solid var(--card-border); background: color-mix(in srgb, var(--surface) 94%, transparent); backdrop-filter: blur(8px); box-shadow: 0 14px 34px -16px rgba(0, 0, 0, .7); }
+.wl-bar.dirty { border-color: color-mix(in srgb, var(--m-partner) 60%, transparent); }
+.wl-bar-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--m-partner); box-shadow: 0 0 0 4px color-mix(in srgb, var(--m-partner) 22%, transparent); flex-shrink: 0; }
+.wl-bar-ok { color: var(--good); flex-shrink: 0; }
+.wl-bar-txt { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.wl-bar-txt b { font-size: 13px; }
+.wl-bar-txt span { font-size: 11.5px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wl-bar-save { --tone: var(--m-partner); }
+.wl-bar-list { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 12.5px; }

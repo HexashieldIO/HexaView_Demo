@@ -20,6 +20,8 @@ export interface Brand {
   loginHeadline: string;
   loginSub: string;
   loginArt: 'gradient' | 'solid' | 'grid';
+  /** Identity providers offered as buttons on the client sign-in page. */
+  loginSso: string[];
 }
 
 export const DEFAULT_BRAND: Brand = {
@@ -39,6 +41,7 @@ export const DEFAULT_BRAND: Brand = {
   loginHeadline: 'Your security, one view.',
   loginSub: 'Managed detection, compliance and OT security from Northwind Cyber Partners.',
   loginArt: 'gradient',
+  loginSso: ['Microsoft Entra ID', 'Okta'],
 };
 
 export const PRESETS: { name: string; primary: string; sidebar: string; accent: string }[] = [
@@ -50,7 +53,10 @@ export const PRESETS: { name: string; primary: string; sidebar: string; accent: 
   { name: 'Graphite', primary: '#475569', sidebar: '#0f1115', accent: '#38bdf8' },
 ];
 
-let state: Brand = { ...DEFAULT_BRAND };
+// The draft starts from the published brand when there is one.
+let state: Brand = (() => {
+  try { return { ...DEFAULT_BRAND, ...(JSON.parse(localStorage.getItem('hv.brand.published') ?? 'null') ?? {}) } as Brand; } catch { return { ...DEFAULT_BRAND }; }
+})();
 const subs = new Set<() => void>();
 export function setBrand(patch: Partial<Brand>) {
   state = { ...state, ...patch };
@@ -111,8 +117,36 @@ function emitPublished(next: Brand | null) {
   } catch { /* storage full or unavailable: keep it for this session only */ }
   pubSubs.forEach((f) => f());
 }
-/** Publish the current draft: the console now shows this brand instead of HexaView. */
-export function publishBrand() { emitPublished({ ...state }); }
+const VER_KEY = 'hv.brand.version';
+let version = (() => { try { return Number(localStorage.getItem(VER_KEY)) || 7; } catch { return 7; } })();
+let publishedAt: number | null = null;
+/** Published theme version (v7 was live before this session). */
+export function brandVersion() { return version; }
+export function brandPublishedAt() { return publishedAt; }
+/** Publish the current draft: the console now shows this brand instead of HexaView. Returns the new version. */
+export function publishBrand() {
+  version += 1;
+  publishedAt = Date.now();
+  try { localStorage.setItem(VER_KEY, String(version)); } catch { /* session only */ }
+  emitPublished({ ...state });
+  return version;
+}
+/** What the draft is compared against: the last published brand, else the v7 defaults. */
+export function brandBaseline(): Brand { return { ...DEFAULT_BRAND, ...(published ?? {}) }; }
+const FIELD_LABEL: Partial<Record<keyof Brand, string>> = {
+  productName: 'Software name', logoText: 'Monogram', logoShape: 'Logo shape', logoImage: 'Logo', primary: 'Primary colour', sidebar: 'Side menu colour', accent: 'Accent colour',
+  mode: 'Default theme', serviceNames: 'Service names', poweredBy: 'Powered by HexaShield', font: 'Typeface', domain: 'Portal domain', supportEmail: 'Support address',
+  loginHeadline: 'Sign-in headline', loginSub: 'Sign-in sub-heading', loginArt: 'Sign-in background', loginSso: 'Sign-in buttons',
+};
+/** Draft fields that differ from what is published. */
+export function brandChanges(draft: Brand): { key: keyof Brand; label: string }[] {
+  const base = brandBaseline();
+  return (Object.keys(DEFAULT_BRAND) as (keyof Brand)[])
+    .filter((k) => JSON.stringify(draft[k]) !== JSON.stringify(base[k]))
+    .map((k) => ({ key: k, label: FIELD_LABEL[k] ?? k }));
+}
+/** Throw away unpublished edits. */
+export function discardDraft() { setBrand(brandBaseline()); }
 /** Go back to the HexaView brand in the console. */
 export function revertToHexaView() { emitPublished(null); }
 export function usePublishedBrand(): Brand | null {

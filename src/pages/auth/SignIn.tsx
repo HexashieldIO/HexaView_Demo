@@ -8,6 +8,7 @@ import { ROLES, ROLE_BY_ID, initialsOf } from '../../modules/roles';
 import { MODULES } from '../../modules/registry';
 import type { CustomerId, Persona } from '../../data/types';
 import { BrandMark } from '../../components/BrandMark';
+import { usePublishedBrand } from '../whitelabel/brand';
 import './auth.css';
 import { CustomerLogo } from '../../components/CustomerLogo';
 
@@ -92,6 +93,8 @@ export default function SignIn() {
     return () => window.removeEventListener('keydown', onKey);
   });
 
+  // A published partner white-label replaces HexaView's own messaging here.
+  const wl = usePublishedBrand();
   const dots = MODULES.filter((m) => m.group !== 'partner' && m.group !== 'overview');
   const [hero, setHero] = useState(0);
   const [pause, setPause] = useState(false);
@@ -107,18 +110,18 @@ export default function SignIn() {
 
       <div className="auth-side">
         <BrandMark className="auth-logo" large />
-        <span className="auth-slogan">The trust console. Visibility you can act on.</span>
+        {!wl && <span className="auth-slogan">The trust console. Visibility you can act on.</span>}
         <div className="auth-hero" onMouseEnter={() => setPause(true)} onMouseLeave={() => setPause(false)}>
-          <h1 key={hero}>{HERO[hero].line}</h1>
-          <div className="auth-angles" role="tablist" aria-label="Hero statements">
+          <h1 key={wl ? 'wl' : hero}>{wl ? wl.loginHeadline : HERO[hero].line}</h1>
+          {!wl && <div className="auth-angles" role="tablist" aria-label="Hero statements">
             {HERO.map((x, i) => (
               <button key={x.angle} role="tab" aria-selected={i === hero} className={i === hero ? 'on' : ''} onClick={() => setHero(i)}>
                 <i />{x.angle}
               </button>
             ))}
-          </div>
+          </div>}
         </div>
-        <p>The trust console for security: one bidirectional pane over every tool you run, across IT and OT, that lets you see your posture, act on it, and prove it works.</p>
+        <p>{wl ? wl.loginSub : 'The trust console for security: one bidirectional pane over every tool you run, across IT and OT, that lets you see your posture, act on it, and prove it works.'}</p>
         <div className="auth-dots">
           <span className="auth-dot-row">
             {dots.map((m, i) => (
@@ -132,10 +135,15 @@ export default function SignIn() {
           <span><Factory size={13} /> IT and OT together</span>
           <span><Server size={13} /> SaaS, dedicated, customer-hosted or air-gapped</span>
         </div>
-        <div className="auth-brand">
+        {wl ? (
+          <div className="auth-brand">
+            <span>{wl.productName} · <b>{wl.domain}</b></span>
+            {wl.poweredBy && <em>Powered by HexaShield</em>}
+          </div>
+        ) : <div className="auth-brand">
           <span>A platform by HexaShield · <b>Cyber Resilience. Trusted Partner.</b></span>
           <em>Integrated, not assembled.</em>
-        </div>
+        </div>}
       </div>
 
       <div className="auth-card-wrap">
@@ -217,7 +225,7 @@ export default function SignIn() {
             </div>
           )}
         </div>
-        <div className="auth-foot">HexaView™ Trust Console · Demo environment, illustrative data</div>
+        <div className="auth-foot">{wl ? `Help: ${wl.supportEmail} · Demo environment, illustrative data` : 'HexaView™ Trust Console · Demo environment, illustrative data'}</div>
       </div>
 
       {phase === 'enter' && (
