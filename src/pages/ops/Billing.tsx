@@ -7,7 +7,10 @@ import { Modal } from '../../components/Overlay';
 import { DataTable } from '../../components/DataTable';
 import { fmtNum, fmtMoney, fmtDate } from '../../lib/format';
 import { useAiptStore } from '../strike/aipentest/store';
-import { priceInCustomer } from '../../data/modules/aipentest';
+import { priceInCustomer, typesLabel } from '../../data/modules/aipentest';
+import { engUsd, paymentSource } from '../../data/modules/aiptRetainer';
+import { PayMethodPicker, defaultPayMode, drawDown, type PayMode } from '../strike/aipentest/PayMethod';
+import { RetainerTab, SourceBadge } from './Retainer';
 import { OPS_TONE } from './parts';
 import '../strike/aipentest/aipt.css';
 
@@ -27,20 +30,35 @@ export function BillingSection() {
   const payEngId = sp.get('pay');
   const payEng = payEngId ? engagements.find((e) => e.id === payEngId) : null;
   const back = sp.get('back');
+  const tab = sp.get('billing') === 'retainer' ? 'retainer' : 'payments';
+  const setTab = (t: 'payments' | 'retainer') => { const n = new URLSearchParams(sp); n.set('section', 'billing'); if (t === 'retainer') n.set('billing', 'retainer'); else n.delete('billing'); setSp(n, { replace: true }); };
+  const card = store.state.cards.find((x) => x.default) ?? store.state.cards[0];
+  const cardLabel = card ? `${card.brand} •••• ${card.last4}` : 'Card on file';
+  const [mode, setMode] = useState<PayMode | null>(null);
+  const payMode: PayMode = mode ?? (payEng ? defaultPayMode(store.retainer, engagements, engUsd(payEng)) : 'card');
 
   const paidTotalGbp = engagements.filter((e) => e.paid).reduce((s, e) => s + e.priceGbp, 0);
   const outstanding = engagements.filter((e) => !e.paid);
+
+  // Retainer invoices (purchase and top-ups) first, then one invoice per engagement.
+  const r = store.retainer;
+  const invoiceRows = [
+    ...(r ? [{ id: `INV-RET-${r.startDate.replace(/-/g, '')}`, title: `Annual retainer ${fmtMoney(r.tierUsd, 'USD', false)}`, amount: fmtMoney(r.tierUsd, 'USD', false), paid: true, via: <Badge color="var(--sev-info)" dot>{r.methodLabel}</Badge> },
+      ...r.topUps.map((t, i) => ({ id: `INV-RET-TU${i + 1}`, title: 'Retainer top-up', amount: fmtMoney(t.usd, 'USD', false), paid: true, via: <Badge color="var(--sev-info)" dot>{cardLabel}</Badge> }))] : []),
+    ...engagements.map((e) => ({ id: e.id, title: e.types.join(' + '), amount: fmtMoney(priceInCustomer(e.priceGbp, c.currency), c.currency), paid: e.paid, via: <SourceBadge src={paymentSource(e, r)} /> })),
+  ];
 
   const clearPay = () => { const n = new URLSearchParams(sp); n.delete('pay'); n.delete('back'); setSp(n, { replace: true }); };
 
   const doPay = (engId: string) => {
     const eng = engagements.find((e) => e.id === engId);
     if (!eng) return;
-    const card = store.state.cards.find((x) => x.default) ?? store.state.cards[0];
-    const method = card ? `${card.brand} •••• ${card.last4}` : 'Card on file';
-    store.payFor({ engagementId: eng.id, engagementName: eng.name, amountGbp: eng.priceGbp, amount: priceInCustomer(eng.priceGbp, c.currency), currency: c.currency, method, kind: 'Engagement' });
-    store.patchEngagement(eng.id, { paid: true });
-    toast(`Paid ${fmtMoney(priceInCustomer(eng.priceGbp, c.currency), c.currency)} for ${eng.id} (Stripe test mode) · booked`);
+    const amountUsd = engUsd(eng);
+    const { fromRetainer, fromCard } = drawDown(store, { engId: eng.id, label: typesLabel(eng.types), amountUsd, mode: payMode });
+    const method = fromRetainer && fromCard ? `Retainer + ${cardLabel}` : fromRetainer ? 'Retainer' : cardLabel;
+    store.payFor({ engagementId: eng.id, engagementName: eng.name, amountGbp: eng.priceGbp, amount: priceInCustomer(eng.priceGbp, c.currency), amountUsd, currency: c.currency, method, kind: 'Engagement' });
+    store.patchEngagement(eng.id, { paid: true, paidVia: fromRetainer && fromCard ? 'Split' : fromRetainer ? 'Retainer' : 'Card' });
+    toast(fromRetainer ? `Booked ${eng.id}: ${fmtMoney(fromRetainer, 'USD', false)} drawn from the retainer${fromCard ? ` + ${fmtMoney(fromCard, 'USD', false)} to ${cardLabel}` : ''}` : `Paid ${fmtMoney(priceInCustomer(eng.priceGbp, c.currency), c.currency)} for ${eng.id} (Stripe test mode) · booked`);
     if (back) { clearPay(); nav(decodeURIComponent(back)); }
     else clearPay();
   };
@@ -71,14 +89,15 @@ export function BillingSection() {
               <KV rows={[
                 ['Engagement', payEng.name],
                 ['Amount', <span title={`£${fmtNum(payEng.priceGbp)} list`}>{fmtMoney(priceInCustomer(payEng.priceGbp, c.currency), c.currency)} <span className="muted">(£{fmtNum(payEng.priceGbp)} list)</span></span>],
-                ['Pay with', (store.state.cards.find((x) => x.default) ?? store.state.cards[0]) ? `${(store.state.cards.find((x) => x.default) ?? store.state.cards[0]).brand} •••• ${(store.state.cards.find((x) => x.default) ?? store.state.cards[0]).last4}` : 'No card on file'],
+                ['Amount (USD)', fmtMoney(engUsd(payEng), 'USD', false)],
                 ['Status', payEng.paid ? <Badge color="var(--good)" dot>Paid</Badge> : <Badge color="var(--sev-medium)" dot>Outstanding</Badge>],
               ]} />
+              {!payEng.paid && <div style={{ marginTop: 10 }}><PayMethodPicker retainer={store.retainer} engs={engagements} amountUsd={engUsd(payEng)} currency={c.currency} value={payMode} onChange={setMode} cardLabel={cardLabel} /></div>}
               <div className="row" style={{ gap: 8, marginTop: 10 }}>
                 {payEng.paid ? (
                   <Btn primary color={OPS_TONE} onClick={() => { if (back) { clearPay(); nav(decodeURIComponent(back)); } else clearPay(); }}>Back to engagement</Btn>
                 ) : (
-                  <Btn primary color={OPS_TONE} disabled={!store.state.cards.length} onClick={() => doPay(payEng.id)}><CreditCard size={14} /> Pay &amp; book {fmtMoney(priceInCustomer(payEng.priceGbp, c.currency), c.currency)}</Btn>
+                  <Btn primary color={OPS_TONE} disabled={payMode !== 'retainer' && !store.state.cards.length} onClick={() => doPay(payEng.id)}><CreditCard size={14} /> {payMode === 'retainer' ? 'Book from retainer' : 'Pay & book'} {payMode === 'retainer' ? fmtMoney(engUsd(payEng), 'USD', false) : fmtMoney(priceInCustomer(payEng.priceGbp, c.currency), c.currency)}</Btn>
                 )}
                 <Btn ghost onClick={clearPay}>Cancel</Btn>
               </div>
@@ -86,6 +105,12 @@ export function BillingSection() {
           </div>
         )}
 
+        <nav className="aipt-subtabs" style={{ marginTop: 14 }} aria-label="Billing sections">
+          <button type="button" className={`aipt-subtab ${tab === 'payments' ? 'on' : ''}`} onClick={() => setTab('payments')}>Payments</button>
+          <button type="button" className={`aipt-subtab ${tab === 'retainer' ? 'on' : ''}`} onClick={() => setTab('retainer')}>Retainer{store.retainer ? <em>Active</em> : null}</button>
+        </nav>
+
+        {tab === 'retainer' ? <RetainerTab /> : (<>
         <div className="grid g2" style={{ marginTop: 14 }}>
           <Card title="Saved payment methods" sub="Masked placeholders only" flush
             actions={<Btn sm color={OPS_TONE} onClick={() => setAddOpen(true)}><Plus size={13} /> Add card</Btn>}>
@@ -105,15 +130,16 @@ export function BillingSection() {
             <div className="card-foot"><span><ShieldCheck size={11} style={{ verticalAlign: -1 }} /> Card numbers are never stored or transmitted in this demo.</span></div>
           </Card>
 
-          <Card title="Invoices & receipts" sub="Per engagement" flush>
+          <Card title="Invoices & receipts" sub="Retainer invoices and per-engagement invoices" flush>
             <DataTable
-              rows={engagements}
-              rowKey={(e) => e.id}
+              rows={invoiceRows}
+              rowKey={(x) => x.id}
               pageSize={8}
               columns={[
-                { key: 'id', header: 'Engagement', render: (e) => (<><div className="t-main">{e.type}</div><div className="t-sub mono">{e.id}</div></>) },
-                { key: 'amt', header: 'Amount', align: 'right', sort: (e) => e.priceGbp, render: (e) => fmtMoney(priceInCustomer(e.priceGbp, c.currency), c.currency) },
-                { key: 'st', header: 'Status', render: (e) => e.paid ? <Badge color="var(--good)" dot>Paid</Badge> : <Badge color="var(--sev-medium)" dot>Due</Badge> },
+                { key: 'id', header: 'Invoice', render: (x) => (<><div className="t-main">{x.title}</div><div className="t-sub mono">{x.id}</div></>) },
+                { key: 'amt', header: 'Amount', align: 'right', render: (x) => x.amount },
+                { key: 'st', header: 'Status', render: (x) => x.paid ? <Badge color="var(--good)" dot>Paid</Badge> : <Badge color="var(--sev-medium)" dot>Due</Badge> },
+                { key: 'src', header: 'Paid via', render: (x) => x.via },
               ]}
             />
           </Card>
@@ -128,7 +154,7 @@ export function BillingSection() {
               columns={[
                 { key: 'id', header: 'Receipt', render: (p) => (<><div className="t-main">{p.engagementName}</div><div className="t-sub mono">{p.id} · {p.kind}</div></>) },
                 { key: 'method', header: 'Method', render: (p) => <span style={{ fontSize: 12 }}>{p.method}</span> },
-                { key: 'amt', header: 'Amount', align: 'right', sort: (p) => p.amountGbp, render: (p) => fmtMoney(p.amountGbp, 'GBP') },
+                { key: 'amt', header: 'Amount', align: 'right', sort: (p) => p.amountGbp, render: (p) => (p.amountUsd ? fmtMoney(p.amountUsd, 'USD', false) : fmtMoney(p.amountGbp, 'GBP')) },
                 { key: 'at', header: 'Date', align: 'right', render: (p) => <span className="muted" style={{ fontSize: 11.5 }}>{fmtDate(new Date(p.at))}</span> },
               ]}
             />
@@ -138,6 +164,7 @@ export function BillingSection() {
         <div className="card-foot" style={{ marginTop: 10 }}>
           <span><Coins size={11} style={{ verticalAlign: -1 }} /> Engagement credits: {store.state.credits} available · top up from your HexaView agreement</span>
         </div>
+        </>)}
       </Card>
 
       {addOpen && <AddCardModal onClose={() => setAddOpen(false)} onAdd={(brand, last4, exp, label) => { store.addCard(brand, last4, exp, label); toast(`Added ${brand} •••• ${last4.slice(-4)} (masked placeholder)`); setAddOpen(false); }} />}

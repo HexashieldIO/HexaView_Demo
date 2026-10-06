@@ -9,6 +9,14 @@ export const APP_BUILT: string = __APP_BUILT__;
 /** Short release notes shown under Help & support → What's new. Newest first. */
 export const RELEASE_NOTES: { version: string; items: string[] }[] = [
   {
+    version: '1.0.3',
+    items: [
+      'HexaShield services retainer: buy $10k–$100k a year and draw down for AI pen testing, IR hours and consultancy',
+      'Log IR hours against the retainer from the Incident Response war room',
+      'Removed "New module" badges',
+    ],
+  },
+  {
     version: '1.0.2',
     items: [
       'Version number on the sign-in screen',

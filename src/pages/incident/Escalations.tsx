@@ -7,6 +7,7 @@ import { Drawer, Modal } from '../../components/Overlay';
 import { techName } from '../../data/modules/soc';
 import { IR_TYPES, IR_TYPE_IDS, SEV_LABEL, SEV_DESC, SEV_COLOR_IR, commanderOptions, type Escalation, type Sev, type IrType, type EscStatus } from '../../data/modules/incident';
 import { useIr, useNow, IrPage, SevPill, TypePill, Pill, fmtSpan, fmtT, agoText, useGuideTarget, IR_TONE } from './parts';
+import { RetainerCoverNote } from './RetainerIr';
 import { ir } from './store';
 
 const MIN = 60_000;
@@ -222,6 +223,7 @@ function DeclareModal({ esc, onClose, onDone }: { esc: Escalation; onClose: () =
   return (
     <Modal title="Accept & declare incident" sub={`${esc.id} → ${nextId}`} onClose={onClose} footer={<><Btn ghost onClick={onClose}>Cancel</Btn><Btn primary color={IR_TONE} onClick={submit} disabled={!title.trim()}><Siren size={14} /> Declare {SEV_LABEL[sev]}</Btn></>}>
       <div className="ir-form">
+        <RetainerCoverNote />
         <label><span className="section-label" style={{ margin: 0 }}>Title</span><input className="input" value={title} onChange={(e) => setTitle(e.target.value)} aria-label="Incident title" /></label>
         <div className="row2">
           <label><span className="section-label" style={{ margin: 0 }}>Type</span>

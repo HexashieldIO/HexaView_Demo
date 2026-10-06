@@ -4,7 +4,7 @@ import { Lock } from 'lucide-react';
 import { MODULE_BY_ID, SERVICE_BY_ID } from '../modules/registry';
 import { useApp } from '../state/AppContext';
 import { HexIcon } from './HexIcon';
-import { Badge, Btn, Callout, Ring } from './ui';
+import { Btn, Callout, Ring } from './ui';
 import { scopedTenants } from '../data/customers';
 import { TabRail } from './TabRail';
 
@@ -39,7 +39,6 @@ export function ModuleLayout({ moduleId, tabId, children, scoreOverride }: { mod
                 {mod.product}
                 {mod.product.startsWith('Hexa') ? '™' : ''}
               </small>
-              {mod.isNew && <Badge color={mod.tone}>New module</Badge>}
             </h2>
             <p>{mod.tagline}</p>
           </div>

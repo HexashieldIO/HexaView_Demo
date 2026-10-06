@@ -39,7 +39,6 @@ export interface ModuleDef {
   scoreLabel?: string;
   capability?: CapabilityId;
   tabs: ModuleTab[];
-  isNew?: boolean;
 }
 
 export const NAV_GROUPS: { id: NavGroupId; label: string }[] = [
@@ -151,7 +150,7 @@ export const MODULES: ModuleDef[] = [
 
   // ---------- New capabilities ----------
   {
-    id: 'ai', group: 'platform', product: 'HexaAI', title: 'HexaAI', isNew: true,
+    id: 'ai', group: 'platform', product: 'HexaAI', title: 'HexaAI',
     tagline: 'A cited, checkable copilot over your whole estate, discovery and runtime control of the AI you run, and agentic SOC as a dial.',
     brandIcon: 'HexaAI_icon.svg', tone: 'var(--m-ai)', basePath: '/ai', scoreKey: 'ai', scoreLabel: 'AI assurance',
     tabs: [
@@ -162,7 +161,7 @@ export const MODULES: ModuleDef[] = [
     ],
   },
   {
-    id: 'aisec', group: 'platform', product: 'HexaAI Governance', title: 'AI Security & Governance', isNew: true,
+    id: 'aisec', group: 'platform', product: 'HexaAI Governance', title: 'AI Security & Governance',
     tagline: 'See the AI. Govern the AI. Prove it. Runtime visibility and control on the execution path (Nexovern kernel sensor), governed in HexaComply, proven here.',
     brandIcon: 'HexaAI_icon.svg', tone: 'var(--m-aisec)', basePath: '/ai-governance', scoreKey: 'ai', scoreLabel: 'AI posture',
     tabs: [
@@ -179,7 +178,7 @@ export const MODULES: ModuleDef[] = [
     ],
   },
   {
-    id: 'insurance', group: 'platform', product: 'Cyber Insurance', title: 'Cyber Insurance & Risk Quantification', isNew: true,
+    id: 'insurance', group: 'platform', product: 'Cyber Insurance', title: 'Cyber Insurance & Risk Quantification',
     tagline: 'Turn live posture into an insurer-ready pack, quantify loss in money, and walk into renewal with evidence.',
     glyph: 'ShieldCheck', tone: 'var(--m-insurance)', basePath: '/insurance', scoreKey: 'insurance', scoreLabel: 'Insurability',
     tabs: [
@@ -191,7 +190,7 @@ export const MODULES: ModuleDef[] = [
     ],
   },
   {
-    id: 'programme', group: 'platform', product: 'Security Programme', title: 'Security Programme & Roadmap', isNew: true,
+    id: 'programme', group: 'platform', product: 'Security Programme', title: 'Security Programme & Roadmap',
     tagline: 'The plan to improve: initiatives, budget, milestones and maturity against your target, on one roadmap.',
     glyph: 'Milestone', tone: 'var(--m-programme)', basePath: '/programme',
     tabs: [
@@ -203,7 +202,7 @@ export const MODULES: ModuleDef[] = [
     ],
   },
   {
-    id: 'trust', group: 'platform', product: 'Trust Centre', title: 'Trust Centre & Customer Assurance', isNew: true,
+    id: 'trust', group: 'platform', product: 'Trust Centre', title: 'Trust Centre & Customer Assurance',
     tagline: 'Answer customer security questionnaires from live evidence, and share a trust portal your customers can rely on.',
     glyph: 'BadgeCheck', tone: 'var(--m-trust)', basePath: '/trust',
     tabs: [
@@ -215,7 +214,7 @@ export const MODULES: ModuleDef[] = [
     ],
   },
   {
-    id: 'reports', group: 'platform', product: 'Reporting', title: 'Reporting Centre', isNew: true,
+    id: 'reports', group: 'platform', product: 'Reporting', title: 'Reporting Centre',
     tagline: 'Board, regulator, auditor, insurer and customer reports, drafted from live data with every statement cited.',
     glyph: 'FileBarChart2', tone: 'var(--m-reports)', basePath: '/reports',
     tabs: [
@@ -229,7 +228,7 @@ export const MODULES: ModuleDef[] = [
 
   // ---------- Integration fabric ----------
   {
-    id: 'fabric', group: 'fabric', product: 'HexaCore', title: 'Integration Fabric', isNew: true,
+    id: 'fabric', group: 'fabric', product: 'HexaCore', title: 'Integration Fabric',
     tagline: 'Every security tool, cloud, data centre and OT network mapped into one canonical model. Read from all, write back with approval.',
     brandIcon: 'HexaCore_icon.svg', tone: 'var(--m-core)', basePath: '/fabric', scoreKey: 'fabric', scoreLabel: 'Data completeness',
     tabs: [
@@ -247,7 +246,7 @@ export const MODULES: ModuleDef[] = [
   },
 
   {
-    id: 'tooling', group: 'fabric', product: 'Security Tooling', title: 'Security Tooling', isNew: true,
+    id: 'tooling', group: 'fabric', product: 'Security Tooling', title: 'Security Tooling',
     tagline: 'Every integrated security tool: what it is, what it is doing right now, and exactly how it is wired into HexaView.',
     glyph: 'Network', tone: 'var(--m-tooling)', basePath: '/tooling',
     tabs: [
@@ -260,7 +259,7 @@ export const MODULES: ModuleDef[] = [
   },
 
   {
-    id: 'comms', group: 'ops', product: 'Communications Hub', title: 'Communications Hub', isNew: true,
+    id: 'comms', group: 'ops', product: 'Communications Hub', title: 'Communications Hub',
     tagline: 'Talk to HexaShield and to every licensed colleague in one secure place, with HexaView records shared in context.',
     glyph: 'MessagesSquare', tone: 'var(--m-comms)', basePath: '/comms',
     tabs: [
@@ -272,7 +271,7 @@ export const MODULES: ModuleDef[] = [
     ],
   },
   {
-    id: 'incident', group: 'ops', product: 'Incident Response', title: 'Incident Response (L4)', isNew: true,
+    id: 'incident', group: 'ops', product: 'Incident Response', title: 'Incident Response (L4)',
     tagline: 'From SOC escalation to closed incident in one place: declare, open a war room, bring in the right people, keep an audited timeline and produce the report.',
     glyph: 'Siren', tone: 'var(--m-ir)', basePath: '/incident-response',
     tabs: [
@@ -291,7 +290,7 @@ export const MODULES: ModuleDef[] = [
 
   // ---------- Operations ----------
   {
-    id: 'ops', group: 'ops', product: 'Operations', title: 'Platform Operations', isNew: true,
+    id: 'ops', group: 'ops', product: 'Operations', title: 'Platform Operations',
     tagline: 'Gated write-back, the tamper-evident audit ledger, crisis coordination and how your own tools are really performing.',
     glyph: 'Settings2', tone: 'var(--m-ops)', basePath: '/ops',
     tabs: [
@@ -309,7 +308,7 @@ export const MODULES: ModuleDef[] = [
 
   // ---------- Partner / MSSP (shown only in Partner account mode) ----------
   {
-    id: 'partner', group: 'partner', product: 'Partner Console', title: 'Partner Console', isNew: true,
+    id: 'partner', group: 'partner', product: 'Partner Console', title: 'Partner Console',
     tagline: 'Your side of the partnership: clients, health across your book, and what needs you today.',
     glyph: 'Handshake', tone: 'var(--m-partner)', basePath: '/partner',
     tabs: [
@@ -320,7 +319,7 @@ export const MODULES: ModuleDef[] = [
     ],
   },
   {
-    id: 'psales', group: 'partner', product: 'Partner Sales', title: 'Deals & Quotes', isNew: true,
+    id: 'psales', group: 'partner', product: 'Partner Sales', title: 'Deals & Quotes',
     tagline: 'Register and protect opportunities, price HexaView and services, and track your pipeline.',
     glyph: 'BadgeDollarSign', tone: 'var(--m-partner)', basePath: '/partner-sales',
     tabs: [
@@ -330,7 +329,7 @@ export const MODULES: ModuleDef[] = [
     ],
   },
   {
-    id: 'whitelabel', group: 'partner', product: 'White Label', title: 'White Label & Branding', isNew: true,
+    id: 'whitelabel', group: 'partner', product: 'White Label', title: 'White Label & Branding',
     tagline: 'Run HexaView under your own brand: theme, domain, emails, reports and the client login.',
     glyph: 'Palette', tone: 'var(--m-partner)', basePath: '/white-label',
     tabs: [
@@ -340,7 +339,7 @@ export const MODULES: ModuleDef[] = [
     ],
   },
   {
-    id: 'penable', group: 'partner', product: 'Enablement', title: 'Content & Enablement', isNew: true,
+    id: 'penable', group: 'partner', product: 'Enablement', title: 'Content & Enablement',
     tagline: 'Collateral, training and co-marketing to sell and deliver HexaShield capabilities.',
     glyph: 'GraduationCap', tone: 'var(--m-partner)', basePath: '/enablement',
     tabs: [
@@ -350,7 +349,7 @@ export const MODULES: ModuleDef[] = [
     ],
   },
   {
-    id: 'pbilling', group: 'partner', product: 'Billing', title: 'Billing & Commissions', isNew: true,
+    id: 'pbilling', group: 'partner', product: 'Billing', title: 'Billing & Commissions',
     tagline: 'Usage across your clients, invoices, margin and commissions in one place.',
     glyph: 'Receipt', tone: 'var(--m-partner)', basePath: '/partner-billing',
     tabs: [

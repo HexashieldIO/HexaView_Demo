@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { KpiStrip, Card, Callout, Sources, Legend } from '../../components/ui';
 import { Chart } from '../../components/Chart';
 import { useIntro } from '../../lib/useIntro';
@@ -48,7 +48,7 @@ export default function Overview() {
   return (
     <div className="pg-stack">
       <p className="page-intro">
-        <b>{c.name}</b>{tenantId !== 'all' ? ` · ${tenants[0]?.name}` : ''}: the security programme behind the posture. {list.length} initiatives across {new Set(list.map((i) => i.ws)).size} workstreams, {monthYear(0)} to {monthYear(PG_MONTHS - 1)}, owned by {c.people.ciso.name}. Progress from {grc}{itsm ? ` and ${itsm.product}` : ''}, spend from the finance cost centre, and every initiative tied to the Resilience Index it is expected to move.
+        <b>{c.name}</b>{tenantId !== 'all' ? ` · ${tenants[0]?.name}` : ''}: the security programme behind the posture. {list.length} initiatives across {new Set(list.map((i) => i.ws)).size} workstreams, {monthYear(0)} to {monthYear(PG_MONTHS - 1)}, owned by {c.people.ciso.name}. Progress from {grc}{itsm ? ` and ${itsm.product}` : ''}, spend from the finance cost centre, and every initiative tied to the Resilience Index it is expected to move. <Link to="/ops/admin?section=billing&billing=retainer&service=vciso" style={{ color: 'var(--m-ops)', fontWeight: 600 }}>Book vCISO hours via the retainer →</Link>
       </p>
 
       <div className="pg-kpi8">

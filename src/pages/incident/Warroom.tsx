@@ -10,6 +10,7 @@ import {
   type IrIncident, type Stream, type TaskStatus, type RoleName,
 } from '../../data/modules/incident';
 import { useIr, useNow, IrPage, IncidentPicker, IncidentHeader, PhaseStepper, NoticeClock, EntryRow, NoIncident, useGuideTarget, fmtSpan, fmtT, IR_TONE, Pill, Avatar } from './parts';
+import { IrHoursCard } from './RetainerIr';
 import { ir } from './store';
 
 const MIN = 60_000;
@@ -169,6 +170,8 @@ function Room({ inc }: { inc: IrIncident }) {
           </div>
         </Card>
       </div>
+
+      <IrHoursCard incId={inc.id} title={inc.title} />
 
       <div className="grid g2">
         <Card title="Bridge & channels" sub="Hosted in the Comms Hub">
