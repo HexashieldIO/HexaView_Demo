@@ -16,6 +16,7 @@ import { tenantName } from '../../data/customers';
 import { attention } from '../../data/overview';
 import './reports.css';
 import { CustomerLogo } from '../../components/CustomerLogo';
+import { DatePicker } from '../../components/DatePicker';
 
 export const REP_TONE = MODULE_BY_ID.reports.tone;
 
@@ -219,11 +220,11 @@ export function PeriodPicker({ value, onChange, compact }: { value: PeriodState;
         <div className="rep-dates">
           <label>
             <span>From</span>
-            <input type="date" className="input" value={value.from} max={value.to} onChange={(e) => e.target.value && onChange({ ...value, from: e.target.value })} />
+            <DatePicker value={value.from} max={value.to} clearable={false} onChange={(v) => v && onChange({ ...value, from: v })} />
           </label>
           <label>
             <span>To</span>
-            <input type="date" className="input" value={value.to} min={value.from} onChange={(e) => e.target.value && onChange({ ...value, to: e.target.value })} />
+            <DatePicker value={value.to} min={value.from} clearable={false} onChange={(v) => v && onChange({ ...value, to: v })} />
           </label>
         </div>
       )}

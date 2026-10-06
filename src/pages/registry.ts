@@ -24,6 +24,7 @@ export const PAGES: Record<string, LazyExoticComponent<ComponentType>> = {
   "int/ioc": lazy(() => import("./int/Ioc")),
   "int/osint": lazy(() => import("./int/Osint")),
   "int/vulnresponse": lazy(() => import("./int/Vulnresponse")),
+  "strike/aipentest": lazy(() => import("./strike/AiPentest")),
   "strike/pentest": lazy(() => import("./strike/Pentest")),
   "strike/redteam": lazy(() => import("./strike/Redteam")),
   "strike/purple": lazy(() => import("./strike/Purple")),

@@ -1,5 +1,5 @@
-import { useMemo, useState, type CSSProperties } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Building2, ChevronDown, ChevronRight, Server, Plug, KeyRound, ShieldCheck, Palette, Check, X, Lock, Fingerprint } from 'lucide-react';
 import { useApp, rangeDays, rangeLabel } from '../../state/AppContext';
 import { headlines } from '../../data/core';
@@ -10,6 +10,7 @@ import { DataTable } from '../../components/DataTable';
 import { fmtAgo, fmtCompact, fmtNum, fmtDate, daysAgo, daysAhead } from '../../lib/format';
 import { OPS_TONE, Switch, useParamFilter, FilterChip, HBars, scrollToId } from './parts';
 import { CustomerLogo } from '../../components/CustomerLogo';
+import { BillingSection } from './Billing';
 
 const ROLE_COLOR: Record<HvRole, string> = {
   Analyst: 'var(--m-soc)', Approver: 'var(--m-core)', 'Tenant Admin': 'var(--m-ops)', GRC: 'var(--m-comply)', Auditor: 'var(--sev-info)', 'Board viewer': 'var(--m-view)', 'OT engineer': 'var(--m-ot)', 'Support (read-only)': 'var(--sev-high)',
@@ -32,6 +33,9 @@ function AdminInner() {
   const roleFilter = (roleP ?? 'all') as 'all' | HvRole;
   const setRoleFilter = (r: 'all' | HvRole) => setRoleP(r === 'all' ? null : r);
   const nav = useNavigate();
+  const [sp] = useSearchParams();
+  const billingFocus = sp.get('section') === 'billing' || !!sp.get('pay');
+  useEffect(() => { if (billingFocus) scrollToId('ops-billing'); }, [billingFocus]);
   const ssoDef = ssoDefaults(c);
   const [sso, setSso] = useState({ enforce: true, scim: true, phishingResistant: ssoDef.phishingResistant, stepUp: true, sessionH: ssoDef.sessionH });
   const [wl, setWl] = useState({ name: account === 'partner' ? `${extraPeople(c).partner} Resilience` : 'HexaView', colour: account === 'partner' ? '#0f766e' : '#3b5bdb', partner: extraPeople(c).partner });
@@ -128,6 +132,7 @@ function AdminInner() {
           { label: 'Users', value: users.length, unit: `${new Set(users.map((u) => u.role)).size} roles`, onClick: () => { setRoleFilter('all'); scrollToId('ops-users'); }, source: `${idpFor(c)} (SCIM)` },
           { label: 'Support requests', value: pending.length, unit: 'awaiting you', toneColor: pending.length ? 'var(--sev-medium)' : undefined, onClick: () => scrollToId('ops-support'), source: 'HexaView support-access broker' },
           { label: 'Keys', value: c.byok ? 'BYOK' : 'Managed', unit: c.byok ? 'customer HSM' : 'per tenant', onClick: () => scrollToId('ops-keys'), source: kek },
+          { label: 'Billing', value: 'Test mode', unit: 'Stripe', toneColor: 'var(--sev-medium)', onClick: () => scrollToId('ops-billing'), source: 'HexaStrike AI engine billing (test mode)' },
         ]}
       />
 
@@ -323,6 +328,8 @@ function AdminInner() {
         </Card>
         </div>
       </div>
+
+      <BillingSection />
 
       {!partner && <div style={{ opacity: 0.85 } as CSSProperties}>{whiteLabel}</div>}
     </>

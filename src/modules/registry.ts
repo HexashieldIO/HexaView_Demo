@@ -101,7 +101,8 @@ export const MODULES: ModuleDef[] = [
     tagline: 'Guard-railed penetration, red and purple teaming plus continuous attack surface management, every finding fed back as a detection.',
     brandIcon: 'HexaStrike_icon.svg', tone: 'var(--m-strike)', basePath: '/strike', scoreKey: 'strike', scoreLabel: 'Validated defence',
     tabs: [
-      { id: 'pentest', label: 'Penetration Testing', service: 'pentest' },
+      { id: 'aipentest', label: 'AI Penetration Testing' },
+      { id: 'pentest', label: 'Overview', service: 'pentest' },
       { id: 'redteam', label: 'Red Teaming', service: 'redteam' },
       { id: 'purple', label: 'Purple Teaming', service: 'purpleteam' },
       { id: 'asm', label: 'Attack Surface Management', service: 'asm' },
