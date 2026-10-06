@@ -8,6 +8,7 @@ import { ROLES, ROLE_BY_ID, initialsOf } from '../../modules/roles';
 import { MODULES } from '../../modules/registry';
 import type { CustomerId, Persona } from '../../data/types';
 import { BrandMark } from '../../components/BrandMark';
+import { APP_VERSION } from '../../version';
 import { usePublishedBrand } from '../whitelabel/brand';
 import './auth.css';
 import { CustomerLogo } from '../../components/CustomerLogo';
@@ -113,6 +114,7 @@ export default function SignIn() {
   return (
     <div className={`auth ${phase}`}>
       <Backdrop />
+      <div className="auth-version" title={`HexaView version ${APP_VERSION}`}>v{APP_VERSION}</div>
 
       <div className="auth-side">
         <BrandMark className="auth-logo" large />

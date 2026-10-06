@@ -1,9 +1,10 @@
 {
   "name": "app",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.2",
   "type": "module",
   "scripts": {
+    "bump": "npm version patch --no-git-tag-version",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",

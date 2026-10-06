@@ -127,3 +127,6 @@
 .auth-idp-txt small { font-size: 11px; font-weight: 600; opacity: .75; }
 .auth-or { display: flex; align-items: center; gap: 10px; margin: 2px 0; color: #6f7c99; font-size: 11.5px; }
 .auth-or::before, .auth-or::after { content: ""; flex: 1; height: 1px; background: rgba(125, 160, 230, .18); }
+
+/* Version badge, top-left of the sign-in screen. */
+.auth-version { position: absolute; top: 16px; left: 20px; z-index: 2; font: 800 12px/1 var(--font-mono); letter-spacing: .06em; color: #04201c; padding: 6px 10px; border: 1px solid rgba(153, 246, 228, .9); border-radius: 999px; background: linear-gradient(135deg, #5eead4, #2dd4bf); box-shadow: 0 0 0 3px rgba(45, 212, 191, .18), 0 0 18px rgba(45, 212, 191, .55); }
