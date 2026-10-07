@@ -5,6 +5,7 @@ import { CUSTOMERS } from '../../../data/customers';
 import type { PortfolioCo } from '../../../data/modules/portfolio';
 import { fmtMoney } from '../../../lib/format';
 import './portfolio.css';
+import { CustomerLogo } from '../../../components/CustomerLogo';
 
 export const PF_TONE = 'var(--m-partner)';
 export const usd = (n: number) => fmtMoney(n, 'USD');
@@ -45,7 +46,8 @@ export function useOpenCo(fallback: (co: PortfolioCo) => void) {
   };
 }
 
-export function CoAvatar({ co, size = 28 }: { co: Pick<PortfolioCo, 'initials' | 'colour'>; size?: number }) {
+export function CoAvatar({ co, size = 28 }: { co: Pick<PortfolioCo, 'initials' | 'colour'> & { demoId?: PortfolioCo['demoId'] }; size?: number }) {
+  if (co.demoId) return <CustomerLogo c={{ id: co.demoId, initials: co.initials, colour: co.colour }} size={size} radius={Math.round(size * 0.3)} />;
   return <span className="pf-avatar" style={{ width: size, height: size, background: co.colour, fontSize: Math.round(size * 0.38) }}>{co.initials}</span>;
 }
 

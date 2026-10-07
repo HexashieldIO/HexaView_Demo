@@ -10,6 +10,7 @@ import { rng } from '../../lib/rng';
 import { fmtAgo } from '../../lib/format';
 import { ClientAvatar, Field, PT_TONE, Seg, Toggle } from '../partner/parts';
 import { setBrand, useBrand, type Brand } from './brand';
+import { PublishBar } from './PublishBar';
 import { LoginPreview } from './Preview';
 
 const DNS_COLOR = { verified: 'var(--good)', pending: 'var(--sev-medium)', failed: 'var(--bad)' };
@@ -33,7 +34,8 @@ export default function WhiteLabelDomains() {
   const book = useMemo(() => clientBook(), []);
   const base = brand.domain.replace(/^portal\./, '');
   const [sel, setSel] = useState<ClientDomain | null>(null);
-  const [sso, setSso] = useState<string[]>(['Microsoft Entra ID', 'Okta']);
+  const sso = brand.loginSso;
+  const setSso = (v: string[]) => setBrand({ loginSso: IDPS.filter((i) => v.includes(i)) });
   const [jit, setJit] = useState(true);
   const [session, setSession] = useState('8h');
   const [consent, setConsent] = useState(true);
@@ -193,6 +195,7 @@ export default function WhiteLabelDomains() {
           </div>
         </Drawer>
       )}
+      <PublishBar clients={book.length} />
     </>
   );
 }

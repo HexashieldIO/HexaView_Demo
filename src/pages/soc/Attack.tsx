@@ -7,6 +7,7 @@ import { FULL_TACTICS, TACTIC_COLOR, parentId } from '../../data/attackFull';
 import { fmtAgo, fmtNum } from '../../lib/format';
 import { useSoc, ScopeNote, StatTile, Pills, RecordsDrawer, WriteBackModal, useParamFilter, type WriteBack } from './parts';
 import { forCustomer, type CustomerMap } from '../../data/customerMap';
+import { HScroll } from '../../components/HScroll';
 
 const LEVEL_LABEL: Record<FullCov, string> = { full: 'Full coverage', partial: 'Partial', none: 'No coverage' };
 const LEVEL_COLOR: Record<FullCov, string> = { full: '#4f8cff', partial: '#f5a83d', none: '#8a9bc0' };
@@ -180,7 +181,7 @@ export default function SocAttack() {
         {m === 'atlas' && <div style={{ marginBottom: 10 }}><ScopeNote text={`ATLAS scope: ${c.vocab.aiSystems.length} AI systems governed by HexaAI (${c.vocab.aiSystems.slice(0, 3).join(', ')}…)`} /></div>}
         {overlay && <div style={{ marginBottom: 10 }}><Callout>{ov.note}</Callout></div>}
 
-        <div className="soc-hm-scroll">
+        <HScroll className="soc-hm-scroll" columns={tacStats.length} label="tactics">
           <div className="soc-hm">
             {tacStats.map((ts) => {
               const cs = cells.filter((x) => x.tech.tactics.includes(ts.t)).sort((a, b) => a.tech.name.localeCompare(b.tech.name));
@@ -208,7 +209,7 @@ export default function SocAttack() {
               );
             })}
           </div>
-        </div>
+        </HScroll>
       </Card>
 
       <div className="grid g-3-2">

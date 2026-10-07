@@ -14,6 +14,7 @@ import { MetricBand, Facet } from '../parts';
 import { useContinuityData, useRiskData, useWorkspaceData } from '../useComply';
 import { useQuery, useDeepLink, useLocal, SectionHead, Toggles, CountLine, RecordDrawer, RSec, LinkedRecords, Cia, LEVEL_WORD, ago, ahead } from './shared';
 import { forCustomer, type CustomerMap } from '../../../data/customerMap';
+import { DatePicker } from '../../../components/DatePicker';
 
 const EQUIPMENT_WORD: CustomerMap<string> = {
   maritime: 'OT', finserv: 'facilities equipment', media: 'broadcast equipment', healthcare: 'medical devices', automotive: 'OT',
@@ -182,7 +183,7 @@ function NewAssetModal({ c, count, onClose, onSave }: { c: CustomerProfile; coun
   const lvl = (k: 'c' | 'i' | 'a', label: string) => (
     <F label={label}><select className="select" value={f[k]} onChange={(e) => up(k, e.target.value as CiaLevel)}>{(['L', 'M', 'H'] as CiaLevel[]).map((v) => <option key={v} value={v}>{LEVEL_WORD[v]}</option>)}</select></F>
   );
-  const date = (k: 'issue' | 'supportEnd' | 'decom' | 'warranty' | 'lastReview' | 'nextReview', label: string) => <F label={label}><input type="date" className="input" value={f[k]} onChange={(e) => up(k, e.target.value)} /></F>;
+  const date = (k: 'issue' | 'supportEnd' | 'decom' | 'warranty' | 'lastReview' | 'nextReview', label: string) => <F label={label}><DatePicker value={f[k]} onChange={(v) => up(k, v)} /></F>;
   return (
     <Modal title="New asset" sub="Saved as a draft on the register; the owner confirms classification." onClose={onClose}
       footer={<>

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useMemo } from 'react';
 import { useApp } from '../../state/AppContext';
 import { KpiStrip, Badge } from '../../components/ui';
@@ -56,7 +57,7 @@ function Workspace() {
   return (
     <>
       <p className="page-intro">
-        <b>{c.name}</b> · {tenantName(c, tenantId)}: the crisis exercise programme that keeps the war room ready between real incidents. Scenarios are written for {c.sector.toLowerCase()} and its regulators ({ds.slice(0, 4).map((d) => d.name).join(', ')}); evidence and actions flow to {grc}, invitations to {itsm}, and live runs share the war-room clocks.
+        <b>{c.name}</b> · {tenantName(c, tenantId)}: the crisis exercise programme that keeps the war room ready between real incidents. Scenarios are written for {c.sector.toLowerCase()} and its regulators ({ds.slice(0, 4).map((d) => d.name).join(', ')}); evidence and actions flow to {grc}, invitations to {itsm}, and live runs share the war-room clocks. <Link to="/ops/admin?section=billing&billing=retainer&service=tabletop" style={{ color: 'var(--m-ops)', fontWeight: 600 }}>Book a facilitated tabletop via the retainer →</Link>
       </p>
 
       <KpiStrip

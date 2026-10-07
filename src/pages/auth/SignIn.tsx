@@ -7,7 +7,11 @@ import { resilienceIndex } from '../../data/core';
 import { ROLES, ROLE_BY_ID, initialsOf } from '../../modules/roles';
 import { MODULES } from '../../modules/registry';
 import type { CustomerId, Persona } from '../../data/types';
+import { BrandMark } from '../../components/BrandMark';
+import { APP_VERSION } from '../../version';
+import { usePublishedBrand } from '../whitelabel/brand';
 import './auth.css';
+import { CustomerLogo } from '../../components/CustomerLogo';
 
 export const SESSION_KEY = 'hv.session';
 
@@ -27,6 +31,8 @@ export function signOut() {
 }
 
 type Method = 'sso' | 'passkey';
+type Idp = 'entra' | 'okta';
+const IDP_NAME: Record<Idp, string> = { entra: 'Microsoft Entra ID', okta: 'Okta' };
 type Phase = 'form' | 'auth' | 'enter';
 
 const reduced = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -44,7 +50,10 @@ export default function SignIn() {
   const person = role.person(customer);
   const ids = customer.connectors.filter((k) => k.category === 'Identity');
   const idpConn = ids.find((k) => /Entra|Okta|Workforce|Ping/i.test(`${k.vendor} ${k.product}`)) ?? ids[0];
-  const idp = idpConn ? (idpConn.product.startsWith(idpConn.vendor) ? idpConn.product : `${idpConn.vendor} ${idpConn.product}`) : 'your identity provider';
+  // Both enterprise IdPs are offered; the customer's own one is highlighted and used by Enter.
+  const homeIdp: Idp = idpConn && /okta|workforce/i.test(`${idpConn.vendor} ${idpConn.product}`) ? 'okta' : 'entra';
+  const [chosenIdp, setChosenIdp] = useState<Idp>(homeIdp);
+  const idp = IDP_NAME[chosenIdp];
   const ri = resilienceIndex(customer, 'all').value;
   const region = customer.hq.split(',').slice(-1)[0]?.trim() ?? '';
   const timers = useRef<number[]>([]);
@@ -60,8 +69,9 @@ export default function SignIn() {
     { icon: Check, text: 'Computing your Resilience Index', done: `Resilience Index ${ri} · ready` },
   ], [method, idp, customer, region, role, ri]);
 
-  const start = (m: Method) => {
+  const start = (m: Method, via?: Idp) => {
     if (phase !== 'form') return;
+    if (via) setChosenIdp(via);
     setMethod(m);
     setPhase('auth');
     setStep(0);
@@ -84,12 +94,14 @@ export default function SignIn() {
   // Enter starts SSO, the presenter's quickest path.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Enter' && phase === 'form' && !(e.target instanceof HTMLSelectElement)) start('sso');
+      if (e.key === 'Enter' && phase === 'form' && !(e.target instanceof HTMLSelectElement)) start('sso', homeIdp);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   });
 
+  // A published partner white-label replaces HexaView's own messaging here.
+  const wl = usePublishedBrand();
   const dots = MODULES.filter((m) => m.group !== 'partner' && m.group !== 'overview');
   const [hero, setHero] = useState(0);
   const [pause, setPause] = useState(false);
@@ -102,21 +114,22 @@ export default function SignIn() {
   return (
     <div className={`auth ${phase}`}>
       <Backdrop />
+      <div className="auth-version" title={`HexaView version ${APP_VERSION}`}>v{APP_VERSION}</div>
 
       <div className="auth-side">
-        <img src="/brand/HexaView_logo_reverse.png" alt="HexaView" className="auth-logo" />
-        <span className="auth-slogan">The trust console. Visibility you can act on.</span>
+        <BrandMark className="auth-logo" large />
+        {!wl && <span className="auth-slogan">The trust console. Visibility you can act on.</span>}
         <div className="auth-hero" onMouseEnter={() => setPause(true)} onMouseLeave={() => setPause(false)}>
-          <h1 key={hero}>{HERO[hero].line}</h1>
-          <div className="auth-angles" role="tablist" aria-label="Hero statements">
+          <h1 key={wl ? 'wl' : hero}>{wl ? wl.loginHeadline : HERO[hero].line}</h1>
+          {!wl && <div className="auth-angles" role="tablist" aria-label="Hero statements">
             {HERO.map((x, i) => (
               <button key={x.angle} role="tab" aria-selected={i === hero} className={i === hero ? 'on' : ''} onClick={() => setHero(i)}>
                 <i />{x.angle}
               </button>
             ))}
-          </div>
+          </div>}
         </div>
-        <p>The trust console for security: one bidirectional pane over every tool you run, across IT and OT, that lets you see your posture, act on it, and prove it works.</p>
+        <p>{wl ? wl.loginSub : 'The trust console for security: one bidirectional pane over every tool you run, across IT and OT, that lets you see your posture, act on it, and prove it works.'}</p>
         <div className="auth-dots">
           <span className="auth-dot-row">
             {dots.map((m, i) => (
@@ -130,10 +143,15 @@ export default function SignIn() {
           <span><Factory size={13} /> IT and OT together</span>
           <span><Server size={13} /> SaaS, dedicated, customer-hosted or air-gapped</span>
         </div>
-        <div className="auth-brand">
+        {wl ? (
+          <div className="auth-brand">
+            <span>{wl.productName} · <b>{wl.domain}</b></span>
+            {wl.poweredBy && <em>Powered by HexaShield</em>}
+          </div>
+        ) : <div className="auth-brand">
           <span>A platform by HexaShield · <b>Cyber Resilience. Trusted Partner.</b></span>
           <em>Integrated, not assembled.</em>
-        </div>
+        </div>}
       </div>
 
       <div className="auth-card-wrap">
@@ -148,7 +166,7 @@ export default function SignIn() {
               <label className="auth-label">Organisation</label>
               <div className="auth-org">
                 <button className="auth-org-btn" onClick={() => setOrgOpen((o) => !o)} aria-expanded={orgOpen}>
-                  <span className="auth-av" style={{ background: customer.colour }}>{customer.initials}</span>
+                  <CustomerLogo c={customer} size={34} radius={9} />
                   <span className="auth-org-meta">
                     <b>{customer.name}</b>
                     <small>{customer.domain} · {customer.sector}</small>
@@ -159,7 +177,7 @@ export default function SignIn() {
                   <div className="auth-org-list" role="listbox">
                     {CUSTOMER_LIST.map((c) => (
                       <button key={c.id} role="option" aria-selected={c.id === customer.id} onClick={() => { setCustomerId(c.id as CustomerId); setOrgOpen(false); }}>
-                        <span className="auth-av sm" style={{ background: c.colour }}>{c.initials}</span>
+                        <CustomerLogo c={c} size={28} radius={8} />
                         <span className="auth-org-meta"><b>{c.name}</b><small>{c.domain}</small></span>
                         {c.id === customer.id && <Check size={14} />}
                       </button>
@@ -180,9 +198,19 @@ export default function SignIn() {
                 {ROLES.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
               </select>
 
-              <button className="auth-primary" onClick={() => start('sso')}>
-                <KeyRound size={16} /> Continue with {idp} SSO <ArrowRight size={16} />
-              </button>
+              <div className="auth-idps">
+                {(homeIdp === 'okta' ? (['okta', 'entra'] as Idp[]) : (['entra', 'okta'] as Idp[])).map((id) => (
+                  <button key={id} className={id === homeIdp ? 'auth-primary auth-idp' : 'auth-secondary auth-idp'} onClick={() => start('sso', id)}>
+                    <IdpMark id={id} />
+                    <span className="auth-idp-txt">
+                      <b>Continue with {IDP_NAME[id]}</b>
+                      {id === homeIdp && <small>{customer.short}'s identity provider</small>}
+                    </span>
+                    <ArrowRight size={16} />
+                  </button>
+                ))}
+              </div>
+              <div className="auth-or"><span>or</span></div>
               <button className="auth-secondary" onClick={() => start('passkey')}>
                 <Fingerprint size={16} /> Sign in with a passkey
               </button>
@@ -215,7 +243,7 @@ export default function SignIn() {
             </div>
           )}
         </div>
-        <div className="auth-foot">HexaView™ Trust Console · Demo environment, illustrative data</div>
+        <div className="auth-foot">{wl ? `Help: ${wl.supportEmail} · Demo environment, illustrative data` : 'HexaView™ Trust Console · Demo environment, illustrative data'}</div>
       </div>
 
       {phase === 'enter' && (
@@ -236,6 +264,23 @@ export default function SignIn() {
 }
 
 const WAVE_S = 10;
+
+/** Simple marks for the two identity providers (drawn inline, no external assets). */
+function IdpMark({ id }: { id: Idp }) {
+  if (id === 'entra') {
+    return (
+      <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden>
+        <rect x="1" y="1" width="8.5" height="8.5" fill="#f25022" /><rect x="10.5" y="1" width="8.5" height="8.5" fill="#7fba00" />
+        <rect x="1" y="10.5" width="8.5" height="8.5" fill="#00a4ef" /><rect x="10.5" y="10.5" width="8.5" height="8.5" fill="#ffb900" />
+      </svg>
+    );
+  }
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden>
+      <circle cx="10" cy="10" r="8.6" fill="#ffffff" /><circle cx="10" cy="10" r="6.2" fill="none" stroke="#007dc1" strokeWidth="3.4" />
+    </svg>
+  );
+}
 
 /** Honeycomb with a band of light rolling across it in a gentle wave. */
 function Backdrop() {

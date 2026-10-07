@@ -12,8 +12,10 @@ import { NotificationBell } from './NotificationBell';
 import { RoleMenu } from './RoleMenu';
 import { UserProfile } from './UserProfile';
 import { DemoMenu } from '../demo/DemoMenu';
+import { BrandMark } from './BrandMark';
 import { TourOverlay } from '../demo/TourOverlay';
 import { ROLE_BY_ID, initialsOf, canAccess } from '../modules/roles';
+import { CustomerLogo } from './CustomerLogo';
 
 
 function SideItem({ mod, onNavigate }: { mod: ModuleDef; onNavigate: () => void }) {
@@ -136,11 +138,11 @@ function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () => void }
           onNavigate();
         }}
       >
-        <img src="/brand/HexaView_logo_reverse.png" alt="HexaView" className="brand-logo" />
+        <BrandMark />
       </NavLink>
 
       <button className="org-switch" onClick={() => setOrgOpen((o) => !o)} aria-expanded={orgOpen}>
-        <span className="org-avatar" style={{ background: customer.colour }}>{customer.initials}</span>
+        <CustomerLogo c={customer} size={34} className="org-avatar" />
         <span className="org-meta">
           <b>{customer.name}</b>
           <span>
@@ -162,7 +164,7 @@ function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () => void }
                 setOrgOpen(false);
               }}
             >
-              <span className="org-avatar" style={{ background: c.colour }}>{c.initials}</span>
+              <CustomerLogo c={c} size={34} className="org-avatar" />
               <span className="org-meta">
                 <b>{c.name}</b>
                 <span>{c.sector}</span>

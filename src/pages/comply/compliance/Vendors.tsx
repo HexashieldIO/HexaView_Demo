@@ -15,6 +15,7 @@ import { fmtNum } from '../../../lib/format';
 import { MetricBand, Facet } from '../parts';
 import { useContinuityData, useWorkspaceData } from '../useComply';
 import { useQuery, useDeepLink, useLocal, SectionHead, Toggles, CountLine, RecordDrawer, RSec, LinkedRecords, Monogram, ago, ahead } from './shared';
+import { DatePicker } from '../../../components/DatePicker';
 
 const tone = MODULE_BY_ID.comply.tone;
 const CLASSES: VendorClass[] = ['Restricted', 'Confidential', 'Internal', 'Public'];
@@ -164,8 +165,8 @@ function NewVendorModal({ c, count, onClose, onSave }: { c: import('../../../dat
           <h5>Contract</h5>
           <div className="cmp-fgrid g3">
             <label className="cmp-f"><span>Security clauses</span><select className="select" value={f.clauses} onChange={(e) => up('clauses', e.target.value as Clauses)}>{CLAUSES.map((x) => <option key={x}>{x}</option>)}</select></label>
-            <label className="cmp-f"><span>Contract end</span><input type="date" className="input" value={f.end} onChange={(e) => up('end', e.target.value)} /></label>
-            <label className="cmp-f"><span>Next review</span><input type="date" className="input" value={f.review} onChange={(e) => up('review', e.target.value)} /></label>
+            <label className="cmp-f"><span>Contract end</span><DatePicker value={f.end} onChange={(v) => up('end', v)} /></label>
+            <label className="cmp-f"><span>Next review</span><DatePicker value={f.review} onChange={(v) => up('review', v)} /></label>
           </div>
         </div>
       </div>

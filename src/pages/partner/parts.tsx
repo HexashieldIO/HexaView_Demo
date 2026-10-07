@@ -5,12 +5,14 @@ import { useApp } from '../../state/AppContext';
 import { CAP_LIST, MODE_COLOR, type ModMode, type PartnerClient } from '../../data/modules/partner';
 import type { CapabilityId } from '../../data/types';
 import { fmtMoney } from '../../lib/format';
+import { CustomerLogo } from '../../components/CustomerLogo';
 
 export const PT_TONE = 'var(--m-partner)';
 export const money = (n: number) => fmtMoney(n, 'USD');
 export const moneyFull = (n: number) => fmtMoney(Math.round(n), 'USD', false);
 
-export function ClientAvatar({ c, size = 30 }: { c: Pick<PartnerClient, 'initials' | 'colour'>; size?: number }) {
+export function ClientAvatar({ c, size = 30 }: { c: Pick<PartnerClient, 'initials' | 'colour'> & { demoId?: PartnerClient['demoId'] }; size?: number }) {
+  if (c.demoId) return <CustomerLogo c={{ id: c.demoId, initials: c.initials, colour: c.colour }} size={size} radius={Math.round(size * 0.3)} />;
   return (
     <span className="pt-avatar" style={{ width: size, height: size, background: c.colour, fontSize: Math.round(size * 0.38) }}>
       {c.initials}

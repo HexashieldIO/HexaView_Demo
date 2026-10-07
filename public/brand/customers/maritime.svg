@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="maritime logo">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#39b5c4"/><stop offset="1" stop-color="#096b77"/></linearGradient></defs>
+  <rect width="64" height="64" rx="14" fill="url(#g)"/>
+  <rect x="1" y="1" width="62" height="62" rx="13" fill="none" stroke="#fff" stroke-opacity=".18"/>
+  <g fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 30a12 12 0 0 1 24 0"/><path d="M32 13v4M19 18l2.5 2.8M45 18l-2.5 2.8"/><path d="M12 38c4 0 4-3 8-3s4 3 8 3 4-3 8-3 4 3 8 3 4-3 8-3"/><path d="M12 47c4 0 4-3 8-3s4 3 8 3 4-3 8-3 4 3 8 3 4-3 8-3"/></g>
+</svg>

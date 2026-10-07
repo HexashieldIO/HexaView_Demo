@@ -116,3 +116,17 @@
 @keyframes auth-swap { from { opacity: 0; transform: translateY(10px); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
 @keyframes auth-dot { 0%, 70%, 100% { transform: scale(1); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 18%, transparent); } 35% { transform: scale(1.25); box-shadow: 0 0 0 5px color-mix(in srgb, var(--c) 30%, transparent), 0 0 14px var(--c); } }
 @media (max-width: 960px) { .auth-brand, .auth-angles { display: none; } .auth-hero h1 { min-height: 0; } }
+
+/* Identity provider choices */
+.auth-idps { display: grid; gap: 10px; margin-top: 14px; }
+.auth-idps .auth-primary { margin-top: 0; }
+.auth-idp { justify-content: flex-start; gap: 12px; padding: 0 16px; height: 52px; }
+.auth-idp svg:first-child { flex-shrink: 0; border-radius: 3px; }
+.auth-idp-txt { flex: 1; display: grid; gap: 1px; text-align: left; line-height: 1.15; }
+.auth-idp-txt b { font-size: 14px; }
+.auth-idp-txt small { font-size: 11px; font-weight: 600; opacity: .75; }
+.auth-or { display: flex; align-items: center; gap: 10px; margin: 2px 0; color: #6f7c99; font-size: 11.5px; }
+.auth-or::before, .auth-or::after { content: ""; flex: 1; height: 1px; background: rgba(125, 160, 230, .18); }
+
+/* Version badge, top-left of the sign-in screen. */
+.auth-version { position: absolute; top: 16px; left: 20px; z-index: 2; font: 800 12px/1 var(--font-mono); letter-spacing: .06em; color: #04201c; padding: 6px 10px; border: 1px solid rgba(153, 246, 228, .9); border-radius: 999px; background: linear-gradient(135deg, #5eead4, #2dd4bf); box-shadow: 0 0 0 3px rgba(45, 212, 191, .18), 0 0 18px rgba(45, 212, 191, .55); }

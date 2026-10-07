@@ -13,6 +13,7 @@ import { rng } from '../../lib/rng';
 import { Switch, useParamFilter, FilterChip, scrollToId } from '../ops/parts';
 import { TR_GATE_COLOR, type TrGate } from '../../data/modules/trust';
 import { useTrust, TRUST_TONE, TrustNav } from './parts';
+import { CustomerLogo } from '../../components/CustomerLogo';
 
 type ShareKey = 'ri' | 'attest' | 'certs' | 'pentest' | 'docs';
 const GATES: TrGate[] = ['Public', 'Click-through NDA', 'Signed NDA', 'Approval required'];
@@ -132,7 +133,7 @@ function PortalInner() {
             <div className="ops-pub-bar"><i /><i /><i /><span style={{ marginLeft: 8 }}>trust.hexashield.io/{c.domain.split('.')[0]}</span></div>
             <div className="ops-pub-body">
               <div className="row" style={{ gap: 14, alignItems: 'center' }}>
-                <span className="org-avatar" style={{ background: c.colour, width: 44, height: 44, fontSize: 15 }}>{c.initials}</span>
+                <CustomerLogo c={c} size={44} />
                 <div style={{ flex: 1 }}>
                   <h3 style={{ fontSize: 18 }}>{c.name} Trust Centre</h3>
                   <div className="muted" style={{ fontSize: 12 }}>{c.sectorLong} · {c.hq}</div>
