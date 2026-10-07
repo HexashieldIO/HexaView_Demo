@@ -1,0 +1,23 @@
+{
+  "name": "hexaview-promo",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "remotion studio src/index.ts",
+    "still": "remotion still src/index.ts HexaViewPromo out/still.png --frame=0",
+    "render": "remotion render src/index.ts HexaViewPromo out/hexaview-promo-45s.mp4 --codec=h264 --crf=18"
+  },
+  "dependencies": {
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "@fontsource/space-grotesk": "^5.3.0",
+    "@remotion/cli": "^4.0.506",
+    "@remotion/fonts": "^4.0.506",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "remotion": "^4.0.506"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "typescript": "^5.9.3"
+  }
+}

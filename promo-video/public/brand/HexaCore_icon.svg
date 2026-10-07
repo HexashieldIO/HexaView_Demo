@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 120 120" role="img" aria-label="HexaCore icon">
+  <defs><linearGradient id="g_hexacore" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#52C5EF"/><stop offset="1" stop-color="#1C98C5"/></linearGradient></defs>
+  <path d="M60 8 L105 34 L105 86 L60 112 L15 86 L15 34 Z" fill="url(#g_hexacore)" stroke="url(#g_hexacore)" stroke-width="11" stroke-linejoin="round"/>
+  <g transform="translate(39,39) scale(1.75)" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4.5v11L12 22l-8-4.5v-11z"/><path d="M12 12v10M12 12l8-4.5M12 12L4 7.5"/></g>
+</svg>
