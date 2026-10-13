@@ -1,0 +1,4 @@
+out/HexaView TAFA Healthcare/HexaView_TAFA_Singapore_Healthcare.mp4
+  before: -18.35 LUFS, true peak -5.20 dBTP
+  after:  -14.04 LUFS, true peak -1.86 dBTP
+ALL-DONE

@@ -1,0 +1,84 @@
+{
+  "slow": 1.1666666666666667,
+  "fps": 30,
+  "shots": [
+    {
+      "id": "intro",
+      "s": 4,
+      "hold": 0.5
+    },
+    {
+      "id": "noise",
+      "s": 3.5,
+      "hold": 0.5
+    },
+    {
+      "id": "islands",
+      "s": 4.5,
+      "hold": 1.5
+    },
+    {
+      "id": "firstCell",
+      "s": 4,
+      "hold": 0
+    },
+    {
+      "id": "signIn",
+      "s": 3.3,
+      "hold": 0,
+      "tail": 0.35
+    },
+    {
+      "id": "onePane",
+      "s": 7,
+      "hold": 1.5
+    },
+    {
+      "id": "integrations",
+      "s": 7.5,
+      "hold": 1.5
+    },
+    {
+      "id": "closedLoop",
+      "s": 6.5,
+      "hold": 1.5
+    },
+    {
+      "id": "writeBack",
+      "s": 6.5,
+      "hold": 1.5
+    },
+    {
+      "id": "maritimeOT",
+      "s": 7,
+      "hold": 1.5,
+      "only": "cyberdockside"
+    },
+    {
+      "id": "maritimeComply",
+      "s": 7,
+      "hold": 1.5,
+      "only": "cyberdockside"
+    },
+    {
+      "id": "maritimeSoc",
+      "s": 9,
+      "hold": 1.5,
+      "only": "cyberdockside"
+    },
+    {
+      "id": "global",
+      "s": 8,
+      "hold": 0.5
+    },
+    {
+      "id": "endCard",
+      "s": 5,
+      "hold": 0.5
+    }
+  ],
+  "tail": 0.7,
+  "slowBy": {
+    "cyberdockside": 1.3333333333333333
+  }
+}

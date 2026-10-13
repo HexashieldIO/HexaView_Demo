@@ -1,0 +1,151 @@
+{
+  "fps": 30,
+  "tail": 0.6,
+  "shots": [
+    {
+      "id": "intro",
+      "s": 6
+    },
+    {
+      "id": "shift",
+      "s": 8
+    },
+    {
+      "id": "problem",
+      "s": 9
+    },
+    {
+      "id": "model",
+      "s": 10
+    },
+    {
+      "id": "console",
+      "s": 10
+    },
+    {
+      "id": "clients",
+      "s": 9.5
+    },
+    {
+      "id": "provisioning",
+      "s": 9
+    },
+    {
+      "id": "whitelabel",
+      "s": 9
+    },
+    {
+      "id": "clientView",
+      "s": 9
+    },
+    {
+      "id": "soc",
+      "s": 9.5
+    },
+    {
+      "id": "deals",
+      "s": 9
+    },
+    {
+      "id": "onboarding",
+      "s": 8.5
+    },
+    {
+      "id": "endCard",
+      "s": 11
+    }
+  ],
+  "lines": [
+    {
+      "id": "t0",
+      "scene": "intro",
+      "offset": 1.4,
+      "text": "TeamLogic IT, with HexaView. From managed IT, to managed security.",
+      "dur": 5.6
+    },
+    {
+      "id": "t1",
+      "scene": "shift",
+      "offset": 0.4,
+      "text": "Your clients don't want more tools. Their customers, insurers and auditors want security they can prove.",
+      "dur": 6.05
+    },
+    {
+      "id": "t2",
+      "scene": "problem",
+      "offset": 0.4,
+      "text": "But a 24/7 SOC means hiring analysts, buying tooling and running night shifts. That's a different business.",
+      "dur": 6.89
+    },
+    {
+      "id": "t3",
+      "scene": "model",
+      "offset": 0.4,
+      "text": "So here's the partnership. TeamLogic IT keeps the brand, the client and the margin. HexaShield runs the platform and the analysts, behind the line.",
+      "dur": 10.02
+    },
+    {
+      "id": "t4",
+      "scene": "console",
+      "offset": 0.4,
+      "text": "It all runs from the HexaView Partner Console: your whole client book, its health, and what needs you today, in one place.",
+      "dur": 6.71
+    },
+    {
+      "id": "t5",
+      "scene": "clients",
+      "offset": 0.4,
+      "text": "Switch services on per client: fully managed, co-managed or advisory. Start with one capability, and grow to all six.",
+      "dur": 7.99
+    },
+    {
+      "id": "t6",
+      "scene": "provisioning",
+      "offset": 0.4,
+      "text": "Provision a new client in minutes, fully isolated, and connected to the tools they already run. No rip and replace.",
+      "dur": 7.63
+    },
+    {
+      "id": "t7",
+      "scene": "whitelabel",
+      "offset": 0.4,
+      "text": "Brand it once. Your logo, your colors and your domain, across every client console, report and sign-in.",
+      "dur": 7.46
+    },
+    {
+      "id": "t8",
+      "scene": "clientView",
+      "offset": 0.4,
+      "text": "Your clients see TeamLogic IT, end to end. One resilience score, every capability, and evidence on demand.",
+      "dur": 7.12
+    },
+    {
+      "id": "t9",
+      "scene": "soc",
+      "offset": 0.4,
+      "text": "And when a threat lands at 3 a.m., it's met by analysts on shift, following the sun. Not a pager.",
+      "dur": 6.61
+    },
+    {
+      "id": "t10",
+      "scene": "deals",
+      "offset": 0.4,
+      "text": "Register your deals and keep them protected. Wholesale in, your price out, and the margin stays with you.",
+      "dur": 6.4
+    },
+    {
+      "id": "t11",
+      "scene": "onboarding",
+      "offset": 0.4,
+      "text": "From signed partner to first live client in as little as thirty to sixty days.",
+      "dur": 4.7
+    },
+    {
+      "id": "t12",
+      "scene": "endCard",
+      "offset": 0.4,
+      "text": "Grow your security practice, without growing a SOC. Ask for a Partner Console walkthrough. TeamLogic IT, powered by HexaShield.",
+      "dur": 9.07
+    }
+  ]
+}

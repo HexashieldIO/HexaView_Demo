@@ -1,8 +1,13 @@
 import React from "react";
 import { AbsoluteFill, Easing, Img, interpolate, staticFile, useCurrentFrame } from "remotion";
 import { loadFont } from "@remotion/fonts";
+import { FPS, SLOW } from "./timeline";
 
-export const FPS = 30;
+export { FPS, SLOW };
+/** The current cut's pace; a cut can run slower than the master. Default 1 (no stretch) outside a promo cut. */
+export const SlowContext = React.createContext(1);
+/** Scene time in authored frames: every animation stretches evenly with the cut's pace. */
+export const useSceneFrame = () => useCurrentFrame() / React.useContext(SlowContext);
 export const sec = (s: number) => Math.round(s * FPS);
 
 export const C = {
@@ -46,6 +51,7 @@ export const loadBrandFonts = () => {
   sg("700");
   jb("400");
   jb("600");
+  loadFont({ family: "IBM Plex Sans", url: staticFile("fonts/ibm-plex-sans-latin-700-normal.woff2"), weight: "700" });
 };
 
 export const EASE = Easing.bezier(0.16, 1, 0.3, 1);
@@ -113,15 +119,47 @@ export const HexIris: React.FC<{ children: React.ReactNode; duration?: number; c
   cx = 960,
   cy = 540,
 }) => {
-  const frame = useCurrentFrame();
+  const frame = useSceneFrame();
   const p = prog(frame, 0, duration);
   if (p >= 1) return <AbsoluteFill>{children}</AbsoluteFill>;
   const r = interpolate(p, [0, 1], [40, 1250]);
   return <AbsoluteFill style={{ clipPath: hexPolygon(cx, cy, r) }}>{children}</AbsoluteFill>;
 };
 
-export const Stage: React.FC<{ children: React.ReactNode; style?: React.CSSProperties }> = ({ children, style }) => (
-  <AbsoluteFill style={{ background: C.night, color: C.text, fontFamily: DISPLAY, overflow: "hidden", ...style }}>
+/** The console's own backdrop: a navy-to-blue glow under a faint, drifting honeycomb. */
+export const Backdrop: React.FC<{ dark?: boolean }> = ({ dark }) => {
+  const frame = useCurrentFrame();
+  const r = 64;
+  const w = Math.sqrt(3) * r;
+  const drift = (frame * 0.4) % (3 * r);
+  return (
+    <AbsoluteFill
+      style={{
+        background: dark
+          ? "radial-gradient(ellipse at 50% 42%, #0d1d45 0%, #050a18 65%)"
+          : "radial-gradient(ellipse 70% 60% at 32% 38%, rgba(48,78,190,0.55) 0%, rgba(48,78,190,0) 70%), radial-gradient(ellipse 50% 50% at 88% 85%, rgba(47,191,160,0.22) 0%, rgba(47,191,160,0) 70%), radial-gradient(ellipse 45% 45% at 80% 10%, rgba(124,92,255,0.18) 0%, rgba(124,92,255,0) 70%), linear-gradient(160deg, #10215a 0%, #0b1740 50%, #08122f 100%)",
+      }}
+    >
+      <svg width="100%" height="100%" style={{ position: "absolute", inset: 0 }}>
+        <defs>
+          <pattern id="honeycomb" width={w} height={3 * r} patternUnits="userSpaceOnUse" patternTransform={`translate(0 ${-drift})`}>
+            <path
+              d={`M ${w / 2} 0 L ${w} ${r / 2} L ${w} ${(3 * r) / 2} L ${w / 2} ${2 * r} L 0 ${(3 * r) / 2} L 0 ${r / 2} Z M ${w / 2} ${2 * r} L ${w / 2} ${3 * r}`}
+              fill="none"
+              stroke={dark ? "rgba(120,160,255,0.06)" : "rgba(150,185,255,0.11)"}
+              strokeWidth={1.5}
+            />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#honeycomb)" />
+      </svg>
+    </AbsoluteFill>
+  );
+};
+
+export const Stage: React.FC<{ children: React.ReactNode; style?: React.CSSProperties; dark?: boolean }> = ({ children, style, dark }) => (
+  <AbsoluteFill style={{ color: C.text, fontFamily: DISPLAY, overflow: "hidden", ...style }}>
+    <Backdrop dark={dark} />
     {children}
   </AbsoluteFill>
 );
@@ -138,4 +176,20 @@ export const BrandIcon: React.FC<{ name: string; x: number; y: number; size: num
     src={staticFile(`brand/${name}.svg`)}
     style={{ position: "absolute", left: x - size / 2, top: y - size / 2, width: size, height: size, ...style }}
   />
+);
+
+/** Co-branded cuts: a distribution partner's logo and call to action. */
+export type Partner = { name: string; logo: string; ratio: number; cta: string; endLabel: string };
+export const PARTNERS: Record<string, Partner> = {
+  cyberdockside: { name: "Cyber Dockside", logo: "partners/cyberdockside-reverse.png", ratio: 650 / 182, cta: "Book a demo · cyberdockside.ai", endLabel: "EXCLUSIVE MARITIME HEXAVIEW PARTNER" },
+};
+export const PartnerContext = React.createContext<Partner | null>(null);
+export const usePartner = () => React.useContext(PartnerContext);
+
+/** The partner's reversed logo, centred horizontally at `top`. */
+export const PartnerLogo: React.FC<{ partner: Partner; top: number; height: number; show: number; label: string; emphasis?: boolean }> = ({ partner, top, height, show, label, emphasis }) => (
+  <div style={{ position: "absolute", left: 0, right: 0, top, display: "flex", flexDirection: "column", alignItems: "center", gap: 14, opacity: show, transform: `translateY(${(1 - show) * 20}px)` }}>
+    <div style={{ fontFamily: MONO, fontSize: emphasis ? 27 : 22, fontWeight: emphasis ? 600 : 400, letterSpacing: "0.2em", color: emphasis ? C.tealBright : C.dim }}>{label}</div>
+    <Img src={staticFile(partner.logo)} style={{ height, width: height * partner.ratio }} />
+  </div>
 );

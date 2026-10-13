@@ -1,0 +1,152 @@
+{
+  "fps": 30,
+  "tail": 0.6,
+  "shots": [
+    {
+      "id": "intro",
+      "s": 5.5
+    },
+    {
+      "id": "records",
+      "s": 8
+    },
+    {
+      "id": "dates",
+      "s": 9
+    },
+    {
+      "id": "obligation",
+      "s": 8.5
+    },
+    {
+      "id": "twoHours",
+      "s": 10
+    },
+    {
+      "id": "funding",
+      "s": 10
+    },
+    {
+      "id": "guided",
+      "s": 8.5
+    },
+    {
+      "id": "partnership",
+      "s": 9
+    },
+    {
+      "id": "hexaview",
+      "s": 12
+    },
+    {
+      "id": "devices",
+      "s": 8
+    },
+    {
+      "id": "journey",
+      "s": 9.5
+    },
+    {
+      "id": "endCard",
+      "s": 12
+    }
+  ],
+  "lines": [
+    {
+      "id": "v0",
+      "scene": "intro",
+      "offset": 1.4,
+      "text": "Singapore's Health Information Act is here, and every healthcare provider now has a date.",
+      "dur": 4.89,
+      "durUs": 4.84
+    },
+    {
+      "id": "v1",
+      "scene": "records",
+      "offset": 0.4,
+      "text": "Patient records will now follow the patient. So every provider that shares data must protect it, whatever its size.",
+      "dur": 7.33,
+      "durUs": 7.18
+    },
+    {
+      "id": "v2",
+      "scene": "dates",
+      "offset": 0.4,
+      "text": "GP clinics, hospitals, labs and radiology must be ready by September 2027. Grant applications close the week before.",
+      "dur": 8.97,
+      "durUs": 8.77
+    },
+    {
+      "id": "v3",
+      "scene": "obligation",
+      "offset": 0.4,
+      "text": "The security essentials cover your whole estate: every PC and laptop, imaging systems, analysers, even paper records.",
+      "dur": 7.63,
+      "durUs": 7.45
+    },
+    {
+      "id": "v4",
+      "scene": "twoHours",
+      "offset": 0.4,
+      "text": "When an incident is notifiable, the Ministry must be told within two hours. That takes a round-the-clock team, not a policy document.",
+      "dur": 8.19,
+      "durUs": 8.39
+    },
+    {
+      "id": "v5",
+      "scene": "funding",
+      "offset": 0.4,
+      "text": "Government funding helps. Three schemes cover clinical systems, security advice and tooling: around twenty thousand Singapore dollars for a single clinic.",
+      "dur": 9.49,
+      "durUs": 9.07
+    },
+    {
+      "id": "v6",
+      "scene": "guided",
+      "offset": 0.4,
+      "text": "Most providers get a report, or a tool. You need someone who owns the outcome, with round-the-clock cover behind them.",
+      "dur": 7,
+      "durUs": 6.57
+    },
+    {
+      "id": "v7",
+      "scene": "partnership",
+      "offset": 0.4,
+      "text": "That's TAFA, HexaShield's exclusive healthcare partner. TAFA owns your programme locally. HexaShield powers it, with HexaView and a 24/7 security operation.",
+      "dur": 11.2,
+      "durUs": 11.19
+    },
+    {
+      "id": "v8",
+      "scene": "hexaview",
+      "offset": 0.6,
+      "text": "In HexaView, you see every Health Information Act control, your record-sharing readiness and Cyber Essentials progress, with evidence on demand.",
+      "dur": 8.27,
+      "durUs": 8.59
+    },
+    {
+      "id": "v9",
+      "scene": "devices",
+      "offset": 0.4,
+      "text": "For hospitals and labs, HexaOT watches the connected medical devices that can't simply be patched.",
+      "dur": 6,
+      "durUs": 6.09
+    },
+    {
+      "id": "v10",
+      "scene": "journey",
+      "offset": 0.4,
+      "text": "Twelve months, worked backwards from the grant deadline: assess, plan, fix, certify, and stay compliant.",
+      "dur": 7.27,
+      "durUs": 7.21
+    },
+    {
+      "id": "v11",
+      "scene": "endCard",
+      "offset": 0.4,
+      "text": "Start with a free discovery call. We'll map every licence, every deadline, and what you can claim. TAFA, powered by HexaShield.",
+      "dur": 8.87,
+      "durUs": 8.69
+    }
+  ]
+}

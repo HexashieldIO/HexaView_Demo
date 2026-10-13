@@ -1,6 +1,6 @@
 import React from "react";
-import { interpolate, useCurrentFrame } from "remotion";
-import { C, MONO, Stage, prog, rand } from "../theme";
+import { interpolate } from "remotion";
+import { C, MONO, Stage, prog, rand, useSceneFrame } from "../theme";
 
 type Alert = { text: string; x: number; y: number; rot: number; tone: "red" | "amber"; at: number; fade?: number };
 
@@ -27,7 +27,7 @@ const TONES = {
 };
 
 export const S1Noise: React.FC = () => {
-  const frame = useCurrentFrame();
+  const frame = useSceneFrame();
   // 12 fps stutter: the noise act deliberately moves on every other frame.
   const step = Math.floor(frame / 2);
   const head = prog(frame, 46, 54);

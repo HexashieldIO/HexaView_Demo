@@ -1,0 +1,115 @@
+1
+00:00:00,600 --> 00:00:01,592
+Meet HexaView.
+
+2
+00:00:01,602 --> 00:00:03,970
+The trust console for security.
+
+3
+00:00:05,417 --> 00:00:07,660
+Security teams juggle dozens of tools,
+
+4
+00:00:07,670 --> 00:00:09,777
+and drown in thousands of alerts.
+
+5
+00:00:10,633 --> 00:00:14,026
+Cloud, on-prem and OT live in separate consoles.
+
+6
+00:00:14,036 --> 00:00:15,940
+Each tool holds a fragment.
+
+7
+00:00:15,950 --> 00:00:18,013
+Attackers live in the gaps.
+
+8
+00:00:19,517 --> 00:00:21,977
+So we brought it all into one platform.
+
+9
+00:00:23,483 --> 00:00:25,883
+Secure, multi-tenant sign-in.
+
+10
+00:00:27,550 --> 00:00:28,532
+One platform.
+
+11
+00:00:28,542 --> 00:00:29,676
+Every function.
+
+12
+00:00:29,686 --> 00:00:30,667
+Full control.
+
+13
+00:00:30,677 --> 00:00:33,947
+A live, explainable Resilience Index, built
+
+14
+00:00:33,957 --> 00:00:36,700
+from all of your security tooling.
+
+15
+00:00:37,483 --> 00:00:39,215
+Integrated, not assembled.
+
+16
+00:00:39,225 --> 00:00:41,894
+Connect the security tooling you already
+
+17
+00:00:41,904 --> 00:00:43,903
+own, from any vendor, into one
+
+18
+00:00:43,913 --> 00:00:45,603
+model across IT and OT.
+
+19
+00:00:47,800 --> 00:00:50,065
+When a leaked password becomes a live
+
+20
+00:00:50,075 --> 00:00:52,831
+attack, HexaView joins the dots, and contains
+
+21
+00:00:52,841 --> 00:00:54,590
+it before any data leaves.
+
+22
+00:00:56,850 --> 00:00:58,311
+Act on any alert, right
+
+23
+00:00:58,321 --> 00:00:59,399
+where you see it.
+
+24
+00:00:59,409 --> 00:01:01,638
+Every change is written back to the
+
+25
+00:01:01,648 --> 00:01:04,740
+source tool, with approval, and fully audited.
+
+26
+00:01:05,950 --> 00:01:09,122
+Any industry, anywhere, across IT and OT.
+
+27
+00:01:09,132 --> 00:01:11,920
+One source of truth, in real time.
+
+28
+00:01:16,033 --> 00:01:16,761
+HexaView.
+
+29
+00:01:16,771 --> 00:01:19,053
+Visibility you can act on.

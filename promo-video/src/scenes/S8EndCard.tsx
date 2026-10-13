@@ -1,6 +1,6 @@
 import React from "react";
-import { Img, interpolate, staticFile, useCurrentFrame } from "remotion";
-import { C, Hex, MONO, Stage, prog, rand } from "../theme";
+import { Img, interpolate, staticFile } from "remotion";
+import { C, Hex, MONO, Stage, prog, rand, useSceneFrame, PartnerLogo, usePartner } from "../theme";
 
 const LOGO_W = 900;
 const LOGO_H = LOGO_W * (348 / 1194);
@@ -13,12 +13,14 @@ const SHARDS = Array.from({ length: 26 }, (_, i) => {
 });
 
 export const S8EndCard: React.FC = () => {
-  const frame = useCurrentFrame();
+  const frame = useSceneFrame();
   const logo = prog(frame, 30, 52);
   const sweep = interpolate(frame, [54, 80], [-300, LOGO_W + 300], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const tag = prog(frame, 64, 84);
   const cta = prog(frame, 88, 104);
   const by = prog(frame, 104, 120);
+  const partner = usePartner();
+  const logoY = partner ? 330 : 400;
 
   return (
     <Stage>
@@ -29,7 +31,7 @@ export const S8EndCard: React.FC = () => {
           <Hex
             key={i}
             x={interpolate(p, [0, 1], [s.x, 960 - LOGO_W / 2 + 150])}
-            y={interpolate(p, [0, 1], [s.y, 400])}
+            y={interpolate(p, [0, 1], [s.y, logoY])}
             w={s.w * (1 - p * 0.8)}
             color={s.teal ? C.tealDark : C.navy2}
             style={{ opacity: 0.85 * (1 - p * 0.6) }}
@@ -41,7 +43,7 @@ export const S8EndCard: React.FC = () => {
         style={{
           position: "absolute",
           left: 960 - LOGO_W / 2,
-          top: 400 - LOGO_H / 2,
+          top: logoY - LOGO_H / 2,
           width: LOGO_W,
           height: LOGO_H,
           opacity: logo,
@@ -65,17 +67,19 @@ export const S8EndCard: React.FC = () => {
         />
       </div>
 
-      <div style={{ position: "absolute", left: 0, right: 0, top: 610, textAlign: "center", fontSize: 64, fontWeight: 500, color: "#d8f3ec", opacity: tag, transform: `translateY(${(1 - tag) * 24}px)` }}>
+      <div style={{ position: "absolute", left: 0, right: 0, top: partner ? 500 : 610, textAlign: "center", fontSize: 64, fontWeight: 500, color: "#d8f3ec", opacity: tag, transform: `translateY(${(1 - tag) * 24}px)` }}>
         Visibility you can act on.
       </div>
 
-      <div style={{ position: "absolute", left: 0, right: 0, top: 760, display: "flex", justifyContent: "center", opacity: cta, transform: `scale(${0.94 + cta * 0.06})` }}>
-        <div style={{ padding: "26px 56px", borderRadius: 999, background: C.teal, color: C.night, fontSize: 40, fontWeight: 700 }}>Book a demo · hexaview.io</div>
+      <div style={{ position: "absolute", left: 0, right: 0, top: partner ? 850 : 760, display: "flex", justifyContent: "center", opacity: cta, transform: `scale(${0.94 + cta * 0.06})` }}>
+        <div style={{ padding: "26px 56px", borderRadius: 999, background: C.teal, color: C.night, fontSize: 40, fontWeight: 700 }}>{partner ? partner.cta : "Book a demo · hexaview.io"}</div>
       </div>
 
-      <div style={{ position: "absolute", left: 0, right: 0, bottom: 64, textAlign: "center", fontFamily: MONO, fontSize: 26, letterSpacing: "0.2em", color: C.dim, opacity: by }}>
+      <div style={{ position: "absolute", left: 0, right: 0, bottom: partner ? 34 : 64, textAlign: "center", fontFamily: MONO, fontSize: 26, letterSpacing: "0.2em", color: C.dim, opacity: by }}>
         POWERED BY HEXASHIELD
       </div>
+
+      {partner && <PartnerLogo partner={partner} top={630} height={96} show={prog(frame, 80, 98)} label={partner.endLabel} emphasis />}
     </Stage>
   );
 };

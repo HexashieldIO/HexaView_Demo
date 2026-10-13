@@ -1,6 +1,6 @@
 import React from "react";
-import { interpolate, useCurrentFrame } from "remotion";
-import { BrandIcon, C, EASE_IN, Hex, MONO, Stage, hexPolygon, prog, rise } from "../theme";
+import { interpolate } from "remotion";
+import { BrandIcon, C, EASE_IN, Hex, MONO, Stage, hexPolygon, prog, rise, useSceneFrame } from "../theme";
 
 const MARK = 210; // rendered size of the HexaView mark (its hexagon is ~84% of the box)
 const W = 186; // honeycomb pitch
@@ -27,17 +27,17 @@ const mix = (a: string, b: string, t: number) => {
   return `rgb(${pa.map((v, i) => Math.round(v + (pb[i] - v) * t)).join(",")})`;
 };
 
-const LAND = 26;
+const LAND = 16;
 
 export const S3FirstCell: React.FC = () => {
-  const frame = useCurrentFrame();
-  const drop = prog(frame, 8, LAND, EASE_IN);
+  const frame = useSceneFrame();
+  const drop = prog(frame, 0, LAND, EASE_IN);
   const y = interpolate(drop, [0, 1], [-260, CY]);
   const waveR = Math.max(0, (frame - LAND) * 34);
   const ring = prog(frame, LAND, LAND + 36);
 
   return (
-    <Stage>
+    <Stage dark>
       {frame >= LAND &&
         CELLS.map((c, i) => {
           const passed = waveR > c.d ? 1 : 0;
@@ -68,14 +68,14 @@ export const S3FirstCell: React.FC = () => {
           right: 0,
           top: 790,
           textAlign: "center",
-          fontSize: 84,
+          fontSize: 76,
           fontWeight: 700,
           letterSpacing: "-0.02em",
           textShadow: `0 0 40px ${C.night}, 0 0 20px ${C.night}`,
-          ...rise(frame, 66),
+          ...rise(frame, 58),
         }}
       >
-        What if every tool lived in one pane?
+        What if every tool lived in one platform?
       </div>
       <div
         style={{
@@ -87,8 +87,8 @@ export const S3FirstCell: React.FC = () => {
           fontFamily: MONO,
           fontSize: 30,
           color: C.tealBright,
-          letterSpacing: `${interpolate(prog(frame, 96, 132), [0, 1], [0.1, 0.32])}em`,
-          opacity: prog(frame, 96, 112),
+          letterSpacing: `${interpolate(prog(frame, 84, 112), [0, 1], [0.1, 0.32])}em`,
+          opacity: prog(frame, 84, 98),
           textShadow: `0 0 20px ${C.night}`,
         }}
       >

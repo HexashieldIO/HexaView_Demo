@@ -1,0 +1,166 @@
+{
+  "fps": 30,
+  "tail": 0.45,
+  "shots": [
+    {
+      "id": "studio",
+      "s": 4
+    },
+    {
+      "id": "exposure",
+      "s": 10.48
+    },
+    {
+      "id": "rewind",
+      "s": 3.9
+    },
+    {
+      "id": "intro",
+      "s": 6.54
+    },
+    {
+      "id": "visualise",
+      "s": 7.86
+    },
+    {
+      "id": "remediate",
+      "s": 7.4
+    },
+    {
+      "id": "guardrails",
+      "s": 8.28
+    },
+    {
+      "id": "scope",
+      "s": 7.86
+    },
+    {
+      "id": "price",
+      "s": 6.98
+    },
+    {
+      "id": "authorise",
+      "s": 6.11
+    },
+    {
+      "id": "live",
+      "s": 8.73
+    },
+    {
+      "id": "report",
+      "s": 8.28
+    },
+    {
+      "id": "retest",
+      "s": 8.28
+    },
+    {
+      "id": "noWayIn",
+      "s": 7
+    },
+    {
+      "id": "endCard",
+      "s": 7.86
+    }
+  ],
+  "lines": [
+    {
+      "id": "s1",
+      "scene": "exposure",
+      "offset": 1,
+      "text": "Every organisation has weaknesses it can't see. And one is often all it takes to put your most valuable data at risk.",
+      "dur": 7.17
+    },
+    {
+      "id": "s3",
+      "scene": "rewind",
+      "offset": 0.5,
+      "text": "But what if you found that path first?",
+      "dur": 1.84
+    },
+    {
+      "id": "s4",
+      "scene": "intro",
+      "offset": 0.6,
+      "text": "Meet HexaStrike AI penetration testing, built into HexaView.",
+      "dur": 4.08
+    },
+    {
+      "id": "s5",
+      "scene": "visualise",
+      "offset": 0.4,
+      "text": "It thinks like an attacker, mapping your weaknesses and the routes between them, before anyone else can.",
+      "dur": 5.46
+    },
+    {
+      "id": "s6",
+      "scene": "remediate",
+      "offset": 0.4,
+      "text": "So you fix what matters, close the path, and stop the attack before it happens.",
+      "dur": 4.52
+    },
+    {
+      "id": "w1",
+      "scene": "guardrails",
+      "offset": 0.4,
+      "text": "Guard-railed by design: exclusions, rate limits and a stop button, with every finding reviewed by an analyst.",
+      "dur": 6.75
+    },
+    {
+      "id": "s7",
+      "scene": "scope",
+      "offset": 0.4,
+      "text": "Scoping takes minutes. Choose what to test, and the effort is calculated from your own estate.",
+      "dur": 5.6
+    },
+    {
+      "id": "s8",
+      "scene": "price",
+      "offset": 0.4,
+      "text": "Your quote updates live, so you know the price before you commit.",
+      "dur": 3.04
+    },
+    {
+      "id": "s9",
+      "scene": "authorise",
+      "offset": 0.4,
+      "text": "Authorise it with a signed letter, right inside HexaView.",
+      "dur": 3.57
+    },
+    {
+      "id": "s10",
+      "scene": "live",
+      "offset": 0.4,
+      "text": "Then watch it run live. Every phase, every finding, and the attack path as it's validated.",
+      "dur": 5.79
+    },
+    {
+      "id": "s11",
+      "scene": "report",
+      "offset": 0.4,
+      "text": "When it's done, your report builds itself, ready to sign off and share.",
+      "dur": 4.41
+    },
+    {
+      "id": "r1",
+      "scene": "retest",
+      "offset": 0.4,
+      "text": "Then fix, retest and prove it's closed. Every finding is tracked until it's gone, and turned into a detection.",
+      "dur": 7.19
+    },
+    {
+      "id": "n1",
+      "scene": "noWayIn",
+      "offset": 0.6,
+      "text": "So when someone comes looking for a way in, there isn't one.",
+      "dur": 3.36
+    },
+    {
+      "id": "s12",
+      "scene": "endCard",
+      "offset": 0.5,
+      "text": "HexaStrike, by HexaShield. Stop the attack before it happens.",
+      "dur": 4.02
+    }
+  ]
+}

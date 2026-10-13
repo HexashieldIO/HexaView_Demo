@@ -1,138 +1,154 @@
 import React from "react";
-import { interpolate, useCurrentFrame } from "remotion";
-import { C, MONO, Stage, prog, rise } from "../theme";
+import { Img, interpolate, staticFile } from "remotion";
+import { C, MONO, Stage, prog, rise, useSceneFrame } from "../theme";
 
-const typed = (text: string, frame: number, start: number, cps = 1.4) =>
-  text.slice(0, Math.max(0, Math.floor((frame - start) * cps)));
+const typed = (text: string, frame: number, start: number, cps = 1.6) => text.slice(0, Math.max(0, Math.floor((frame - start) * cps)));
 
-const COPILOT = "Matches ATT&CK for ICS T0836, Modify Parameter. Sources:";
-const HASH = "sha256 · 9f2c71d0…e41a";
+// One incident, five modules, one console: a leaked password becomes a contained account.
+const STEPS = [
+  { time: "02:41:08", icon: "HexaInt_icon", module: "HexaInt", color: "#DF70A8", title: "Credential for sale", at: 14 },
+  { time: "02:44:12", icon: "HexaSOC_icon", module: "HexaSOC", color: "#A580F8", title: "Same account, new country", at: 40 },
+  { time: "02:44:31", icon: "HexaAI_icon", module: "HexaAI", color: "#9980FD", title: "Likely account takeover", at: 66 },
+  { time: "02:45:02", icon: "HexaView_mark", module: "Action Centre", color: "#3AD0AE", title: "Contain, with approval", at: 94 },
+  { time: "02:45:20", icon: "HexaComply_icon", module: "HexaComply", color: "#61C49A", title: "Evidence on file", at: 128 },
+];
 
-const Card: React.FC<{ k: string; title: string; on: number; children: React.ReactNode }> = ({ k, title, on, children }) => (
-  <div
-    style={{
-      width: 360,
-      height: 300,
-      background: C.panel,
-      border: `3px solid ${on > 0.5 ? C.assured : C.line}`,
-      boxShadow: on > 0.5 ? "0 0 60px rgba(47,191,160,0.25)" : "none",
-      borderRadius: 26,
-      padding: 30,
-      boxSizing: "border-box",
-      display: "flex",
-      flexDirection: "column",
-      gap: 18,
-      opacity: 0.35 + on * 0.65,
-    }}
-  >
-    <div style={{ fontFamily: MONO, fontSize: 20, letterSpacing: "0.12em", color: C.dim }}>{k}</div>
-    <div style={{ fontSize: 34, fontWeight: 700 }}>{title}</div>
-    {children}
-  </div>
-);
-
-const Arrow: React.FC<{ on: number }> = ({ on }) => (
-  <div style={{ alignSelf: "center", fontSize: 56, color: on > 0.5 ? C.assured : "#3a4f80" }}>→</div>
-);
+const CARD_W = 300;
+const CLICK = 116;
 
 export const S6ClosedLoop: React.FC = () => {
-  const frame = useCurrentFrame();
-  const on = [0, 1, 2, 3].map((i) => prog(frame, 18 + i * 28, 26 + i * 28));
-  const click = 112;
-  const clicked = frame >= click;
-  const press = frame >= click && frame < click + 5 ? 0.95 : 1;
-  const cur = prog(frame, 92, click - 2);
-  const loop = prog(frame, 142, 172);
-  const loopLen = 1700;
+  const frame = useSceneFrame();
+  const active = STEPS.filter((s) => frame >= s.at).length;
+  const clock = active ? STEPS[active - 1].time : "02:41:00";
+  const loop = prog(frame, 146, 172);
+  const cur = prog(frame, 100, CLICK - 2);
+  const clicked = frame >= CLICK;
 
-  return (
-    <Stage>
-      <div style={{ position: "absolute", left: 0, right: 0, top: 110, display: "flex", flexDirection: "column", alignItems: "center", gap: 18 }}>
-        <div style={{ fontSize: 96, fontWeight: 700, letterSpacing: "-0.02em", ...rise(frame, 2) }}>Not another dashboard.</div>
-        <div style={{ fontSize: 42, color: C.muted, ...rise(frame, 14) }}>A console that writes back, with approval and on the record.</div>
-      </div>
-
-      <div style={{ position: "absolute", left: 0, right: 0, top: 420, display: "flex", justifyContent: "center", gap: 26 }}>
-        <Card k="01 · DETECT" title="HexaSOC + HexaOT" on={on[0]}>
-          <div style={{ fontSize: 24, padding: "14px 16px", borderRadius: 12, background: "#15120a", color: "#f5d77a" }}>Unusual PLC write · vessel segment</div>
-        </Card>
-        <Arrow on={on[1]} />
-        <Card k="02 · EXPLAIN" title="HexaAI copilot" on={on[1]}>
-          <div style={{ fontSize: 24, lineHeight: 1.4, color: "#c8d1e6" }}>
-            {typed(COPILOT, frame, 50)}
-            {frame > 50 + COPILOT.length / 1.4 && <span style={{ color: C.signalSoft }}> [1] [2] [3]</span>}
+  const body = (i: number): React.ReactNode => {
+    const s = STEPS[i];
+    switch (i) {
+      case 0:
+        return <div style={{ fontSize: 21, lineHeight: 1.4, color: "#c8d4f0" }}>Finance user’s password posted on a paste site.</div>;
+      case 1:
+        return <div style={{ fontSize: 21, lineHeight: 1.4, color: "#c8d4f0" }}>Sign-in from an unfamiliar country, three minutes later.</div>;
+      case 2:
+        return (
+          <div style={{ fontSize: 21, lineHeight: 1.4, color: "#c8d4f0" }}>
+            {typed("Credential reuse matches the leak. Recommend revoking sessions.", frame, s.at + 4)}
+            {frame > s.at + 44 && <span style={{ color: "#b9b3ff" }}> [1] [2] [3]</span>}
           </div>
-        </Card>
-        <Arrow on={on[2]} />
-        <Card k="03 · ACT" title="Action Centre" on={on[2]}>
+        );
+      case 3:
+        return (
           <div
             style={{
               marginTop: "auto",
-              height: 76,
-              borderRadius: 16,
-              background: clicked ? C.tealDeep : C.assured,
+              minHeight: 70,
+              borderRadius: 14,
+              background: clicked ? "rgba(58,208,174,0.16)" : C.tealBright,
               color: clicked ? "#b6f2e3" : C.night,
-              fontSize: 28,
+              fontSize: 22,
               fontWeight: 700,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              transform: `scale(${press})`,
+              textAlign: "center",
+              padding: "0 12px",
+              transform: `scale(${frame >= CLICK && frame < CLICK + 5 ? 0.95 : 1})`,
             }}
           >
-            {clicked ? "Isolated ✓" : "Approve isolation"}
+            {clicked ? "Sessions revoked · reset sent ✓" : "Approve: revoke sessions & reset"}
           </div>
-        </Card>
-        <Arrow on={on[3]} />
-        <Card k="04 · PROVE" title="Audit Ledger" on={on[3]}>
-          <div style={{ fontFamily: MONO, fontSize: 22, lineHeight: 1.6, color: C.assured }}>
-            {typed(HASH, frame, 132, 2)}
+        );
+      default:
+        return (
+          <div style={{ fontFamily: MONO, fontSize: 18, lineHeight: 1.6, color: "#9fe6c4" }}>
+            {typed("ISO 27001 A.5.26 · incident response", frame, s.at + 2, 2.4)}
             <br />
-            {frame > 146 && "✓ chained"}
+            {frame > s.at + 14 && "audit ledger · hash chained ✓"}
           </div>
-        </Card>
+        );
+    }
+  };
+
+  return (
+    <Stage>
+      <div style={{ position: "absolute", left: 0, right: 0, top: 70, display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+        <div style={{ fontSize: 84, fontWeight: 700, letterSpacing: "-0.02em", ...rise(frame, 2) }}>From leaked password to locked door.</div>
+        <div style={{ fontSize: 40, color: "#c8d4f0", ...rise(frame, 12) }}>Contained at 02:45, before the 02:46 data theft could happen.</div>
+      </div>
+
+      <div style={{ position: "absolute", right: 120, top: 300, fontFamily: MONO, fontSize: 30, color: C.tealBright, display: "flex", alignItems: "center", gap: 14, ...rise(frame, 10) }}>
+        <div style={{ width: 14, height: 14, borderRadius: "50%", background: C.threat, opacity: frame % 20 < 10 ? 1 : 0.35 }} />
+        {clock} · LIVE
+      </div>
+
+      <div style={{ position: "absolute", left: 0, right: 0, top: 380, display: "flex", justifyContent: "center", alignItems: "stretch", gap: 18 }}>
+        {STEPS.map((s, i) => {
+          const on = prog(frame, s.at, s.at + 10);
+          return (
+            <React.Fragment key={s.module}>
+              {i > 0 && <div style={{ alignSelf: "center", fontSize: 44, color: on > 0.5 ? s.color : "rgba(140,170,255,0.35)" }}>→</div>}
+              <div
+                style={{
+                  width: CARD_W,
+                  height: 360,
+                  boxSizing: "border-box",
+                  padding: 24,
+                  borderRadius: 24,
+                  background: "rgba(10,20,50,0.9)",
+                  border: `3px solid ${on > 0.5 ? s.color : "rgba(140,170,255,0.25)"}`,
+                  boxShadow: on > 0.5 ? `0 0 60px ${s.color}44` : "0 20px 40px rgba(0,0,0,0.35)",
+                  opacity: 0.4 + on * 0.6,
+                  transform: `translateY(${(1 - on) * 16}px)`,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 14,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <Img src={staticFile(`brand/${s.icon}.svg`)} style={{ width: 50, height: 50 }} />
+                  <div style={{ display: "flex", flexDirection: "column" }}>
+                    <div style={{ fontSize: 22, fontWeight: 700, color: s.color }}>{s.module}</div>
+                    <div style={{ fontFamily: MONO, fontSize: 18, color: C.dim }}>{s.time}</div>
+                  </div>
+                </div>
+                <div style={{ fontSize: 29, fontWeight: 700, lineHeight: 1.15 }}>{s.title}</div>
+                {body(i)}
+              </div>
+            </React.Fragment>
+          );
+        })}
       </div>
 
       {/* Cursor travels to Approve and clicks. */}
       <svg
-        width={44}
-        height={44}
+        width={46}
+        height={46}
         viewBox="0 0 24 24"
         style={{
           position: "absolute",
-          left: interpolate(cur, [0, 1], [1300, 1120]),
-          top: interpolate(cur, [0, 1], [960, 668]),
-          opacity: frame > 88 && frame < 134 ? 1 : 0,
+          left: interpolate(cur, [0, 1], [1460, 1310]),
+          top: interpolate(cur, [0, 1], [960, 686]),
+          opacity: frame > 96 && frame < 136 ? 1 : 0,
         }}
       >
         <path d="M4 2l16 10-7 1.5L9.5 21z" fill={C.text} stroke={C.night} strokeWidth={1.5} strokeLinejoin="round" />
       </svg>
 
-      <svg width={1920} height={260} style={{ position: "absolute", left: 0, top: 740 }}>
+      <svg width={1920} height={240} style={{ position: "absolute", left: 0, top: 750 }}>
         <path
-          d="M 180 0 L 180 120 Q 180 200 260 200 L 1660 200 Q 1740 200 1740 120 L 1740 0"
+          d="M 1720 0 L 1720 110 Q 1720 180 1650 180 L 270 180 Q 200 180 200 110 L 200 0"
           fill="none"
-          stroke={C.teal}
+          stroke={C.tealBright}
           strokeWidth={4}
-          strokeDasharray={loopLen}
-          strokeDashoffset={loopLen * (1 - loop)}
+          pathLength={1}
+          strokeDasharray={1}
+          strokeDashoffset={1 - loop}
         />
       </svg>
-      <div
-        style={{
-          position: "absolute",
-          left: 0,
-          right: 0,
-          top: 922,
-          textAlign: "center",
-          fontFamily: MONO,
-          fontSize: 26,
-          letterSpacing: "0.1em",
-          color: C.signalSoft,
-          opacity: prog(frame, 160, 172),
-        }}
-      >
-        <span style={{ background: C.night, padding: "0 24px" }}>CLOSED-LOOP ASSURANCE</span>
+      <div style={{ position: "absolute", left: 0, right: 0, top: 952, textAlign: "center", fontFamily: MONO, fontSize: 26, letterSpacing: "0.1em", color: C.tealBright, opacity: prog(frame, 160, 172) }}>
+        CLOSED-LOOP ASSURANCE · DETECTED · EXPLAINED · CONTAINED · PROVEN
       </div>
     </Stage>
   );

@@ -1,0 +1,16 @@
+Most security teams don't lack tools. They lack one view across them.
+
+Cloud, on-prem and OT each live in a separate console. Every tool holds a fragment of the picture, and attackers live in the gaps between them.
+
+HexaView™ is the trust console for security: one platform over the security tooling you already own, from any vendor, across IT and OT.
+
+→ Connect your existing tools into one live model
+→ See one explainable Resilience Index across every tenant
+→ Act on any alert where you see it, with changes written back to the source tool, approved and audited
+→ One source of truth, in real time
+
+Integrated, not assembled.
+
+Book a demo: hexaview.io
+
+#CyberSecurity #OTSecurity #SecurityOperations #CISO #HexaView

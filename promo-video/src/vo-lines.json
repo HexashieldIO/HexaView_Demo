@@ -1,0 +1,127 @@
+[
+  {
+    "id": "l0",
+    "scene": "intro",
+    "offset": 0.6,
+    "text": "Meet HexaView. The trust console for security.",
+    "dur": 3.22,
+    "durGb": 3.85
+  },
+  {
+    "id": "l1",
+    "scene": "noise",
+    "offset": 0.25,
+    "text": "Security teams juggle dozens of tools, and drown in thousands of alerts.",
+    "dur": 4.21,
+    "durGb": 4.74
+  },
+  {
+    "id": "l2",
+    "scene": "islands",
+    "offset": 0.3,
+    "text": "Cloud, on-prem and OT live in separate consoles. Each tool holds a fragment. Attackers live in the gaps.",
+    "dur": 7.26,
+    "durGb": 7.86
+  },
+  {
+    "id": "l3",
+    "scene": "firstCell",
+    "offset": 0.95,
+    "text": "So we brought it all into one platform.",
+    "dur": 2.36,
+    "durGb": 2.58
+  },
+  {
+    "id": "l4",
+    "scene": "signIn",
+    "offset": 0.25,
+    "text": "Secure, multi-tenant sign-in.",
+    "dur": 2.08,
+    "durGb": 2.53
+  },
+  {
+    "id": "l5",
+    "scene": "onePane",
+    "offset": 0.45,
+    "text": "One platform. Every function. Full control. A live, explainable Resilience Index, built from all of your security tooling.",
+    "dur": 8.95,
+    "durGb": 9.58
+  },
+  {
+    "id": "l6",
+    "scene": "integrations",
+    "offset": 0.25,
+    "text": "Integrated, not assembled. Connect the security tooling you already own, from any vendor, into one model across IT and OT.",
+    "dur": 8.14,
+    "durGb": 9.1
+  },
+  {
+    "id": "l7",
+    "scene": "closedLoop",
+    "offset": 0.3,
+    "text": "When a leaked password becomes a live attack, HexaView joins the dots, and contains it before any data leaves.",
+    "dur": 6.66,
+    "durGb": 6.72
+  },
+  {
+    "id": "l7b",
+    "scene": "writeBack",
+    "offset": 0.25,
+    "text": "Act on any alert, right where you see it. Every change is written back to the source tool, with approval, and fully audited.",
+    "dur": 7.74,
+    "durGb": 7.95
+  },
+  {
+    "id": "m1",
+    "scene": "maritimeOT",
+    "offset": 0.4,
+    "only": "cyberdockside",
+    "text": "For ports and shipping, HexaView watches every terminal and every vessel. Cranes, gates and bridge systems, monitored passively, so operations never stop.",
+    "dur": 10.8,
+    "durGb": 10.54
+  },
+  {
+    "id": "m2",
+    "scene": "maritimeComply",
+    "offset": 0.4,
+    "only": "cyberdockside",
+    "text": "IMO, IACS, NIS2, ISPS and IEC 62443, all tracked in one place, with evidence ready for class surveys and port authorities.",
+    "dur": 10.41,
+    "durGb": 10.93
+  },
+  {
+    "id": "m3",
+    "scene": "maritimeSoc",
+    "offset": 0.4,
+    "only": "cyberdockside",
+    "text": "Behind it, a 24/7 managed SOC detects and contains threats in minutes, while AI-driven penetration testing proves your defences hold, terminal by terminal.",
+    "dur": 10.23,
+    "durGb": 10.47
+  },
+  {
+    "id": "l8",
+    "scene": "global",
+    "offset": 0.25,
+    "text": "Any industry, anywhere, across IT and OT. One source of truth, in real time.",
+    "dur": 5.82,
+    "durGb": 6.49
+  },
+  {
+    "id": "l9",
+    "scene": "endCard",
+    "offset": 0.5,
+    "text": "HexaView. Visibility you can act on.",
+    "only": "master",
+    "dur": 2.57,
+    "durGb": 3.38
+  },
+  {
+    "id": "l9p",
+    "scene": "endCard",
+    "offset": 0.5,
+    "text": "HexaView. Visibility you can act on. Available now from Cyber Dockside.",
+    "only": "cyberdockside",
+    "dur": 5.03,
+    "durGb": 6.03
+  }
+]
