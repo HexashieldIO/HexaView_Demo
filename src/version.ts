@@ -9,6 +9,14 @@ export const APP_BUILT: string = __APP_BUILT__;
 /** Short release notes shown under Help & support → What's new. Newest first. */
 export const RELEASE_NOTES: { version: string; items: string[] }[] = [
   {
+    version: '1.0.4',
+    items: [
+      'Command Centre: redesigned role starting points with your profile, module tiles and an assurance panel',
+      'Starting-point tiles show which module and page each link opens',
+      'Shared Claude skills for releases, smoke tests, localhost and new modules',
+    ],
+  },
+  {
     version: '1.0.3',
     items: [
       'HexaShield services retainer: buy $10k–$100k a year and draw down for AI pen testing, IR hours and consultancy',

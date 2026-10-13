@@ -5,13 +5,13 @@ import { useApp } from '../../state/AppContext';
 import { headlines, resilienceIndex, riTrend, loops, loopSummary, LOOP_STATUS_COLOR } from '../../data/core';
 import { attention, feed } from '../../data/overview';
 import { scopedConnectors, scopedTenants, isStale } from '../../data/customers';
-import { MODULE_BY_ID, CAPABILITIES } from '../../modules/registry';
+import { MODULE_BY_ID, MODULES, CAPABILITIES } from '../../modules/registry';
 import { Card, GaugeTile, SevBadge, Badge, Bar, Stacked, Legend, Freshness, Btn } from '../../components/ui';
 import { HexIcon } from '../../components/HexIcon';
 import { WorldMap } from '../../components/WorldMap';
 import { DataTable } from '../../components/DataTable';
 import { fmtAgo, fmtCompact, fmtNum, scoreTone } from '../../lib/format';
-import { ROLE_BY_ID } from '../../modules/roles';
+import { ROLE_BY_ID, initialsOf } from '../../modules/roles';
 import { PlatformMap, type MapNodeInfo } from './PlatformMap';
 import { ResilienceHero, useIntro } from './ResilienceHero';
 import type { Env } from '../../data/types';
@@ -23,6 +23,12 @@ const ENV_META: Record<Env, { label: string; icon: typeof Cloud; color: string }
   saas: { label: 'SaaS', icon: Globe2, color: 'var(--m-ai)' },
 };
 
+
+/** The module a workspace link opens (longest basePath match; '/' is the Command Centre). */
+function moduleForPath(path: string) {
+  const p = path.split('?')[0];
+  return [...MODULES].filter((m) => (m.basePath === '/' ? p === '/' : p === m.basePath || p.startsWith(`${m.basePath}/`))).sort((a, b) => b.basePath.length - a.basePath.length)[0];
+}
 
 export default function CommandCentre() {
   const { customer: c, tenantId, persona, setTenantId, tick } = useApp();
@@ -87,6 +93,8 @@ export default function CommandCentre() {
   const introKey = `${c.id}-${tenantId}`;
   const sideAnim = useIntro(introKey, 2400);
   const role = ROLE_BY_ID[persona] ?? ROLE_BY_ID.ciso;
+  const me = role.person(c);
+  const jobTitle = [me.role, role.title].find((t) => t && t !== role.label);
   const tips = { title: `For ${role.label.toLowerCase().startsWith('ciso') ? 'the CISO' : role.label}`, items: role.workspace };
 
   const tenantRows = tenants.map((t) => {
@@ -122,21 +130,37 @@ export default function CommandCentre() {
           />
         </Card>
 
-        <Card title={tips.title} sub="Your role-based starting points" toneColor="var(--m-view)" tinted>
-          <div className="list">
-            {tips.items.map(([label, path]) => (
-              <button key={path} className="list-row" onClick={() => nav(path)}>
-                <span className="list-main">
-                  <b>{label}</b>
-                </span>
-                <ArrowRight size={14} className="muted" />
-              </button>
-            ))}
+        <Card toneColor="var(--m-view)" tinted className="rs-card">
+          <div className="rs-head">
+            <span className={`rs-av ${role.id === 'master' ? 'master' : ''}`}>{initialsOf(me.name)}</span>
+            <div className="rs-who">
+              <b>{me.name}</b>
+              <span>{jobTitle ? `${jobTitle} · ${c.short}` : c.short}</span>
+            </div>
+            <span className={`rs-role ${role.id === 'master' ? 'master' : ''}`}>{role.label}</span>
           </div>
-          <div className="grid g3" style={{ marginTop: 14, gap: 8 }}>
-            {(['ai', 'insurance', 'fabric'] as const).map((k) => {
+          <div className="rs-label">Your starting points</div>
+          <div className="rs-tiles">
+            {tips.items.map(([label, path]) => {
+              const m = moduleForPath(path);
+              const tab = m?.tabs.find((t) => path.split('?')[0].endsWith(`/${t.id}`));
+              return (
+                <button key={path} className="rs-tile" style={{ '--tone': m?.tone ?? 'var(--m-view)' } as CSSProperties} onClick={() => nav(path)}>
+                  {m ? <HexIcon mod={m} size={26} /> : <span className="rs-dot" />}
+                  <span className="rs-tile-txt">
+                    <b>{label}</b>
+                    <small>{m ? (tab && tab.label !== label ? `${m.product} · ${tab.label}` : m.product) : 'HexaView'}</small>
+                  </span>
+                  <ArrowRight size={14} className="rs-go" />
+                </button>
+              );
+            })}
+          </div>
+          <div className="rs-label">Assurance at a glance</div>
+          <div className="rs-gauges">
+            {(['ai', 'insurance', 'fabric'] as const).map((k, i) => {
               const m = MODULE_BY_ID[k];
-              return <GaugeTile key={k} value={Math.round(sideAnim(scoreFor(k), 900 + ['ai', 'insurance', 'fabric'].indexOf(k) * 150, 1200))} color={m.tone} label={m.scoreLabel ?? ''} sub={m.product} size={60} onClick={() => nav(`${m.basePath}/${m.tabs[0].id}`)} />;
+              return <GaugeTile key={k} value={Math.round(sideAnim(scoreFor(k), 900 + i * 150, 1200))} color={m.tone} label={m.scoreLabel ?? ''} sub={m.product} size={58} onClick={() => nav(`${m.basePath}/${m.tabs[0].id}`)} />;
             })}
           </div>
         </Card>
