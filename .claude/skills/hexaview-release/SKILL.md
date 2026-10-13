@@ -5,7 +5,7 @@ description: Ship HexaView to the live site. Use when the user says "commit and 
 
 # HexaView release (commit + push to live)
 
-Pushing to branch `HexaView_Demo` of `HexashieldIO/HexaView_Demo` deploys **live**:
+Pushing to branch `HexaView_Demo` of `hexashield-io/HexaView_Demo` (enterprise GitHub; moved from `HexashieldIO` on 2026-10-13) deploys **live**:
 Cloudflare Pages (https://hexaview-saas-demo.pages.dev, behind Cloudflare Access) and the
 Azure Web App `hexaview-saas-demo` (GitHub Actions). Only run this when the user asked to
 commit/push in their latest message; approval for one push does not carry to the next.
@@ -49,9 +49,8 @@ Work from `C:\Users\Marc\Documents\GitHub\HexaView_Demo_ORG`.
    If the rebase conflicts, stop and show the user the conflicting files.
 
 6. **Confirm the deploy.**
-   ```bash
-   curl -s "https://api.github.com/repos/HexashieldIO/HexaView_Demo/actions/runs?per_page=2" | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>JSON.parse(d).workflow_runs.forEach(r=>console.log(r.head_sha.slice(0,7),r.status,r.conclusion)))"
-   ```
+   The repo is private, so the unauthenticated GitHub API cannot see its Actions runs: ask the user,
+   or check https://github.com/hexashield-io/HexaView_Demo/actions in the browser pane (signed in).
    Cloudflare Pages builds on push too. To prove the live bundle, compare the
    `/assets/index-*.js` name in `dist/index.html` with the live page (the user must be signed in
    to Cloudflare Access in the browser pane; never enter credentials).

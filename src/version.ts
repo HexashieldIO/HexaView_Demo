@@ -9,6 +9,13 @@ export const APP_BUILT: string = __APP_BUILT__;
 /** Short release notes shown under Help & support → What's new. Newest first. */
 export const RELEASE_NOTES: { version: string; items: string[] }[] = [
   {
+    version: '1.0.5',
+    items: [
+      'HexaView now ships from the HexaShield enterprise GitHub organisation',
+      'Release routine updated for the new repository',
+    ],
+  },
+  {
     version: '1.0.4',
     items: [
       'Command Centre: redesigned role starting points with your profile, module tiles and an assurance panel',
