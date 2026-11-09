@@ -12,6 +12,7 @@ import { APP_VERSION } from '../../version';
 import { usePublishedBrand } from '../whitelabel/brand';
 import './auth.css';
 import { CustomerLogo } from '../../components/CustomerLogo';
+import { EngineBack } from '../../components/EngineBack';
 
 export const SESSION_KEY = 'hv.session';
 
@@ -114,7 +115,10 @@ export default function SignIn() {
   return (
     <div className={`auth ${phase}`}>
       <Backdrop />
-      <div className="auth-version" title={`HexaView version ${APP_VERSION}`}>v{APP_VERSION}</div>
+      <div className="auth-topline">
+        <div className="auth-version" title={`HexaView version ${APP_VERSION}`}>v{APP_VERSION}</div>
+        <EngineBack />
+      </div>
 
       <div className="auth-side">
         <BrandMark className="auth-logo" large />
@@ -188,7 +192,7 @@ export default function SignIn() {
 
               <label className="auth-label" htmlFor="auth-role">Sign in as</label>
               <div className="auth-who">
-                <span className="auth-av" style={{ background: 'linear-gradient(135deg, #2563eb, #7c3aed)' }}>{initialsOf(person.name)}</span>
+                <span className="auth-av auth-av-me">{initialsOf(person.name)}</span>
                 <span className="auth-org-meta">
                   <b>{person.name}</b>
                   <small>{person.email}</small>
@@ -251,7 +255,7 @@ export default function SignIn() {
           <div className="auth-enter-hex">
             <svg viewBox="0 0 120 120" width="120" height="120">
               <defs>
-                <linearGradient id="auth-hexg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#22d3ee" /><stop offset="1" stopColor="#8b5cf6" /></linearGradient>
+                <linearGradient id="auth-hexg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#7ff0d6" /><stop offset=".55" stopColor="#2fbfa0" /><stop offset="1" stopColor="#21b5ea" /></linearGradient>
               </defs>
               <path d="M60 6 L106.8 33 L106.8 87 L60 114 L13.2 87 L13.2 33 Z" fill="none" stroke="url(#auth-hexg)" strokeWidth="6" strokeLinejoin="round" className="auth-enter-path" />
             </svg>
@@ -309,8 +313,8 @@ function Backdrop() {
     <svg className="auth-bg" viewBox="0 0 1500 820" preserveAspectRatio="xMidYMid slice" aria-hidden>
       <defs>
         <radialGradient id="auth-glow" cx="30%" cy="40%" r="65%">
-          <stop offset="0" stopColor="#1d4ed8" stopOpacity=".32" />
-          <stop offset="1" stopColor="#020617" stopOpacity="0" />
+          <stop offset="0" stopColor="#2fbfa0" stopOpacity=".16" />
+          <stop offset="1" stopColor="#070e2b" stopOpacity="0" />
         </radialGradient>
         <linearGradient id="auth-beam" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0" stopColor="#2dd4bf" stopOpacity="0" />

@@ -81,7 +81,9 @@ export function resetDemo(to = '/') {
   try {
     const keep = new Set(['hv.theme']);
     Object.keys(localStorage).filter((k) => k.startsWith('hv.') && !keep.has(k)).forEach((k) => localStorage.removeItem(k));
-    Object.keys(sessionStorage).filter((k) => k.startsWith('hv.') && k !== 'hv.session').forEach((k) => sessionStorage.removeItem(k));
+    // hv.from remembers a hand-off from HexaEngine so the way back survives a reset.
+    const keepSession = new Set(['hv.session', 'hv.from']);
+    Object.keys(sessionStorage).filter((k) => k.startsWith('hv.') && !keepSession.has(k)).forEach((k) => sessionStorage.removeItem(k));
   } catch { /* storage unavailable */ }
   window.location.assign(to);
 }

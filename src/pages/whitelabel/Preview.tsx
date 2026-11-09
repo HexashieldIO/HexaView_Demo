@@ -4,7 +4,7 @@ import { CAP_LIST, type PartnerClient } from '../../data/modules/partner';
 import { serviceName, type Brand } from './brand';
 import '../partner/partner.css';
 
-const FONT: Record<Brand['font'], string> = { Inter: 'var(--font-ui)', 'Space Grotesk': 'var(--font-display)', System: 'system-ui, -apple-system, Segoe UI, sans-serif' };
+const FONT: Record<Brand['font'], string> = { Inter: 'var(--font-ui)', 'Space Grotesk': '"Space Grotesk Variable", var(--font-ui)', System: 'system-ui, -apple-system, Segoe UI, sans-serif' };
 
 export function BrandMark({ brand, size = 26 }: { brand: Brand; size?: number }) {
   if (brand.logoImage) {

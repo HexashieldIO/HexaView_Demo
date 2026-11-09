@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { useIntro, reducedMotion } from '../../lib/useIntro';
-import { Ring, hexPath } from '../../components/ui';
+import { LiveChip, Ring, hexPath } from '../../components/ui';
 import { monthLabels } from '../../lib/format';
 import type { FeedEvent } from '../../data/overview';
 
@@ -110,8 +110,8 @@ export function ResilienceHero({ introKey, value, trend, scopeText, gauges, even
     <div className={`rh ${motion ? 'rh-motion' : ''}`}>
       <div className="rh-head">
         <div className="rh-title">
-          <h3>Resilience Index</h3>
-          <span className="rh-live"><i /> Live</span>
+          <h3>Resilience <span className="shine-word">Index</span></h3>
+          <LiveChip title="Recomputed as signals arrive" />
         </div>
         <p className="secondary">
           One explainable score for {scopeText}. It moves as controls are validated, evidence ages and exposure changes.{' '}
@@ -229,13 +229,14 @@ function HeroHex({ value, display, colors, motion }: { value: number; display: n
       <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} aria-hidden>
         <defs>
           <linearGradient id="rh-hexgrad" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor="#22d3ee" />
-            <stop offset="1" stopColor="#8b5cf6" />
+            <stop offset="0" stopColor="#7ff0d6" />
+            <stop offset=".55" stopColor="#2fbfa0" />
+            <stop offset="1" stopColor="#21b5ea" />
           </linearGradient>
           <filter id="rh-hexglow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="5" /></filter>
         </defs>
         <g className={motion ? 'rh-spin' : ''} style={{ transformOrigin: '50% 50%' }}>
-          <path d={hexPath(s / 2, s / 2, r + 8)} fill="none" stroke="color-mix(in srgb, #22d3ee 35%, transparent)" strokeWidth={1} strokeDasharray="3 7" />
+          <path d={hexPath(s / 2, s / 2, r + 8)} fill="none" stroke="color-mix(in srgb, #46ddbb 45%, transparent)" strokeWidth={1} strokeDasharray="3 7" />
         </g>
         <path d={edge} fill="color-mix(in srgb, var(--card-bg) 75%, transparent)" stroke="var(--track)" strokeWidth={8} strokeLinejoin="round" />
         <path d={edge} fill="none" stroke="url(#rh-hexgrad)" strokeWidth={8} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={perim} strokeDashoffset={perim * (1 - pct)} filter="url(#rh-hexglow)" opacity={0.75} />

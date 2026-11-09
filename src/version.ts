@@ -9,6 +9,14 @@ export const APP_BUILT: string = __APP_BUILT__;
 /** Short release notes shown under Help & support → What's new. Newest first. */
 export const RELEASE_NOTES: { version: string; items: string[] }[] = [
   {
+    version: '1.0.6',
+    items: [
+      'New look in line with HexaEngine: navy and teal, IBM Plex type, neon tabs, glowing stat tiles and hex-orb module headers',
+      'Smoother motion: cards rise in, pages fade between routes and a short intro when you switch module',
+      'Sign-in matches HexaEngine, with a Back to HexaEngine link when you arrive from it',
+    ],
+  },
+  {
     version: '1.0.5',
     items: [
       'HexaView now ships from the HexaShield enterprise GitHub organisation',

@@ -50,16 +50,21 @@ export interface KpiProps {
   to?: string;
   /** Tooltip naming the data source behind the number. */
   source?: string;
+  /** Icon for the tile's chip (lucide element). Defaults to a small hex mark. */
+  icon?: ReactNode;
 }
-export function Kpi({ label, hint, value, unit, bar, toneColor, delta, onClick, to, source }: KpiProps) {
+export function Kpi({ label, hint, value, unit, bar, toneColor, delta, onClick, to, source, icon }: KpiProps) {
   const nav = useNavigate();
   const click = onClick ?? (to ? () => nav(to) : undefined);
   const Tag = click ? 'button' : 'div';
   return (
     <Tag className={`kpi ${click ? 'kpi-link' : ''}`} onClick={click} style={tone(toneColor)} title={source ? `Source: ${source}${click ? ' · click to open' : ''}` : click ? 'Click to open the records behind this number' : undefined}>
-      <div className="kpi-label">
-        {label}
-        {hint && <em>{hint}</em>}
+      <div className="kpi-top">
+        <div className="kpi-label">
+          {label}
+          {hint && <em>{hint}</em>}
+        </div>
+        <span className="kpi-ic" aria-hidden>{icon ?? <HexMark />}</span>
       </div>
       <div className="kpi-value">
         {value}
@@ -81,6 +86,16 @@ export function KpiStrip({ items, toneColor }: { items: KpiProps[]; toneColor?: 
         <Kpi key={k.label} {...k} />
       ))}
     </div>
+  );
+}
+
+/** Small hex outline used as the default KPI chip icon. */
+function HexMark() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinejoin="round">
+      <path d="M12 3 L20 7.5 L20 16.5 L12 21 L4 16.5 L4 7.5 Z" />
+      <circle cx="12" cy="12" r="2.4" fill="currentColor" stroke="none" />
+    </svg>
   );
 }
 
@@ -133,6 +148,16 @@ export function StatusBadge({ value, map, fallback = 'var(--text-muted)' }: { va
     <Badge color={map[value] ?? fallback} dot>
       {cap(value.replace(/_/g, ' '))}
     </Badge>
+  );
+}
+
+/** Pulsing "Live" pill (HexaEngine style). */
+export function LiveChip({ children = 'Live', title }: { children?: ReactNode; title?: string }) {
+  return (
+    <span className="chip-live" title={title}>
+      <i />
+      {children}
+    </span>
   );
 }
 
@@ -276,12 +301,12 @@ export function HexScore({ value, size = 96, color = 'var(--m-view)', sub = 'OF 
       <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} aria-hidden>
         <defs>
           <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor={gradient ? '#22d3ee' : color} />
-            <stop offset="1" stopColor={gradient ? '#8b5cf6' : color} />
+            <stop offset="0" stopColor={gradient ? '#7ff0d6' : color} />
+            <stop offset="1" stopColor={gradient ? '#21b5ea' : color} />
           </linearGradient>
         </defs>
         <path d={hexPath(s / 2, s / 2, r)} fill="color-mix(in srgb, var(--card-bg) 70%, transparent)" stroke="var(--track)" strokeWidth={6} strokeLinejoin="round" />
-        <path d={hexPath(s / 2, s / 2, r)} fill="none" stroke={`url(#${id})`} strokeWidth={6} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={perim} strokeDashoffset={perim * (1 - pct)} style={{ filter: `drop-shadow(0 0 8px ${gradient ? '#3b82f6' : color})`, transition: 'stroke-dashoffset 1s' }} />
+        <path d={hexPath(s / 2, s / 2, r)} fill="none" stroke={`url(#${id})`} strokeWidth={6} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={perim} strokeDashoffset={perim * (1 - pct)} style={{ filter: `drop-shadow(0 0 8px ${gradient ? '#2fbfa0' : color})`, transition: 'stroke-dashoffset 1s' }} />
       </svg>
       <div className="hs-val" style={{ fontSize: Math.round(s * 0.32) }}>
         <div>
@@ -342,14 +367,14 @@ export function Btn({
   );
 }
 
-/** Local tab switcher (inside a card). */
+/** Local tab switcher (inside a card): a neon capsule on a sunken pill track. */
 export function Tabs<T extends string>({ tabs, value, onChange, color }: { tabs: { id: T; label: ReactNode }[]; value: T; onChange: (v: T) => void; color?: string }) {
   return (
-    <div className="chips" style={tone(color)}>
+    <div className="hv-tabs" role="tablist" style={tone(color)}>
       {tabs.map((t) => (
-        <Chip key={t.id} on={t.id === value} onClick={() => onChange(t.id)} color={color}>
+        <button key={t.id} type="button" role="tab" aria-selected={t.id === value} onClick={() => onChange(t.id)}>
           {t.label}
-        </Chip>
+        </button>
       ))}
     </div>
   );

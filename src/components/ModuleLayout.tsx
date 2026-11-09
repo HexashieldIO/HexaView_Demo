@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { Lock } from 'lucide-react';
 import { MODULE_BY_ID, SERVICE_BY_ID } from '../modules/registry';
 import { useApp } from '../state/AppContext';
-import { HexIcon } from './HexIcon';
+import { HexOrb } from './HexIcon';
 import { Btn, Callout, Ring } from './ui';
 import { scopedTenants } from '../data/customers';
 import { TabRail } from './TabRail';
@@ -30,7 +30,7 @@ export function ModuleLayout({ moduleId, tabId, children, scoreOverride }: { mod
       <div className="mod-head" style={{ '--tone': mod.tone } as CSSProperties}>
         <div className="mod-head-top">
           <div className="mod-ico">
-            <HexIcon mod={mod} size={44} />
+            <HexOrb mod={mod} size={46} bob />
           </div>
           <div className="mod-title">
             <h2>

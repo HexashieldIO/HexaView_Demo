@@ -112,7 +112,9 @@ export default function CommandCentre() {
       </p>
 
       <div className="grid g-2-1">
-        <Card className="rh-card">
+        <Card className="rh-card hero-card">
+          <span className="hero-glow2" aria-hidden />
+          <span className="hero-scan" aria-hidden />
           <ResilienceHero
             key={introKey}
             introKey={introKey}

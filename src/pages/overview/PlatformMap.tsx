@@ -47,18 +47,18 @@ export function PlatformMap({ info, coreInfo }: { info: Record<string, MapNodeIn
       <svg viewBox="0 0 640 560" style={{ width: '100%', maxHeight: 520 }} role="region" aria-label="HexaCore platform map">
         <defs>
           <radialGradient id="coreHalo">
-            <stop offset="0" stopColor="#22d3ee" stopOpacity="0.22" />
-            <stop offset="0.6" stopColor="#3b82f6" stopOpacity="0.10" />
-            <stop offset="1" stopColor="#8b5cf6" stopOpacity="0" />
+            <stop offset="0" stopColor="#7ff0d6" stopOpacity="0.22" />
+            <stop offset="0.6" stopColor="#2fbfa0" stopOpacity="0.10" />
+            <stop offset="1" stopColor="#21b5ea" stopOpacity="0" />
           </radialGradient>
           <linearGradient id="coreStroke" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor="#22d3ee" />
-            <stop offset="0.5" stopColor="#3b82f6" />
-            <stop offset="1" stopColor="#8b5cf6" />
+            <stop offset="0" stopColor="#7ff0d6" />
+            <stop offset="0.5" stopColor="#2fbfa0" />
+            <stop offset="1" stopColor="#21b5ea" />
           </linearGradient>
           <linearGradient id="coreFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#3b82f6" stopOpacity="0.16" />
-            <stop offset="1" stopColor="#8b5cf6" stopOpacity="0.06" />
+            <stop offset="0" stopColor="#2fbfa0" stopOpacity="0.16" />
+            <stop offset="1" stopColor="#21b5ea" stopOpacity="0.06" />
           </linearGradient>
           <linearGradient id="coreSweep" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor="#2dd4bf" stopOpacity="0" />

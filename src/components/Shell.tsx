@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { CheckCircle2, ChevronDown, ChevronRight, Lock, Menu, Moon, RefreshCw, Search, Sun, Building2 } from 'lucide-react';
 import { MODULES, NAV_GROUPS, SERVICES, moduleForPath, type ModuleDef } from '../modules/registry';
@@ -16,6 +16,44 @@ import { BrandMark } from './BrandMark';
 import { TourOverlay } from '../demo/TourOverlay';
 import { ROLE_BY_ID, initialsOf, canAccess } from '../modules/roles';
 import { CustomerLogo } from './CustomerLogo';
+import { HexOrb } from './HexIcon';
+import { tour } from '../demo/tour';
+import { reducedMotion } from '../lib/useIntro';
+import { APP_VERSION } from '../version';
+import { EngineBack } from './EngineBack';
+
+/**
+ * Module "wave" intro: switching to a different module (not between its tabs)
+ * pops the module's hex logo and name over the page for ~600 ms. Click skips it.
+ * Off under reduced motion and during a guided tour.
+ */
+function ModuleWave() {
+  const { pathname } = useLocation();
+  const mod = moduleForPath(pathname);
+  const prev = useRef<string | null>(null);
+  const [wave, setWave] = useState<{ mod: ModuleDef; out: boolean } | null>(null);
+  useEffect(() => {
+    const before = prev.current;
+    prev.current = mod.id;
+    if (before === null || before === mod.id) return;
+    if (reducedMotion() || tour.get()) { setWave(null); return; }
+    setWave({ mod, out: false });
+    const t1 = window.setTimeout(() => setWave((w) => (w ? { ...w, out: true } : w)), 600);
+    const t2 = window.setTimeout(() => setWave(null), 1000);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mod.id]);
+  if (!wave) return null;
+  return (
+    <div className={`mwave ${wave.out ? 'out' : ''}`} style={{ '--c': wave.mod.tone } as CSSProperties} onClick={() => setWave(null)} title="Click to skip" aria-hidden>
+      <div className="mwave-logo">
+        <HexOrb mod={wave.mod} size={86} />
+        <b>{wave.mod.product}</b>
+        {wave.mod.title !== wave.mod.product && <small>{wave.mod.title}</small>}
+      </div>
+    </div>
+  );
+}
 
 
 function SideItem({ mod, onNavigate }: { mod: ModuleDef; onNavigate: () => void }) {
@@ -271,6 +309,9 @@ function Topbar({ onMenu }: { onMenu: () => void }) {
         <Menu size={20} />
       </button>
       <h1>{title}</h1>
+      <span className="ver-pill" title={`HexaView version ${APP_VERSION}`}>v{APP_VERSION}</span>
+      <span className="tb-sp" />
+      <EngineBack compact />
       <label className="tb-ctl" title="Tenant scope">
         <Building2 size={14} className="muted" />
         <select value={tenantId} onChange={(e) => setTenantId(e.target.value)} aria-label="Tenant">
@@ -321,10 +362,32 @@ export function Shell({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const { toasts } = useApp();
   const loc = useLocation();
+  const contentRef = useRef<HTMLElement>(null);
+  const firstRoute = useRef(true);
   useEffect(() => {
     document.querySelector('.main')?.scrollTo?.(0, 0);
     window.scrollTo(0, 0);
+    // Short crossfade into the new page body (the module header stays put between tabs).
+    if (firstRoute.current) { firstRoute.current = false; return; }
+    if (reducedMotion()) return;
+    contentRef.current?.querySelectorAll<HTMLElement>(':scope > :not(.mod-head)').forEach((el) => {
+      el.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: 240, easing: 'ease-out' });
+    });
   }, [loc.pathname]);
+
+  // Cursor-follow glow on hoverable cards: one delegated listener sets --mx/--my.
+  useEffect(() => {
+    const onMove = (e: PointerEvent) => {
+      const el = (e.target as Element | null)?.closest?.('.card-click, button.soc-stat, .rs-tile, .glow-card') as HTMLElement | null;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      el.style.setProperty('--mx', `${Math.round(e.clientX - r.left)}px`);
+      el.style.setProperty('--my', `${Math.round(e.clientY - r.top)}px`);
+    };
+    document.addEventListener('pointermove', onMove, { passive: true });
+    return () => document.removeEventListener('pointermove', onMove);
+  }, []);
+
   return (
     <div className="app">
       <Sidebar open={open} onNavigate={() => setOpen(false)} />
@@ -332,7 +395,8 @@ export function Shell({ children }: { children: ReactNode }) {
       <div className="main">
         <Topbar onMenu={() => setOpen(true)} />
         <TourOverlay />
-        <main className="content">
+        <ModuleWave />
+        <main className="content" ref={contentRef}>
           <ErrorBoundary resetKey={loc.pathname}>{children}</ErrorBoundary>
         </main>
       </div>

@@ -27,9 +27,9 @@ export const PALETTE = ['#4f8cff', '#2dd4bf', '#a07cfb', '#f5a83d', '#ef6aae', '
 export const SEV_HEX = { critical: '#e0345e', high: '#f2643f', medium: '#f0a338', low: '#e2c73f', info: '#8593b4' } as const;
 
 function makeTheme(dark: boolean) {
-  const text = dark ? '#b7c2db' : '#5a6478';
-  const muted = dark ? '#6c7a9c' : '#8b94a8';
-  const line = dark ? '#1b2440' : '#e8ecf3';
+  const text = dark ? '#c3cfea' : '#4f5a72';
+  const muted = dark ? '#8b9bc2' : '#7f89a0';
+  const line = dark ? 'rgba(160,190,255,0.13)' : '#e6ebf2';
   const axis = {
     axisLine: { show: true, lineStyle: { color: line } },
     axisTick: { show: false },
@@ -41,14 +41,14 @@ function makeTheme(dark: boolean) {
     color: PALETTE,
     backgroundColor: 'transparent',
     textStyle: { fontFamily: 'Inter Variable, Segoe UI, sans-serif', color: text },
-    title: { textStyle: { color: dark ? '#eaf0fb' : '#17203a' } },
+    title: { textStyle: { color: dark ? '#eef3ff' : '#131c36', fontFamily: 'IBM Plex Sans, Inter Variable, sans-serif' } },
     legend: { textStyle: { color: text, fontSize: 11 }, icon: 'roundRect', itemWidth: 10, itemHeight: 10, itemGap: 14 },
     tooltip: {
-      backgroundColor: dark ? '#111a2e' : '#ffffff',
-      borderColor: dark ? '#2a3450' : '#e5e9f1',
+      backgroundColor: dark ? '#0f1b45' : '#ffffff',
+      borderColor: dark ? 'rgba(160,190,255,0.24)' : '#e3e8f1',
       borderWidth: 1,
-      textStyle: { color: dark ? '#eaf0fb' : '#17203a', fontSize: 12 },
-      extraCssText: 'border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.25);',
+      textStyle: { color: dark ? '#eef3ff' : '#131c36', fontSize: 12 },
+      extraCssText: 'border-radius:11px;box-shadow:0 14px 40px rgba(0,0,0,.35);',
     },
     categoryAxis: { ...axis, splitLine: { show: false } },
     valueAxis: { ...axis, axisLine: { show: false } },
@@ -62,7 +62,7 @@ function makeTheme(dark: boolean) {
     },
     line: { symbol: 'circle', symbolSize: 5, smooth: true, lineStyle: { width: 2 } },
     bar: { barMaxWidth: 26, itemStyle: { borderRadius: [3, 3, 0, 0] } },
-    pie: { itemStyle: { borderColor: dark ? '#0b1122' : '#ffffff', borderWidth: 2 } },
+    pie: { itemStyle: { borderColor: dark ? '#0f1b45' : '#ffffff', borderWidth: 2 } },
     graph: { lineStyle: { color: line }, label: { color: text } },
     sankey: { label: { color: text } },
   };

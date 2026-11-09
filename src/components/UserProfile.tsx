@@ -7,6 +7,8 @@ import { MODULES } from '../modules/registry';
 import { signOut } from '../pages/auth/SignIn';
 import { usePanelFit } from './usePanelFit';
 import { APP_BUILT, APP_VERSION, RELEASE_NOTES } from '../version';
+import { EngineBack } from './EngineBack';
+import { cameFromEngine } from '../lib/engine';
 
 /** Avatar button that opens the signed-in user's role-based profile. */
 export function UserProfile() {
@@ -54,6 +56,7 @@ export function UserProfile() {
               <span className="up-email">{p.email}</span>
             </div>
           </div>
+          {cameFromEngine() && <div className="up-engine"><EngineBack /></div>}
           <div className="up-badges">
             <span className={`up-badge ${master ? 'gold' : ''}`}>{role.label}</span>
             <span className="up-badge">{role.licence} licence</span>
