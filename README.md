@@ -66,3 +66,11 @@ directory `dist`; `public/_redirects` handles client-side routes.
 - `src/modules/registry.ts` modules, tabs and the 20 services
 - `src/pages/` one folder per module, one file per tab
 - `docs/BUILD_GUIDE.md` conventions for adding pages
+
+## Versions and releases
+
+- The app version lives in `package.json` and shows on the sign-in screen and under
+  Help & support → What's new. Release notes are in `src/version.ts`.
+- Every push to the live site bumps the patch number (`npm run bump`, e.g. 1.0.6 → 1.0.7).
+- Pushes to the `HexaView_Demo` branch deploy to https://hexaview-saas-demo.pages.dev
+  (Cloudflare Pages, behind Cloudflare Access).
