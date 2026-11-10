@@ -14,6 +14,7 @@ export const RELEASE_NOTES: { version: string; items: string[] }[] = [
       'New look in line with HexaEngine: navy and teal, IBM Plex type, neon tabs, glowing stat tiles and hex-orb module headers',
       'Smoother motion: cards rise in, pages fade between routes and a short intro when you switch module',
       'Sign-in matches HexaEngine, with a Back to HexaEngine link when you arrive from it',
+      'A hexagon wave welcome sequence after you sign in, before the Command Centre opens',
     ],
   },
   {

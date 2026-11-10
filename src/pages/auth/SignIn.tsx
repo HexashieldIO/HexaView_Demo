@@ -8,6 +8,7 @@ import { ROLES, ROLE_BY_ID, initialsOf } from '../../modules/roles';
 import { MODULES } from '../../modules/registry';
 import type { CustomerId, Persona } from '../../data/types';
 import { BrandMark } from '../../components/BrandMark';
+import { HexWave, HEX_WAVE_MS } from './HexWave';
 import { APP_VERSION } from '../../version';
 import { usePublishedBrand } from '../whitelabel/brand';
 import './auth.css';
@@ -89,7 +90,7 @@ export default function SignIn() {
       setAccount('customer');
       setTenantId('all');
       nav(next && next.startsWith('/') && !next.startsWith('/signin') ? next : role.landing, { replace: true });
-    }, t + (fast ? 100 : 1500)));
+    }, t + (fast ? 100 : 450 + HEX_WAVE_MS)));
   };
 
   // Enter starts SSO, the presenter's quickest path.
@@ -251,17 +252,7 @@ export default function SignIn() {
       </div>
 
       {phase === 'enter' && (
-        <div className="auth-enter" aria-hidden>
-          <div className="auth-enter-hex">
-            <svg viewBox="0 0 120 120" width="120" height="120">
-              <defs>
-                <linearGradient id="auth-hexg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#7ff0d6" /><stop offset=".55" stopColor="#2fbfa0" /><stop offset="1" stopColor="#21b5ea" /></linearGradient>
-              </defs>
-              <path d="M60 6 L106.8 33 L106.8 87 L60 114 L13.2 87 L13.2 33 Z" fill="none" stroke="url(#auth-hexg)" strokeWidth="6" strokeLinejoin="round" className="auth-enter-path" />
-            </svg>
-            <b>{ri}</b>
-          </div>
-        </div>
+        <HexWave name={person.name} org={wl ? wl.productName : customer.short} index={ri} accent={wl ? wl.primary : undefined} accent2={wl ? wl.accent : undefined} />
       )}
     </div>
   );
