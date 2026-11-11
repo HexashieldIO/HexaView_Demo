@@ -270,6 +270,15 @@ const SPECS: Spec[] = [
   // Awareness
   ['KnowBe4', 'Security Awareness & PhishER', 'Awareness', { c: C, pop: 78, k: ['knowbe4'] }],
   ['Proofpoint', 'Security Awareness (ZenGuide)', 'Awareness', { pop: 40, k: ['proofpoint|awareness'] }],
+  ['SoSafe', 'Human Risk Management', 'Awareness', {
+    c: C, pop: 62, k: ['sosafe', 'so safe|awareness'],
+    r: ['Human Risk Score (per person, team and site)', 'E-learning completion and time spent', 'Phishing-simulation results (clicks, credential entry, report rate)', 'Phish Report Button reports and triage outcomes', 'Behavioural change over time (Sofie nudges)', 'Policy acknowledgements', 'Role-based and compliance learning paths', 'Repeat-clicker and high-risk cohorts', 'Course catalogue and campaign schedule'],
+    w: [w('Enrol user in training', 'low'), w('Assign a learning path', 'low'), w('Launch phishing campaign for a cohort', 'medium'), w('Add user to high-risk group', 'medium'), w('Send policy acknowledgement request', 'low')],
+    f: ['GDPR', 'TISAX', 'ISO 27001', 'NIS2', 'DORA', 'SOC 2'],
+    s: ['finance', 'auto', 'pharma', 'maritime', 'insurance', 'health'],
+    pw: ['HexaComply', 'HexaSOC', 'HexaInt'],
+    d: 'Behavioural-science human risk management from Germany: e-learning, phishing simulations, the Phish Report Button and a per-person Human Risk Score. Reporting is pseudonymised to satisfy works councils and GDPR, and the data is EU-hosted.',
+  }],
   ['Hoxhunt', 'Human Risk Platform', 'Awareness', { pop: 30 }],
 
   // Network & firewall

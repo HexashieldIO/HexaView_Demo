@@ -9,6 +9,14 @@ export const APP_BUILT: string = __APP_BUILT__;
 /** Short release notes shown under Help & support → What's new. Newest first. */
 export const RELEASE_NOTES: { version: string; items: string[] }[] = [
   {
+    version: '1.0.7',
+    items: [
+      'SoSafe added to the HexaCore Marketplace under Awareness',
+      'Reads Human Risk Scores, training completion, phishing-simulation results and Phish Report Button reports',
+      'Five write-back actions, from enrolling a user to launching a phishing campaign',
+    ],
+  },
+  {
     version: '1.0.6',
     items: [
       'New look in line with HexaEngine: navy and teal, IBM Plex type, neon tabs, glowing stat tiles and hex-orb module headers',
