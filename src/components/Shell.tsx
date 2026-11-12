@@ -117,9 +117,10 @@ function SideItem({ mod, onNavigate }: { mod: ModuleDef; onNavigate: () => void 
   );
 }
 
-function Workspace({ onNavigate, initialOpen = true }: { onNavigate: () => void; initialOpen?: boolean }) {
+function Workspace({ onNavigate }: { onNavigate: () => void }) {
   const { customer, persona, account } = useApp();
-  const [open, setOpen] = useState(initialOpen);
+  // Starts collapsed: a fresh sign-in lands on a tidy menu with nothing expanded.
+  const [open, setOpen] = useState(false);
   if (account === 'partner') return null;
   const role = ROLE_BY_ID[persona] ?? ROLE_BY_ID.ciso;
   const p = role.person(customer);
@@ -213,7 +214,7 @@ function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () => void }
         </div>
       )}
 
-      <Workspace key={`ws-${resetKey}`} initialOpen={resetKey === 0} onNavigate={onNavigate} />
+      <Workspace key={`ws-${resetKey}`} onNavigate={onNavigate} />
 
       {NAV_GROUPS.filter((g) => g.id !== 'partner' || account === 'partner').map((g) => (
         <div className="nav-group" key={`${g.id}-${resetKey}`}>

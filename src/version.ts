@@ -9,6 +9,14 @@ export const APP_BUILT: string = __APP_BUILT__;
 /** Short release notes shown under Help & support → What's new. Newest first. */
 export const RELEASE_NOTES: { version: string; items: string[] }[] = [
   {
+    version: '1.0.8',
+    items: [
+      'The closed loop runs live on the Command Centre, each link in its module colour, and opens the loops with a gap there',
+      '"What needs you": the approvals, sign-offs and fixes waiting on you, by role',
+      'The sidebar starts tidy after sign-in, with nothing expanded',
+    ],
+  },
+  {
     version: '1.0.7',
     items: [
       'SoSafe added to the HexaCore Marketplace under Awareness',

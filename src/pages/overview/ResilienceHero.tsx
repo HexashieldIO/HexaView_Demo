@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
+import type { ReactNode } from 'react';
 import { useIntro, reducedMotion } from '../../lib/useIntro';
 import { LiveChip, Ring, hexPath } from '../../components/ui';
 import { monthLabels } from '../../lib/format';
@@ -22,13 +23,15 @@ type Geo = { w: number; h: number; flows: Flow[] };
  * Command Centre hero, centred: the Resilience Index hex in the middle, the six
  * capabilities in an arc either side feeding it signals, the trend beneath.
  */
-export function ResilienceHero({ introKey, value, trend, scopeText, gauges, events, onOpenIndex, onOpenGauge, onOpenEvent }: {
+export function ResilienceHero({ introKey, value, trend, scopeText, gauges, events, loop, onOpenIndex, onOpenGauge, onOpenEvent }: {
   introKey: string;
   value: number;
   trend: number[];
   scopeText: string;
   gauges: HeroGauge[];
   events: FeedEvent[];
+  /** Optional strip rendered under the trend line (the live closed loop). */
+  loop?: ReactNode;
   onOpenIndex: () => void;
   onOpenGauge: (g: HeroGauge) => void;
   onOpenEvent: (e: FeedEvent) => void;
@@ -211,6 +214,8 @@ export function ResilienceHero({ introKey, value, trend, scopeText, gauges, even
           </button>
         )}
         </div>
+
+      {loop}
     </div>
   );
 }

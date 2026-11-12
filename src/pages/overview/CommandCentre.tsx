@@ -14,6 +14,8 @@ import { fmtAgo, fmtCompact, fmtNum, scoreTone } from '../../lib/format';
 import { ROLE_BY_ID, initialsOf } from '../../modules/roles';
 import { PlatformMap, type MapNodeInfo } from './PlatformMap';
 import { ResilienceHero, useIntro } from './ResilienceHero';
+import { HeroLoop } from './HeroLoop';
+import { needsYou, NEED_VERB } from '../../data/modules/needsyou';
 import type { Env } from '../../data/types';
 
 const ENV_META: Record<Env, { label: string; icon: typeof Cloud; color: string }> = {
@@ -40,6 +42,8 @@ export default function CommandCentre() {
   const conns = scopedConnectors(c, tenantId);
   const ls = useMemo(() => loops(c, tenantId), [c, tenantId]);
   const lsum = loopSummary(ls);
+  const lastEval = ls.length ? Math.min(...ls.map((l) => l.evaluatedMinAgo)) : 0;
+  const needs = useMemo(() => needsYou(c, tenantId, persona), [c, tenantId, persona]);
   const att = attention(c, tenantId);
   const allLoops = useMemo(() => loops(c), [c]);
 
@@ -129,6 +133,7 @@ export default function CommandCentre() {
             onOpenIndex={() => nav('/board')}
             onOpenGauge={(g) => nav(g.to)}
             onOpenEvent={(e) => { const m = MODULE_BY_ID[e.module]; nav(m ? (m.tabs.length ? `${m.basePath}/${m.tabs[0].id}` : m.basePath) : '/ops/notifications'); }}
+            loop={<HeroLoop s={lsum} lastEvalMin={lastEval} onOpen={(q) => nav(q ? `/loop?${q}` : '/loop')} />}
           />
         </Card>
 
@@ -165,6 +170,24 @@ export default function CommandCentre() {
               return <GaugeTile key={k} value={Math.round(sideAnim(scoreFor(k), 900 + i * 150, 1200))} color={m.tone} label={m.scoreLabel ?? ''} sub={m.product} size={58} onClick={() => nav(`${m.basePath}/${m.tabs[0].id}`)} />;
             })}
           </div>
+
+          {needs.length > 0 && (
+            <>
+              <div className="rs-label ny-label">What needs you<span className="ny-count">{needs.length}</span></div>
+              <div className="ny">
+                {needs.map((n) => (
+                  <button key={n.id} className={`ny-item sev-${n.sev}`} style={{ '--tone': n.tone } as CSSProperties} onClick={() => nav(n.path)} title={`${NEED_VERB[n.kind]} — open`}>
+                    <span className="ny-dot" />
+                    <span className="ny-txt">
+                      <b>{n.title}</b>
+                      <small>{n.meta}</small>
+                    </span>
+                    <span className="ny-verb">{NEED_VERB[n.kind]}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </Card>
       </div>
 

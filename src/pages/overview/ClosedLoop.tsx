@@ -59,12 +59,14 @@ export default function ClosedLoop() {
     const fw = sp.get('framework');
     const tn = sp.get('tenant');
     const ct = sp.get('control');
+    const ms = sp.get('missing');
     if (st && (STATUS_ORDER as string[]).includes(st)) setFStatus(st as LoopStatus);
     if (fw) {
       const short = c.frameworks.find((f) => f.id === fw || f.short === fw)?.short;
       setFFw(short ?? 'all');
     }
     if (tn && c.tenants.some((t) => t.id === tn)) setFTenant(tn);
+    if (ms && LINK_ORDER.some((l) => l.key === ms)) setFMissing(ms as LinkKey);
     setFControl(ct);
   }, [sp, c]);
 
