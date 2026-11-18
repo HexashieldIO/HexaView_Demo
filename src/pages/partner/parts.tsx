@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './partner.css';
 import { useApp } from '../../state/AppContext';
-import { CAP_LIST, MODE_COLOR, type ModMode, type PartnerClient } from '../../data/modules/partner';
+import { CAP_LIST, MODE_COLOR, PARTNER, clientBook, type ModMode, type PartnerClient } from '../../data/modules/partner';
 import type { CapabilityId } from '../../data/types';
 import { fmtMoney } from '../../lib/format';
 import { CustomerLogo } from '../../components/CustomerLogo';
@@ -105,9 +105,9 @@ export function useOpenClient() {
     if (c.demoId) {
       setCustomerId(c.demoId);
       nav('/');
-      toast(`Viewing ${c.name} as ${'Northwind Cyber Partners'} (delegated partner access, audited)`);
+      toast(c.own ? `Opening ${c.name}: your own estate on HexaView (customer zero)` : `Viewing ${c.name} as ${PARTNER.name} (delegated partner access, audited)`);
     } else {
-      toast(`${c.name} is a sample client in this build: open one of the five demo clients to see a full tenant.`);
+      toast(`${c.name} is a sample client in this build: open ${clientBook()[0].own ? 'your own estate' : 'one of the five demo clients'} to see a full tenant.`);
     }
   };
 }

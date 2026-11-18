@@ -1,18 +1,48 @@
-// Partner / MSSP data: Northwind Cyber Partners, a fictional HexaShield
-// Platinum MSSP whose client book is the five demo customers plus a set of
-// smaller generated clients. Everything here is partner-side (USD), stable
-// across reloads (seeded) and independent of the selected customer.
+// Partner / MSSP data. Two fictional HexaShield Platinum MSSPs:
+//  - Northwind Cyber Partners, whose client book is the demo customers plus a
+//    set of smaller generated clients (shown for every customer except telco);
+//  - Kinneret Business Cyber, the managed-security arm of Kinneret Telecom
+//    Group, shown when the selected customer is `telco`: its book is the
+//    group's own estate plus its Israeli business customers (partnerKinneret.ts).
+// Everything here is partner-side (USD) and stable across reloads (seeded).
+// The active partner is switched in one place: setActivePartner().
 
 import type { CapabilityId, CustomerId, ServiceId, Tier } from '../types';
 import { CUSTOMER_LIST } from '../customers';
 import { headlines, resilienceIndex, riTrend, riDrivers } from '../core';
 import { rng } from '../../lib/rng';
 import { forCustomer, type CustomerMap } from '../customerMap';
+import { KT } from './partnerKinneret';
 
 /* =====================================================================
    The partner
    ===================================================================== */
-export const PARTNER = {
+export type PartnerKey = 'northwind' | 'kinneret';
+export interface PartnerProfile {
+  key: PartnerKey;
+  name: string;
+  short: string;
+  initials: string;
+  partnerId: string;
+  level: string;
+  hq: string;
+  regions: string[];
+  since: string;
+  socs: string[];
+  /** Mail and portal domain of the partner. */
+  domain: string;
+  /** Prefix of the partner's own invoice numbers and IdP groups. */
+  prefix: string;
+  channelManager: { name: string; role: string; email: string };
+  partnerSe: { name: string; role: string; email: string };
+  dealDesk: string;
+  fiscalYear: string;
+  /** Partner buy discounts off HexaShield list. */
+  discount: { licence: number; services: number; dealReg: number; referralFee: number };
+  mdfAllocation: number;
+}
+const NORTHWIND: PartnerProfile = {
+  key: 'northwind',
   name: 'Northwind Cyber Partners',
   short: 'Northwind',
   initials: 'NW',
@@ -22,14 +52,37 @@ export const PARTNER = {
   regions: ['UK & Ireland', 'EU (Frankfurt stamp)', 'North America'],
   since: 'March 2023',
   socs: ['Manchester (24/7)', 'Austin (follow-the-sun)'],
+  domain: 'northwindcyber.com',
+  prefix: 'NW',
   channelManager: { name: 'Sam Whitfield', role: 'HexaShield Channel Account Manager', email: 'sam.whitfield@hexashield.io' },
   partnerSe: { name: 'Nadia Kerr', role: 'HexaShield Partner Solutions Engineer', email: 'nadia.kerr@hexashield.io' },
   dealDesk: 'dealdesk@hexashield.io',
   fiscalYear: 'FY27',
-  /** Partner buy discounts off HexaShield list. */
   discount: { licence: 30, services: 25, dealReg: 5, referralFee: 10 },
   mdfAllocation: 120000,
 };
+const KINNERET: PartnerProfile = {
+  key: 'kinneret',
+  name: 'Kinneret Business Cyber',
+  short: 'Kinneret Cyber',
+  initials: 'KC',
+  partnerId: 'HXP-0562',
+  level: 'Platinum MSSP',
+  hq: 'Tel Aviv, Israel',
+  regions: ['Israel', 'Cyprus & Greece', 'EU (Frankfurt stamp)'],
+  since: 'September 2024',
+  socs: ['Petah Tikva (24/7)', "Be'er Sheva (follow-the-sun and overflow)"],
+  domain: 'kinneret-telecom.co.il',
+  prefix: 'KBC',
+  channelManager: { name: 'Sam Whitfield', role: 'HexaShield Channel Account Manager', email: 'sam.whitfield@hexashield.io' },
+  partnerSe: { name: 'Nadia Kerr', role: 'HexaShield Partner Solutions Engineer', email: 'nadia.kerr@hexashield.io' },
+  dealDesk: 'dealdesk@hexashield.io',
+  fiscalYear: 'FY27',
+  discount: { licence: 30, services: 25, dealReg: 5, referralFee: 10 },
+  mdfAllocation: 150000,
+};
+/** The active partner. A live binding: importers always read the partner for the selected customer. */
+export let PARTNER: PartnerProfile = NORTHWIND;
 
 export interface PartnerPerson {
   id: string;
@@ -38,12 +91,13 @@ export interface PartnerPerson {
   team: 'Leadership' | 'Sales' | 'Pre-sales' | 'SOC' | 'OT' | 'GRC' | 'Customer success' | 'Marketing' | 'Platform';
   email: string;
 }
+let staffDomain = NORTHWIND.domain;
 const P = (name: string, role: string, team: PartnerPerson['team']): PartnerPerson => ({
   id: name.toLowerCase().replace(/[^a-z]+/g, '-'),
   name, role, team,
-  email: `${name.split(' ')[0].toLowerCase()}.${name.split(' ').slice(-1)[0].toLowerCase().replace(/[^a-z]/g, '')}@northwindcyber.com`,
+  email: `${name.split(' ')[0].toLowerCase()}.${name.split(' ').slice(-1)[0].toLowerCase().replace(/[^a-z]/g, '')}@${staffDomain}`,
 });
-export const STAFF: PartnerPerson[] = [
+const NW_STAFF: PartnerPerson[] = [
   P('Priya Raman', 'Managing Director', 'Leadership'),
   P('Tom Ellery', 'Head of Sales', 'Sales'),
   P('Grace Okafor', 'Account Executive, Regulated', 'Sales'),
@@ -60,6 +114,44 @@ export const STAFF: PartnerPerson[] = [
   P('Elena Novak', 'Partner Marketing Manager', 'Marketing'),
   P('Jack Turner', 'Platform Engineer', 'Platform'),
 ];
+staffDomain = KINNERET.domain;
+// Same seats, in the same order, as NW_STAFF: shared seed data names a Northwind
+// seat and staffAlias() resolves it to whoever holds that seat at the active partner.
+const KT_STAFF: PartnerPerson[] = KT.staff.map(([name, role], i) => P(name, role, NW_STAFF[i].team));
+/** The active partner's team (live binding, like PARTNER). */
+export let STAFF: PartnerPerson[] = NW_STAFF;
+
+/* =====================================================================
+   Which partner is shown: one switch point
+   ===================================================================== */
+let ACTIVE: PartnerKey = 'northwind';
+const partnerListeners = new Set<() => void>();
+export function partnerKeyFor(customerId: CustomerId): PartnerKey {
+  return customerId === 'telco' ? 'kinneret' : 'northwind';
+}
+export function activePartner(): PartnerKey {
+  return ACTIVE;
+}
+/** Run `f` after the active partner changes (other modules reset their per-partner caches here). */
+export function onPartnerChange(f: () => void): () => void {
+  partnerListeners.add(f);
+  return () => partnerListeners.delete(f);
+}
+/** Called by AppContext with the selected customer, at start-up and on every customer change. */
+export function setActivePartner(customerId: CustomerId) {
+  const k = partnerKeyFor(customerId);
+  if (k === ACTIVE) return;
+  ACTIVE = k;
+  PARTNER = k === 'kinneret' ? KINNERET : NORTHWIND;
+  STAFF = k === 'kinneret' ? KT_STAFF : NW_STAFF;
+  BOOK = null;
+  partnerListeners.forEach((f) => f());
+}
+/** The active partner's holder of a seat that shared seed data names by its Northwind holder. */
+export function staffAlias(name: string): string {
+  const i = NW_STAFF.findIndex((p) => p.name === name);
+  return i < 0 ? name : STAFF[i].name;
+}
 
 /* =====================================================================
    Pricing (HexaView tiers, the twenty services, professional services)
@@ -216,6 +308,8 @@ export interface PartnerClient {
   users: number;
   tenants: number;
   frameworks: string[];
+  /** The partner's own estate, run on the same platform ("customer zero"). */
+  own?: boolean;
 }
 
 function modesFromServices(active: ServiceId[], trial: ServiceId[]): Record<CapabilityId, ModMode> {
@@ -245,9 +339,11 @@ const DEMO_EXTRA: CustomerMap<{ city: string; country: string; lat: number; lon:
   pharma: { city: 'Basel', country: 'CH', lat: 47.56, lon: 7.59, renewalDays: 284, sinceMonths: 22, csm: 'Ravi Patel', owner: 'Grace Okafor', status: 'active' },
   sghospital: { city: 'Singapore', country: 'SG', lat: 1.32, lon: 103.84, renewalDays: 238, sinceMonths: 4, csm: 'Ravi Patel', owner: 'Grace Okafor', status: 'onboarding' },
   studio: { city: 'Burbank', country: 'US', lat: 34.15, lon: -118.34, renewalDays: 212, sinceMonths: 16, csm: 'Freya Watts', owner: 'Grace Okafor', status: 'active' },
+  // Kinneret's own estate: in Kinneret Business Cyber's book only (csm / owner are seats, see staffAlias).
+  telco: { city: 'Tel Aviv', country: 'IL', lat: 32.07, lon: 34.79, renewalDays: 290, sinceMonths: 26, csm: 'Freya Watts', owner: 'Grace Okafor', status: 'active' },
 };
 
-interface SmallSeed {
+export interface SmallSeed {
   name: string; short: string; sector: string; city: string; country: string; lat: number; lon: number; colour: string;
   tier: Tier; status: ClientStatus; employees: number; services: ServiceId[]; trial?: ServiceId[]; frameworks: string[]; issue: string;
   deployment: string; residency: string;
@@ -268,7 +364,9 @@ const SMALL: SmallSeed[] = [
 let BOOK: PartnerClient[] | null = null;
 export function clientBook(): PartnerClient[] {
   if (BOOK) return BOOK;
-  const demo: PartnerClient[] = CUSTOMER_LIST.map((c) => {
+  const kt = ACTIVE === 'kinneret';
+  // Northwind runs the ten reference tenants; Kinneret Business Cyber runs the group's own estate first.
+  const demo: PartnerClient[] = CUSTOMER_LIST.filter((c) => (c.id === 'telco') === kt).map((c) => {
     const h = headlines(c);
     const ri = resilienceIndex(c).value;
     const active = (Object.keys(c.services) as ServiceId[]).filter((s) => c.services[s] === 'active');
@@ -280,6 +378,7 @@ export function clientBook(): PartnerClient[] {
     const degraded = c.connectors.filter((k) => k.status !== 'healthy');
     if (degraded.length) notes.push(`${degraded.length} integration${degraded.length > 1 ? 's' : ''} degraded (${degraded.slice(0, 2).map((k) => k.product).join(', ')})`);
     if (x.renewalDays < 90) notes.push(`Renewal in ${x.renewalDays} days`);
+    if (kt) notes.unshift('Own estate (customer zero): internal recharge, not a resale contract');
     const health = Math.round(ri * 0.55 + (healthy / c.connectors.length) * 100 * 0.25 + (x.renewalDays < 90 ? 8 : 18) - h.soc.critical * 2);
     return {
       id: c.id, demoId: c.id, name: c.name, short: c.short, initials: c.initials, colour: c.colour, sector: c.sector,
@@ -289,12 +388,12 @@ export function clientBook(): PartnerClient[] {
       ri, riTrend: riTrend(c), openIncidents: h.soc.openIncidents, critical: h.soc.critical,
       health: Math.min(96, health), healthNotes: notes, topAction: riDrivers(c)[0].text,
       renewalDays: x.renewalDays, arrUsd: arrFor(c.tier, active, c.employees, c.connectors.length), sinceMonths: x.sinceMonths, employees: c.employees,
-      csm: x.csm, owner: x.owner, deployment: c.deployment, residency: c.residency,
+      csm: staffAlias(x.csm), owner: staffAlias(x.owner), deployment: c.deployment, residency: c.residency,
       eventsPerDay: h.fabric.eventsPerDay, copilotTokensM: Math.round(h.ai.copilotQueries30d * 0.0042 * 10) / 10, users: Math.round(c.employees * 0.006) + 18,
-      tenants: c.tenants.length, frameworks: c.frameworks.map((f) => f.short),
+      tenants: c.tenants.length, frameworks: c.frameworks.map((f) => f.short), ...(kt ? { own: true } : {}),
     };
   });
-  const small: PartnerClient[] = SMALL.map((s, i) => {
+  const small: PartnerClient[] = (kt ? KT.small : SMALL).map((s, i) => {
     const r = rng(`partner-client-${s.short}`);
     const limit = TIER_BY_ID[s.tier].integrations;
     const integrations = s.status === 'onboarding' ? r.int(2, 4) : limit === null ? r.int(24, 38) : limit === 5 ? 5 : r.int(12, 21);
@@ -324,7 +423,7 @@ export function clientBook(): PartnerClient[] {
       integrations, integrationLimit: limit, healthyIntegrations: healthy,
       ri, riTrend: trend, openIncidents, critical, health: Math.min(95, health), healthNotes: notes, topAction: s.issue,
       renewalDays, arrUsd: arrFor(s.tier, s.services, s.employees, integrations), sinceMonths: s.status === 'onboarding' || s.status === 'trial' ? 0 : r.int(5, 30), employees: s.employees,
-      csm: i % 2 ? 'Freya Watts' : 'Ravi Patel', owner: i % 3 ? 'Grace Okafor' : 'Daniel Moretti',
+      csm: staffAlias(i % 2 ? 'Freya Watts' : 'Ravi Patel'), owner: staffAlias(i % 3 ? 'Grace Okafor' : 'Daniel Moretti'),
       deployment: s.deployment, residency: s.residency,
       eventsPerDay: Math.round(s.employees * r.int(900, 1600)), copilotTokensM: s.tier === 'Essentials' ? 0 : r.float(0.4, 4.2), users: r.int(4, 22),
       tenants: s.tier === 'Enterprise / CNI' ? r.int(3, 5) : r.int(1, 2), frameworks: s.frameworks,
@@ -385,6 +484,7 @@ export interface ProvRequest {
 export function provisioningQueue(): ProvRequest[] {
   const b = clientBook();
   const id = (s: string) => b.find((c) => c.short === s)?.id ?? b[0].id;
+  if (ACTIVE === 'kinneret') return KT.prov(id);
   return [
     { id: 'PRV-3318', clientId: id('Calder Valley'), kind: 'Add integration', detail: 'Google Workspace (read: audit logs, users; write: suspend user)', requestedBy: 'Jack Turner', ageHours: 5, status: 'awaiting-client', step: 2, steps: ['Requested', 'Consent sent', 'Client consent', 'Credentials in vault', 'First sync'], approval: 'auto' },
     { id: 'PRV-3317', clientId: id('Harbour & Vale'), kind: 'Data plane', detail: 'Customer-hosted data plane on AWS eu-west-2 (Splunk Cloud, Defender, Okta)', requestedBy: 'Jack Turner', ageHours: 26, status: 'awaiting-client', step: 2, steps: ['Requested', 'Helm chart issued', 'Firewall egress to stamp', 'Heartbeat', 'Connectors bound'], approval: 'partner admin' },
@@ -401,7 +501,7 @@ export function provisioningQueue(): ProvRequest[] {
 
 export const ONBOARDING_STEPS = ['Kick-off', 'Tenant & SSO', 'Data plane', 'Connectors', 'Baseline & tuning', 'Runbooks', 'Go-live'];
 export function onboardingProgress(c: PartnerClient): number {
-  if (c.status === 'onboarding') return c.short === 'Calder Valley' ? 3 : 2;
+  if (c.status === 'onboarding') return c.short === (ACTIVE === 'kinneret' ? KT.onboardingAhead : 'Calder Valley') ? 3 : 2;
   if (c.status === 'trial') return 4;
   return ONBOARDING_STEPS.length;
 }
@@ -440,6 +540,7 @@ export interface Deal {
   kind: 'new logo' | 'upsell' | 'renewal';
 }
 export function deals(): Deal[] {
+  if (ACTIVE === 'kinneret') return KT.deals();
   return [
     { id: 'DR-2058', opportunity: 'Meridian Foods: Managed SOC', endClient: 'Meridian Foods Ltd', sector: 'Food manufacturing', modules: ['soc', 'comply'], tier: 'Professional', valueUsd: 214000, stage: 'Proposal', reg: 'approved', submittedDaysAgo: 22, protectedDays: 68, owner: 'Tom Ellery', se: 'Nadia Kerr', competitor: 'Incumbent MSSP (log forwarding only)', closeQuarter: 'Q4 2026', kind: 'new logo' },
     { id: 'DR-2057', opportunity: 'Harbour & Vale: Compliance as a service', endClient: 'Harbour & Vale Insurance', sector: 'Insurance', existingClientId: 'harbour-vale', modules: ['comply'], tier: 'Professional', valueUsd: 66000, stage: 'Qualifying', reg: 'pending', submittedDaysAgo: 1, protectedDays: null, owner: 'Grace Okafor', competitor: 'Big Four advisory', closeQuarter: 'Q4 2026', deskHoursLeft: 30, kind: 'upsell' },
@@ -461,7 +562,7 @@ export function deals(): Deal[] {
 }
 
 /** Names the deal desk would flag when a partner registers a deal. */
-export const PROTECTED_NAMES: { match: string; result: 'other-partner' | 'direct' ; detail: string }[] = [
+const PROTECTED_NAMES: { match: string; result: 'other-partner' | 'direct' ; detail: string }[] = [
   { match: 'brightwater', result: 'other-partner', detail: 'Registered by another partner, protected until 14 Dec 2026.' },
   { match: 'northgate', result: 'direct', detail: 'HexaShield direct has an open lead under the NHS framework.' },
   { match: 'atlas', result: 'other-partner', detail: 'Registered by another partner, protected until 2 Feb 2027.' },
@@ -471,7 +572,7 @@ export const PROTECTED_NAMES: { match: string; result: 'other-partner' | 'direct
 export function conflictCheck(name: string): { state: 'clear' | 'existing' | 'own' | 'other-partner' | 'direct'; text: string } {
   const n = name.trim().toLowerCase();
   if (n.length < 3) return { state: 'clear', text: 'Type the end client name to run the conflict check.' };
-  const p = PROTECTED_NAMES.find((x) => n.includes(x.match));
+  const p = (ACTIVE === 'kinneret' ? KT.protectedNames : PROTECTED_NAMES).find((x) => n.includes(x.match));
   if (p) return { state: p.result, text: p.detail };
   const own = deals().find((d) => d.endClient.toLowerCase().includes(n) && d.stage !== 'Closed won' && d.stage !== 'Closed lost');
   if (own) return { state: 'own', text: `You already have ${own.id} open for ${own.endClient} (${REG_LABEL[own.reg].toLowerCase()}). Add scope to it instead?` };
@@ -496,6 +597,7 @@ export interface SavedQuote {
   owner: string;
 }
 export function savedQuotes(): SavedQuote[] {
+  if (ACTIVE === 'kinneret') return KT.quotes();
   return [
     { id: 'Q-3391', client: 'Vireo Motor Group', dealId: 'DR-2045', tier: 'Enterprise / CNI', services: 6, sellUsd: 688400, marginPct: 29.1, status: 'Sent', daysAgo: 3, owner: 'Daniel Moretti' },
     { id: 'Q-3388', client: 'Meridian Foods Ltd', dealId: 'DR-2058', tier: 'Professional', services: 4, sellUsd: 211900, marginPct: 30.4, status: 'Sent', daysAgo: 6, owner: 'Tom Ellery' },
@@ -511,7 +613,7 @@ export function savedQuotes(): SavedQuote[] {
    Pipeline history
    ===================================================================== */
 export function bookingsHistory(): { month: number; won: number; lost: number; created: number }[] {
-  const r = rng('partner-bookings');
+  const r = rng(ACTIVE === 'kinneret' ? 'partner-bookings-kinneret' : 'partner-bookings');
   return Array.from({ length: 12 }, (_, i) => ({ month: i, won: Math.round(r.int(60, 240) * (0.8 + i / 30)) * 1000, lost: r.int(10, 110) * 1000, created: Math.round(r.int(220, 520) * (0.85 + i / 25)) * 1000 }));
 }
 
@@ -569,6 +671,8 @@ export function contentLibrary(): ContentItem[] {
     { title: 'Two-minute product overview', type: 'Video', product: 'HexaView', summary: 'For email follow-ups and your website.', bullets: ['White-labelled version available', 'Subtitles in 6 languages', 'MP4 · 1080p'], format: 'MP4 · 2:04', updatedDays: 44, cobrand: true },
     { title: 'Closed-loop assurance explained', type: 'Video', product: 'HexaView', summary: 'Policy to evidence to detection to validation.', bullets: ['Animated walkthrough', 'For GRC and audit buyers', 'MP4 · 1080p'], format: 'MP4 · 3:40', updatedDays: 58, cobrand: false },
   ];
+  // Appended after the shared items so their ids and download counts stay the same for both partners.
+  if (ACTIVE === 'kinneret') items.push(...KT.content);
   return items.map((it, i) => ({ ...it, id: `LIB-${String(100 + i)}`, downloads: r.int(12, 420) }));
 }
 
@@ -634,6 +738,7 @@ export interface Campaign {
   owner: string;
 }
 export function campaigns(): Campaign[] {
+  if (ACTIVE === 'kinneret') return KT.campaigns();
   return [
     { id: 'CMP-118', name: 'DORA in 90 days: TLPT and third parties', type: 'Webinar', sector: 'Financial Services', status: 'Completed', budget: 9000, mdf: 4500, leads: 214, mqls: 41, pipelineUsd: 612000, wonUsd: 172000, startDays: -62, owner: 'Elena Novak' },
     { id: 'CMP-121', name: 'Ports & terminals OT roundtable, Rotterdam', type: 'Roundtable', sector: 'Maritime', status: 'Completed', budget: 16000, mdf: 8000, leads: 38, mqls: 19, pipelineUsd: 840000, wonUsd: 128000, startDays: -45, owner: 'Elena Novak' },
@@ -654,6 +759,7 @@ export interface MdfClaim {
   proof: string[];
 }
 export function mdfClaims(): MdfClaim[] {
+  if (ACTIVE === 'kinneret') return KT.mdf();
   return [
     { id: 'MDF-0841', campaignId: 'CMP-126', amount: 21000, status: 'Paid', daysAgo: 70, proof: ['Stand invoice', 'Lead list (512)', 'Photos'] },
     { id: 'MDF-0852', campaignId: 'CMP-118', amount: 4500, status: 'Paid', daysAgo: 48, proof: ['Platform invoice', 'Attendee report'] },
@@ -709,6 +815,9 @@ export interface Invoice {
 export function invoices(): Invoice[] {
   const book = clientBook();
   const months = ['Oct 2026', 'Sep 2026', 'Aug 2026'];
+  const kt = ACTIVE === 'kinneret';
+  const disputed = kt ? KT.disputed : 'Greyfriars';
+  const overdue = kt ? KT.overdue : ['Kingsmere', 'Pemberton'];
   const out: Invoice[] = [];
   months.forEach((m, mi) => {
     const lic = book.reduce((s, c) => s + clientMargin(c).licence * (1 - PARTNER.discount.licence / 100), 0) / 12;
@@ -723,9 +832,9 @@ export function invoices(): Invoice[] {
   book.forEach((c, i) => {
     const r = rng(`inv-${c.id}`);
     const monthly = clientMargin(c).sell / 12;
-    const status: Invoice['status'] = c.status === 'onboarding' ? 'Draft' : c.short === 'Greyfriars' ? 'Disputed' : c.short === 'Kingsmere' || c.short === 'Pemberton' ? 'Overdue' : i % 3 === 0 ? 'Due' : 'Paid';
+    const status: Invoice['status'] = c.status === 'onboarding' ? 'Draft' : c.short === disputed ? 'Disputed' : overdue.includes(c.short) ? 'Overdue' : i % 3 === 0 ? 'Due' : 'Paid';
     out.push({
-      id: `NW-${4400 + i * 3}`, direction: 'receivable', counterparty: c.name, clientId: c.id, period: 'Oct 2026',
+      id: `${PARTNER.prefix}-${4400 + i * 3}`, direction: 'receivable', counterparty: c.name, clientId: c.id, period: 'Oct 2026',
       amountUsd: Math.round(monthly + (c.status === 'onboarding' ? c.arrUsd * 0.3 : 0)), status, dueDays: status === 'Overdue' ? -r.int(6, 21) : status === 'Paid' ? -r.int(1, 9) : r.int(4, 28),
       lines: [
         { label: `HexaView ${c.tier} (monthly)`, amount: Math.round(clientMargin(c).licence * 0.97 / 12) },
@@ -784,6 +893,7 @@ export interface Ticket {
 }
 export function tickets(): Ticket[] {
   const id = (s: string) => clientBook().find((c) => c.short === s)?.id;
+  if (ACTIVE === 'kinneret') return KT.tickets(id);
   return [
     { id: 'PS-7781', title: 'Kestrel: P1 SLA credit calculation for the August incident', clientId: id('Kestrel'), priority: 'P2', category: 'Billing', status: 'With HexaShield', ageHours: 30, slaHours: 24, owner: 'Freya Watts', assignee: 'HexaShield Billing', updates: [{ who: 'Freya Watts', text: 'Client is asking for 10% credit; our calc says 4%. Need HexaShield view before renewal call on Friday.', hoursAgo: 30 }, { who: 'HexaShield Billing', text: 'Reviewing against the MDR SLA schedule; response by end of day.', hoursAgo: 6 }] },
     { id: 'PS-7779', title: 'Kingsmere: raise Essentials integration cap or upgrade path', clientId: id('Kingsmere'), priority: 'P3', category: 'Deal desk', status: 'Awaiting partner', ageHours: 52, slaHours: 48, owner: 'Ravi Patel', assignee: 'Deal desk', updates: [{ who: 'Deal desk', text: 'Essentials is capped at 5. Options: add-on integration (US$2,400/yr) or Professional with a 12% first-year step-down. Which should we quote?', hoursAgo: 20 }] },

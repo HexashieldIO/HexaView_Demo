@@ -25,6 +25,7 @@ const TOWER_ADVICE: CustomerMap<string> = {
   pharma: 'Options: a CHF 50M excess layer, or reducing the batch-release BI tail with plant segmentation and paper-batch drills.',
   sghospital: 'Options: a S$10M excess layer, or cutting the ransomware-with-diversion tail with TrakCare recovery under 4 h.',
   studio: 'Options: a $100M excess layer, or the leak buy-back extension for tentpole titles.',
+  telco: 'Options: a ₪150M third excess layer, or cutting the subscriber-data and outage tail with SIM-change controls and always-on scrubbing.',
 };
 
 const MIX_LABEL = { bi: 'Business interruption', response: 'Response & forensics', extortion: 'Extortion', liability: 'Liability & regulatory', fraud: 'Fraud loss' } as const;

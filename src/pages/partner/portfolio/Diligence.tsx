@@ -5,7 +5,7 @@ import { Card, KpiStrip, Badge, Bar, Btn, Callout, Chip, Ring, SevBadge, Legend 
 import { Drawer } from '../../../components/Overlay';
 import { DataTable, type Column } from '../../../components/DataTable';
 import { PARTNER } from '../../../data/modules/partner';
-import { DD_TARGETS, DD_CATEGORIES, ddImpact, type DdFinding, type DdTarget, type DdSev } from '../../../data/modules/portfolio';
+import { ddTargets, DD_CATEGORIES, ddImpact, type DdFinding, type DdTarget, type DdSev } from '../../../data/modules/portfolio';
 import { NOW, fmtDate, fmtNum, scoreTone } from '../../../lib/format';
 import { CoAvatar, PF_TONE, usdK, usdM, usePfNav } from './parts';
 
@@ -81,14 +81,15 @@ function Report({ t, onBack }: { t: DdTarget; onBack: () => void }) {
 export default function Diligence() {
   const { toast } = useApp();
   const { sp, set, patch } = usePfNav();
-  const t = DD_TARGETS.find((x) => x.id === sp.get('target')) ?? DD_TARGETS[0];
+  const targets = ddTargets();
+  const t = targets.find((x) => x.id === sp.get('target')) ?? targets[0];
   const im = ddImpact(t);
   const [cat, setCat] = useState<string>('all');
   const [sel, setSel] = useState<DdFinding | null>(null);
   const flagsOnly = sp.get('flags') === '1';
   if (sp.get('report') === '1') return <Report t={t} onBack={() => set('report', null)} />;
 
-  const all = DD_TARGETS.map((x) => ({ x, im: ddImpact(x) }));
+  const all = targets.map((x) => ({ x, im: ddImpact(x) }));
   const worst = all.slice().sort((a, b) => b.im.flags - a.im.flags)[0];
   const rows = t.findings.filter((f) => (cat === 'all' || f.category === cat) && (!flagsOnly || f.redFlag));
 
@@ -106,7 +107,7 @@ export default function Diligence() {
       <KpiStrip
         toneColor={PF_TONE}
         items={[
-          { label: 'Targets in diligence', value: DD_TARGETS.length, hint: usdM(DD_TARGETS.reduce((s, x) => s + x.dealValueM, 0)), onClick: () => patch({ target: null, flags: null }), source: 'Deal team pipeline' },
+          { label: 'Targets in diligence', value: targets.length, hint: usdM(targets.reduce((s, x) => s + x.dealValueM, 0)), onClick: () => patch({ target: null, flags: null }), source: 'Deal team pipeline' },
           { label: 'Red flags', value: all.reduce((s, a) => s + a.im.flags, 0), hint: `most: ${worst.x.short}`, onClick: () => patch({ target: worst.x.id, flags: '1' }), source: 'HexaInt outside-in · questionnaire' },
           { label: `${t.short} outside-in score`, value: t.outsideIn, hint: `peer ${t.peer}`, bar: t.outsideIn, onClick: () => setCat('Attack surface'), source: 'HexaInt attack-surface and exposure scoring' },
           { label: `${t.short} remediation`, value: usdK(Math.round((im.lo + im.hi) / 2)), hint: `range ${usdK(im.lo)}–${usdK(im.hi)}`, onClick: () => set('flags', null), source: 'HexaShield remediation cost model' },

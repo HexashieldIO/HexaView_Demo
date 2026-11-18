@@ -176,6 +176,12 @@ const SECTOR_LIBS: CustomerMap<CS[]> = {
     { name: 'artnet-io', ecosystem: 'Embedded C', category: 'Show-control protocol', licence: 'LGPL-2.1', licRisk: 'Weak copyleft', latest: '1.9.2', desc: 'Art-Net / sACN lighting and show-control I/O', vulns: [v('CVE-2026-53059', 'high', 7.4, 'Unauthenticated packets change universe patching', '1.9.1')] },
     { name: 'ble-bond', ecosystem: 'Embedded C', category: 'Bluetooth LE', licence: 'BSD-3-Clause', licRisk: 'Permissive', latest: '2.4.1', desc: 'BLE pairing and bonding for wearables', vulns: [v('CVE-2026-52266', 'medium', 6.3, 'Legacy pairing fallback weakens link keys', '2.4.0')] },
   ],
+  telco: [
+    { name: 'cwmp-client', ecosystem: 'Embedded C', category: 'CPE management protocol', licence: 'Apache-2.0', licRisk: 'Permissive', latest: '2.7.1', desc: 'TR-069 / CWMP client for home gateways and set-top boxes', vulns: [v('CVE-2026-52733', 'high', 8.1, 'Management server address can be redirected by a crafted DHCP option', '2.7.0')] },
+    { name: 'asn1-sigcodec', ecosystem: 'C / C++', category: 'Signalling codec', licence: 'BSD-3-Clause', licRisk: 'Permissive', latest: '3.5.2', desc: 'ASN.1 encode and decode for mobile signalling messages', vulns: [v('CVE-2026-53412', 'high', 7.5, 'Malformed length field crashes the decoder', '3.5.1')] },
+    { name: 'diam-stack', ecosystem: 'Go', category: 'Signalling protocol', licence: 'MPL-2.0', licRisk: 'Weak copyleft', latest: '1.9.0', desc: 'Diameter base protocol and common applications for cloud-native network functions' },
+    { name: 'snmp-agentlite', ecosystem: 'Embedded C', category: 'Device management', licence: 'BSD-3-Clause', licRisk: 'Permissive', latest: '5.9.4', desc: 'SNMP v2c / v3 agent for site controllers and power systems', vulns: [v('CVE-2026-52198', 'medium', 6.5, 'Community string disclosed in a debug trap', '5.9.3')] },
+  ],
 };
 
 /** The component behind each customer's headline advisory (see vulnresponse HEADLINE). */
@@ -190,6 +196,7 @@ const ADV_COMP: CustomerMap<CS & { module: string; vulnTitle: string }> = {
   pharma: { name: 'processbridge-ua', ecosystem: 'C / C++', category: 'Industrial protocol (OPC UA)', licence: 'Proprietary (Velden OEM licence)', licRisk: 'Unknown', latest: '4.6.3', maintainer: 'Velden Systems', desc: 'Velden ProcessBridge OPC UA server stack, embedded by bioreactor, lyophiliser and skid makers to publish process data', module: 'OPC UA server', vulnTitle: 'Authentication bypass in the embedded configuration service' },
   sghospital: { name: 'routemaster-dicom', ecosystem: 'C / C++', category: 'Imaging (DICOM)', licence: 'Proprietary (Sorrell OEM licence)', licRisk: 'Unknown', latest: '6.3.5', maintainer: 'Sorrell Imaging', desc: 'Sorrell RouteMaster DICOM routing core, embedded by dose-monitoring, imaging-AI and workstation vendors', module: 'DICOM router', vulnTitle: 'Authentication bypass in the embedded web administration service' },
   studio: { name: 'streamport-sdk', ecosystem: 'C / C++', category: 'File transfer', licence: 'Proprietary (Quillon SDK licence)', licRisk: 'Unknown', latest: '5.8.2', maintainer: 'Quillon Media', desc: 'Quillon StreamPort accelerated-transfer SDK, embedded by dailies, review and show-media tools to move large files', module: 'Accelerated transfer', vulnTitle: 'Unauthenticated path traversal in the embedded transfer web service' },
+  telco: { name: 'sitelink-oob-core', ecosystem: 'C / C++', category: 'Remote access', licence: 'Proprietary (Merrow OEM licence)', licRisk: 'Unknown', latest: '7.4.2', maintainer: 'Merrow Systems', desc: 'Merrow SiteLink out-of-band management core, licensed to equipment makers who build remote console access into site power, cooling and line-terminal products', module: 'Out-of-band management module', vulnTitle: 'Authentication bypass in the embedded web management service' },
 };
 
 /* =====================================================================
@@ -384,6 +391,26 @@ const PRODUCTS: CustomerMap<PSeed[]> = {
     { n: 'Screener platform (SaaS)', vendor: 'Indee', cat: 'Screener platform', o: 'S', t: ['studios'], s: null, sup: 'Indee', req: 'Not requested', inst: 1, crit: 4 },
     { n: 'VFX pipeline toolkit', vendor: 'Northlight Pixel (Vancouver)', cat: 'VFX vendor', o: 'S', t: ['post'], s: null, sup: 'Northlight Pixel (Vancouver)', req: 'Declined', reqDays: 29, inst: 1, crit: 4 },
   ],
+  telco: [
+    { n: 'Merrow SiteLink Out-of-Band Gateway', vendor: 'Merrow Systems', cat: 'Out-of-band management gateway', o: 'V', t: ['mobile', 'fixed', 'business', 'intl'], s: 'c5', tags: ['ot'], adv: 'matched', inst: 17, crit: 5, mods: ['Web management service', 'Console relay', 'Firmware base'], advVer: '7.4.1' },
+    { n: 'Corliss PowerSite Hub Controller', vendor: 'Corliss Power Systems', cat: 'Hub-site DC power controller', o: 'V', t: ['mobile', 'fixed'], s: 'c6', tags: ['ot'], adv: 'hidden', inst: 64, crit: 5, mods: ['Rectifier control', 'Alarm agent', 'Firmware base'], advVer: '7.2.0', note: 'Fitted at every hub cell site and fibre exchange; the maker’s remote diagnostics run through an embedded SiteLink module.' },
+    { n: 'Vessant CoolSite Shelter Cooling Manager', vendor: 'Vessant Climate', cat: 'Shelter cooling management', o: 'V', t: ['mobile', 'fixed'], s: 's2', tags: ['ot'], adv: 'hidden', inst: 38, crit: 4, mods: ['Set-point service', 'Telemetry poller', 'Firmware base'], advVer: '7.1.2', advVex: 'Under investigation' },
+    { n: 'Orlin Line Terminal Element Manager', vendor: 'Orlin Optical', cat: 'Submarine line terminal management', o: 'V', t: ['intl'], s: 'scan', tags: ['ot'], adv: 'hidden', inst: 4, crit: 5, mods: ['Element manager', 'Performance collector', 'Firmware base'], advVer: '7.3.1', note: 'SBOM generated by binary analysis; supplier remote support reaches the element manager at the Haifa landing station through an embedded SiteLink module.' },
+    { n: 'My Kinneret app', vendor: 'Kinneret Digital', cat: 'In-house self-care app (iOS / Android)', o: 'I', t: ['retail'], s: 'c6', tags: ['app', 'payments'], inst: 2, crit: 5, mods: ['App shell', 'Billing & top-up', 'eSIM activation'] },
+    { n: 'Self-care & eSIM API platform', vendor: 'Kinneret Digital', cat: 'In-house API platform', o: 'I', t: ['retail', 'mobile'], s: 'c6', tags: ['payments'], inst: 8, crit: 5, mods: ['API gateway', 'Subscriber service', 'eSIM orchestration'] },
+    { n: 'Dealer & store portal', vendor: 'Kinneret Digital', cat: 'In-house web portal', o: 'I', t: ['retail'], s: 'c6', tags: ['app'], inst: 2, crit: 4, mods: ['Portal API', 'Web front end', 'SIM-change workflow'] },
+    { n: 'Kinneret TV apps', vendor: 'Kinneret Digital', cat: 'In-house TV / OTT apps (set-top, mobile)', o: 'I', t: ['fixed'], s: 'c6', tags: ['app'], inst: 5, crit: 3, mods: ['Player', 'Catalogue UI', 'DRM client'] },
+    { n: 'Asterline CDR Mediation Engine', vendor: 'Asterline Software', cat: 'CDR mediation', o: 'V', t: ['retail', 'mobile'], s: 'c5', inst: 6, crit: 5, mods: ['Collection layer', 'Rating adapter', 'Admin console'] },
+    { n: 'Greywell Resolver DNS Platform', vendor: 'Greywell Internet Systems', cat: 'Subscriber DNS resolver', o: 'V', t: ['fixed', 'mobile'], s: 's2', inst: 12, crit: 5, mods: ['Resolver core', 'Policy engine', 'Statistics exporter'] },
+    { n: 'Brannock HomeHub fibre gateway firmware', vendor: 'Brannock Broadband', cat: 'Home gateway (FTTH CPE)', o: 'V', t: ['fixed'], s: 'scan', inst: 720000, crit: 4, mods: ['Router firmware', 'Remote management client', 'Wi-Fi stack'], note: 'SBOM generated by binary analysis of the firmware image; one build runs on 720,000 gateways in homes.' },
+    { n: '5G core network functions', vendor: 'Ericsson', cat: 'RAN & 5G core vendor', o: 'S', t: ['mobile'], s: 's2', sup: 'Ericsson', inst: 42, crit: 5, mods: ['Control-plane functions', 'User-plane function', 'Platform base'] },
+    { n: 'RAN baseband software', vendor: 'Ericsson', cat: 'RAN & 5G core vendor', o: 'S', t: ['mobile'], s: null, sup: 'Ericsson', req: 'Promised', reqDays: 18, inst: 2940, crit: 5 },
+    { n: 'IP & optical transport software', vendor: 'Nokia', cat: 'IP, optical & transport vendor', o: 'S', t: ['mobile', 'fixed', 'intl'], s: 's2', sup: 'Nokia', inst: 310, crit: 5, mods: ['Router operating system', 'Network management'] },
+    { n: 'Core router operating system', vendor: 'Cisco', cat: 'IP core & edge routing', o: 'S', t: ['intl', 'mobile'], s: 'c5', sup: 'Cisco', inst: 64, crit: 5, mods: ['Routing plane', 'Management plane'] },
+    { n: 'BSS, billing & CRM platform', vendor: 'Amdocs', cat: 'BSS, billing & CRM', o: 'S', t: ['retail'], s: null, sup: 'Amdocs', req: 'Requested', reqDays: 9, tags: ['payments'], inst: 1, crit: 5 },
+    { n: 'eSIM subscription manager (SM-DP+)', vendor: 'Thales', cat: 'SIM, eSIM & SM-DP+ platform', o: 'S', t: ['mobile', 'retail'], s: null, sup: 'Thales', req: 'Not requested', inst: 1, crit: 5 },
+    { n: 'Tower site controller firmware', vendor: 'Galil Tower Services', cat: 'Tower & site maintenance', o: 'S', t: ['mobile'], s: null, sup: 'Galil Tower Services', req: 'Declined', reqDays: 31, tags: ['ot'], inst: 2940, crit: 4 },
+  ],
 };
 
 /* =====================================================================
@@ -453,6 +480,13 @@ const REGS: CustomerMap<SbReg[]> = {
     { id: 'tpn', name: 'TPN Gold Shield (MPA CSBP)', short: 'TPN', ask: 'Tools that touch pre-release content are inventoried, supported and patched, and vendor applications are assessed.', scopeLabel: 'Content-handling tools', test: (p) => inT(p, 'studios', 'post') },
     { id: 'pci', name: 'PCI DSS v4.0.1 req. 6.3.2 & 6.4.3', short: 'PCI DSS', ask: 'Inventory bespoke software and its components, and authorise every script on payment pages (Starfall+, StarPass, ticketing).', scopeLabel: 'Payment flows', test: (p) => has(p, 'payments') },
     { id: 'iec62443', name: 'IEC 62443-2-4 / 4-1 (ride & show)', short: 'IEC 62443', ask: 'Ride and show suppliers disclose components and patch status; updates go through the ride safety change process.', scopeLabel: 'Parks OT', test: (p) => has(p, 'ot') },
+  ],
+  telco: [
+    { id: 'gsma', name: 'GSMA NESAS / 3GPP SCAS', short: 'NESAS / SCAS', ask: 'Network equipment vendors evidence their secure development and component handling; Kinneret asks for an SBOM with each software load.', scopeLabel: 'Vendor network software', test: (p) => p.origin === 'Vendor' && inT(p, 'mobile', 'intl') },
+    { id: 'iso27011', name: 'ISO/IEC 27011 with ISO/IEC 27001 A.8.8', short: 'ISO 27011', ask: 'Keep an inventory of network and customer-premises software with versions and support status, and handle technical vulnerabilities in it.', scopeLabel: 'Network & CPE software', test: (p) => inT(p, 'mobile', 'fixed', 'intl') },
+    { id: 'pci', name: 'PCI DSS v4.0.1 req. 6.3.2 & 6.4.3', short: 'PCI DSS', ask: 'Inventory bespoke software and its components, and authorise every script on payment pages (self-care app, top-up and store checkout).', scopeLabel: 'Payment flows', test: (p) => has(p, 'payments') },
+    { id: 'iec62443', name: 'IEC 62443-2-4 / 4-1 (site infrastructure)', short: 'IEC 62443', ask: 'Site power, cooling and line-terminal suppliers disclose components and patch status; updates go through the network change process.', scopeLabel: 'Site infrastructure OT', test: (p) => has(p, 'ot') },
+    { id: 'incd', name: 'INCD Cyber Defense Methodology (supply chain)', short: 'INCD CDM', ask: 'Know the software components in critical systems and require suppliers to manage vulnerabilities in what they deliver.', scopeLabel: 'All systems', test: () => true },
   ],
 };
 

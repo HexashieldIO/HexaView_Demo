@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Landmark, Clapperboard, Anchor, HeartPulse, Car, Radar, Umbrella, ShieldCheck, FlaskConical, Hospital } from 'lucide-react';
+import { Landmark, Clapperboard, Anchor, HeartPulse, Car, Radar, Umbrella, ShieldCheck, FlaskConical, Hospital, RadioTower } from 'lucide-react';
 import { Card, Btn, Callout, Sources, Freshness, Badge } from '../../../components/ui';
 import { doraRegister, ratingsSource, vendorLens } from '../../../data/modules/comply';
 import type { TpSupplier } from '../../../data/modules/tprm';
@@ -182,6 +182,25 @@ export function SectorPanel() {
           <Callout kind="warn"><button type="button" className="link" onClick={() => setParams({ flag: 'tpn' })}><b>{gap.length} vendors</b></button> receive pre-release content without a current TPN shield. HexaCustody policy can hold delivery to them until they are assessed.</Callout>
         </div>
         <SupList items={[...gap, ...pre.filter((s) => s.v.tier === 1 && !gap.includes(s))].slice(0, 6)} right={(s) => <>{s.v.tpn && <Pill color={COL[s.v.tpn]}>{s.v.tpn}</Pill>}<ScoreBar score={s.score} /></>} />
+      </Card>
+    );
+  }
+
+  if (lens === 'telco') {
+    const net = sup.filter((s) => s.v.nesas !== undefined && s.v.nesas !== 'Not required');
+    const gap = net.filter((s) => s.v.nesas === 'No evidence' || s.v.nesas === 'Requested');
+    const site = ot.filter((s) => s.v.dataAccess.includes('OT'));
+    return (
+      <Card title={<><RadioTower size={15} /> Network equipment and site vendors</>} sub={`Suppliers that reach network elements, cell-site power and cooling, the data-centre BMS or the landing-station plant · sessions brokered via ${pam?.product ?? 'PAM'} · GSMA NESAS / 3GPP SCAS evidence for network equipment`} toneColor="var(--m-ot)" tinted>
+        <Callout kind="warn">Site plant is read-only by policy in HexaView: no write-back actions are offered against it. Vendor sessions to network elements are brokered and recorded, and changes go through the network change process.</Callout>
+        <div className="tp-statgrid" style={{ marginTop: 10 }}>
+          <Stat value={ot.length} label="Suppliers with remote network or site access" color="var(--m-ot)" onClick={() => setParams({ flag: 'ot' })} source={`${pam?.product ?? 'PAM'} · ${grc}`} />
+          <Stat value={site.length} label="Of which reach site or facility plant" onClick={() => setParams({ flag: 'ot', scope: 'INCD CDM' })} source={grc} />
+          <Stat value={gap.length} label="Network equipment without NESAS / SCAS evidence" color="var(--bad)" onClick={() => setParams({ flag: 'nesas' })} source={grc} />
+          <Stat value={ot.filter((s) => !s.v.obligations.rightToAudit).length} label="Without a right to audit sessions" color="var(--sev-high)" onClick={() => setParams({ flag: 'ot' })} source={grc} />
+        </div>
+        <SupList items={[...gap, ...ot.filter((s) => !gap.includes(s))].sort((a, b) => Number(gap.includes(b)) - Number(gap.includes(a)) || b.score - a.score).slice(0, 7)} right={(s) => <>{s.v.nesas && s.v.nesas !== 'Not required' && <Pill color={s.v.nesas === 'NESAS audited' ? 'var(--good)' : s.v.nesas === 'SCAS evidence on file' ? 'var(--m-matrix)' : 'var(--bad)'}>{s.v.nesas}</Pill>}<ScoreBar score={s.score} /></>} />
+        <div className="card-foot"><Sources items={c.connectors.filter((k) => ['PAM', 'OT'].includes(k.category)).map((k) => ({ name: k.product, status: k.status }))} /></div>
       </Card>
     );
   }

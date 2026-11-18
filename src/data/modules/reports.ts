@@ -34,7 +34,7 @@ export const SECTIONS: { id: SectionId; label: string; hint: string }[] = [
 /** Customers whose custom reports lead with content and data custody rather than OT or exposure. */
 const CUSTODY_FIRST: CustomerMap<boolean> = {
   maritime: false, finserv: false, media: true, healthcare: false, automotive: true,
-  insurance: false, defence: true, pharma: true, sghospital: false, studio: true,
+  insurance: false, defence: true, pharma: true, sghospital: false, studio: true, telco: false,
 };
 /** Default sections for a new custom report. */
 export function defaultSections(c: CustomerProfile, hasOt: boolean): SectionId[] {
@@ -485,6 +485,14 @@ export function reportTemplates(c: CustomerProfile): ReportTemplate[] {
       { id: '10k', title: 'Form 10-K Item 1C cybersecurity disclosure', audience: 'Board', framework: 'SEC 8-K 1.05', regulator: 'SEC · Audit Committee', owner: p.ciso.name, frequency: 'Annual', lastGeneratedDays: 280, pages: 12, citations: 58, format: 'DOCX', description: 'Risk management, strategy and governance narrative for Item 1C (Regulation S-K 106), cited to the programme, board oversight and vendor risk processes.', sections: ['ri', 'frameworks', 'risks'], deadline: 'Draft to the Audit Committee in January', status: 'due' },
       { id: 'pci', title: 'PCI DSS v4.0.1 ROC evidence · Starfall+ and parks', audience: 'Auditor', framework: 'PCI DSS', regulator: 'QSA', owner: 'Chris Delgado', frequency: 'Annual', lastGeneratedDays: 310, pages: 136, citations: 662, format: 'PDF', description: 'Requirement evidence for Starfall+ subscriptions (Adyen) and park ticketing (accesso), incl. 6.4.3 and 11.6.1 payment-page script integrity.', sections: ['frameworks', 'loops', 'exposure'], deadline: 'QSA on-site in December', status: 'due', scope: 'play' },
     ],
+    telco: [
+      { id: 'ppa-incident', title: 'Severe security incident notification · Privacy Protection Authority', audience: 'Regulator', framework: 'PPL / DSR', regulator: 'Privacy Protection Authority (PPA)', owner: c.rolePeople?.privacy?.name ?? p.grcLead.name, frequency: 'Event-driven', period: 'daily', lastGeneratedDays: 0, pages: 5, citations: 24, format: 'DOCX', description: 'Notification without delay of a severe security incident affecting a subscriber database, pre-filled from the open roaming-partner signalling case: databases affected, data subjects, timeline and measures taken.', sections: ['incidents', 'custody', 'risks'], deadline: 'Assessment open', status: 'due', scope: 'mobile' },
+      { id: 'moc-licence', title: 'Ministry of Communications annual licence compliance report', audience: 'Regulator', framework: 'MoC licence', regulator: 'Ministry of Communications', owner: p.grcLead.name, frequency: 'Annual', lastGeneratedDays: 280, pages: 38, citations: 172, format: 'PDF', description: 'Security, network-resilience and incident-reporting obligations under the licence, with signalling-firewall, DDoS and site-power evidence cited to live controls.', sections: ['frameworks', 'ot', 'loops', 'incidents'], deadline: 'Due in 12 weeks', status: 'due' },
+      { id: 'incd', title: 'INCD Cyber Defense Methodology maturity report', audience: 'Executive', framework: 'INCD CDM', regulator: 'INCD sector guidance · internal audit', owner: p.ciso.name, frequency: 'Annual', lastGeneratedDays: 240, pages: 30, citations: 148, format: 'PDF', description: 'Maturity by control family against the methodology, with target defence levels for critical assets and owned gaps.', sections: ['frameworks', 'loops', 'risks'], deadline: 'Self-assessment in February', status: 'draft' },
+      { id: 'gsma', title: 'Signalling and 5G security assurance report', audience: 'Customer', framework: 'GSMA NESAS / SAS', regulator: 'Roaming partners · GSMA SAS auditor', owner: ot, frequency: 'Half-yearly', lastGeneratedDays: 96, pages: 26, citations: 118, format: 'PDF', description: 'SS7, Diameter and GTP filtering results by interconnect (GSMA FS.11, FS.19, FS.20), NESAS and SCAS evidence held per equipment vendor, and SAS-SM readiness for the eSIM platform.', sections: ['frameworks', 'exposure', 'loops'], status: 'ready', scope: 'mobile' },
+      { id: 'soc2', title: 'SOC 2 Type II evidence · Business & Cloud managed services', audience: 'Auditor', framework: 'SOC 2', regulator: 'Service auditor', owner: 'Orly Ben-David', frequency: 'Annual', lastGeneratedDays: 300, pages: 88, citations: 396, format: 'PDF', description: 'Trust services criteria evidence for hosting, connectivity and managed-security services, with customer-environment segregation and privileged-access samples.', sections: ['frameworks', 'loops', 'exposure'], deadline: 'Observation period closes in December', status: 'due', scope: 'business' },
+      { id: 'pci', title: 'PCI DSS v4.0.1 ROC evidence · billing and stores', audience: 'Auditor', framework: 'PCI DSS', regulator: 'QSA', owner: 'Lior Avraham', frequency: 'Annual', lastGeneratedDays: 290, pages: 128, citations: 610, format: 'PDF', description: 'Requirement evidence for billing, top-up (Yarkon Pay) and store card acceptance, incl. 6.4.3 and 11.6.1 payment-page script integrity on pay.kinneret-telecom.co.il.', sections: ['frameworks', 'loops', 'exposure'], deadline: 'QSA on-site in February', status: 'due', scope: 'retail' },
+    ],
   };
   // Crisis exercise programme and value evidence (Operations → Crisis Exercises, Reporting → Value & Outcomes).
   const programmeTpl: TplSeed[] = [
@@ -753,6 +761,9 @@ export function schedules(c: CustomerProfile, tenantId: string): Schedule[] {
     nehr: ['synapxe-nehr-assurance@external', 3, 'Secure share'],
     aihgle: [`clinical-ai-committee@${dom}`, 10, 'Email · PDF'],
     '10k': [`audit-committee@${dom}`, 7, 'Email · custody-protected link'],
+    'moc-licence': ['moc-licensing (manual upload)', 1, 'Regulator portal'],
+    incd: [`ciso-office@${dom}`, 6, 'Email · custody-protected link'],
+    gsma: [`network-security-board@${dom}`, 8, 'Email · custody-protected link'],
   };
   const tpls = reportTemplates(c).filter((t) => t.frequency !== 'Event-driven');
   const out = tpls.map((t, i) => {

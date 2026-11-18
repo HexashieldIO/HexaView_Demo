@@ -7,7 +7,7 @@ import { DataTable } from '../../components/DataTable';
 import { Modal } from '../../components/Overlay';
 import {
   CAP_LIST, MOD_MODES, STATUS_COLOR, STATUS_LABEL, clientBook, bookTotals, clientMargin,
-  type ClientStatus, type ModMode, type PartnerClient,
+  PARTNER, type ClientStatus, type ModMode, type PartnerClient,
 } from '../../data/modules/partner';
 import type { CapabilityId } from '../../data/types';
 import { scoreTone } from '../../lib/format';
@@ -69,7 +69,9 @@ export default function PartnerClients() {
   return (
     <>
       <p className="page-intro">
-        Your client book: the five HexaView reference tenants you run day to day plus {book.length - 5} smaller clients. Pick a row to manage its subscription; <b>Open client</b> switches into that client's own HexaView with delegated, audited partner access.
+        {book[0].own
+          ? <>Your client book: {PARTNER.short} runs {book[0].name}'s own estate on HexaView (customer zero) and resells the platform to {book.length - 1} business customers. </>
+          : <>Your client book: the five HexaView reference tenants you run day to day plus {book.length - 5} smaller clients. </>}Pick a row to manage its subscription; <b>Open client</b> switches into that client's own HexaView with delegated, audited partner access.
       </p>
       <KpiStrip
         toneColor={PT_TONE}
@@ -124,7 +126,7 @@ export default function PartnerClients() {
                     <ClientAvatar c={c} size={28} />
                     <div>
                       <div className="t-main">{c.short}</div>
-                      <div className="t-sub">{c.demoId === customerId ? <span style={{ color: 'var(--m-partner)', fontWeight: 600 }}>Viewing · </span> : null}{c.sector}</div>
+                      <div className="t-sub">{c.own ? <span style={{ color: 'var(--m-partner)', fontWeight: 600 }}>Own estate · </span> : c.demoId === customerId ? <span style={{ color: 'var(--m-partner)', fontWeight: 600 }}>Viewing · </span> : null}{c.sector}</div>
                     </div>
                   </div>
                 ),

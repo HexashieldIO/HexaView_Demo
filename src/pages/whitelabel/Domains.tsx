@@ -5,7 +5,7 @@ import { Card, KpiStrip, Badge, Btn, Callout, KV, SectionLabel, StatusBadge } fr
 import { DataTable } from '../../components/DataTable';
 import { Drawer } from '../../components/Overlay';
 import { CUSTOMERS } from '../../data/customers';
-import { clientBook, type PartnerClient } from '../../data/modules/partner';
+import { PARTNER, clientBook, staffAlias, type PartnerClient } from '../../data/modules/partner';
 import { rng } from '../../lib/rng';
 import { fmtAgo } from '../../lib/format';
 import { ClientAvatar, Field, PT_TONE, Seg, Toggle } from '../partner/parts';
@@ -101,11 +101,11 @@ export default function WhiteLabelDomains() {
             </div>
           </Card>
 
-          <Card title="Your staff sign-in" sub="Northwind identity provider and how roles map into client tenants" toneColor={PT_TONE}>
+          <Card title="Your staff sign-in" sub={`${PARTNER.short} identity provider and how roles map into client tenants`} toneColor={PT_TONE}>
             <KV
               rows={[
-                ['Identity provider', 'Microsoft Entra ID (northwindcyber.com) · SAML 2.0'],
-                ['Role mapping', <span className="chips"><Badge>NW-HexaView-Admins → Partner admin</Badge><Badge>NW-SOC → Analyst</Badge><Badge>NW-Sales → Account manager</Badge><Badge>NW-GRC → Compliance lead</Badge></span>],
+                ['Identity provider', `Microsoft Entra ID (${PARTNER.domain}) · SAML 2.0`],
+                ['Role mapping', <span className="chips"><Badge>{PARTNER.prefix}-HexaView-Admins → Partner admin</Badge><Badge>{PARTNER.prefix}-SOC → Analyst</Badge><Badge>{PARTNER.prefix}-Sales → Account manager</Badge><Badge>{PARTNER.prefix}-GRC → Compliance lead</Badge></span>],
                 ['Phishing-resistant MFA', 'Required (FIDO2 / Windows Hello)'],
               ]}
             />
@@ -188,7 +188,7 @@ export default function WhiteLabelDomains() {
           <div className="list">
             {[0, 1, 2, 3].map((i) => (
               <div key={i} className="list-row" style={{ fontSize: 12 }}>
-                <span className="list-main"><b>{i === 1 ? 'Marcus Chen (Northwind, delegated)' : `${['CISO', 'SOC lead', 'GRC lead', 'IT admin'][i]} · ${sel.c.short}`}</b><span>{i === 1 ? 'Partner staff · consent grant #4471' : `${sel.idp} · MFA`}</span></span>
+                <span className="list-main"><b>{i === 1 ? `${staffAlias('Marcus Chen')} (${PARTNER.short}, delegated)` : `${['CISO', 'SOC lead', 'GRC lead', 'IT admin'][i]} · ${sel.c.short}`}</b><span>{i === 1 ? 'Partner staff · consent grant #4471' : `${sel.idp} · MFA`}</span></span>
                 <span className="muted" style={{ fontSize: 11 }}>{fmtAgo(sel.lastSignInMin + i * 47)}</span>
               </div>
             ))}

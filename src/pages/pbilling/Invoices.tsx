@@ -84,7 +84,7 @@ export default function BillingInvoices() {
               <BarRow label={a.label} value={a.v} max={recMonth} color={a.c} display={money(a.v)} />
             </button>
           ))}
-          {overdue.length > 0 && <div style={{ marginTop: 10 }}><Callout kind="warn">{overdue.map((i) => i.counterparty.split(' ')[0]).join(', ')}: chase before month end. Greyfriars is disputing pending the P1 SLA review.</Callout></div>}
+          {overdue.length > 0 && <div style={{ marginTop: 10 }}><Callout kind="warn">{overdue.map((i) => i.counterparty.split(' ')[0]).join(', ')}: chase before month end.{rec.filter((i) => i.status === 'Disputed').map((i) => ` ${i.counterparty.split(' ')[0]} is disputing pending the P1 SLA review.`)}</Callout></div>}
         </Card>
       </div>
 

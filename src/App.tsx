@@ -9,6 +9,7 @@ import { ModuleLayout } from './components/ModuleLayout';
 import { MODULES } from './modules/registry';
 import { PAGES } from './pages/registry';
 import { isSignedIn } from './pages/auth/SignIn';
+import { partnerKeyFor } from './data/modules/partner';
 
 const SignIn = lazy(() => import('./pages/auth/SignIn'));
 const CommandCentre = lazy(() => import('./pages/overview/CommandCentre'));
@@ -48,6 +49,7 @@ function RoleGuard({ moduleId, children }: { moduleId: string; children: ReactNo
 function ModuleRoute({ moduleId }: { moduleId: string }) {
   const { tab } = useParams();
   const { search } = useLocation();
+  const { customerId } = useApp();
   const mod = MODULES.find((m) => m.id === moduleId)!;
   const redirect = REDIRECTS[`${moduleId}/${tab}`];
   if (redirect) return <Navigate to={redirect + (search ? `&${search.slice(1)}` : '')} replace />;
@@ -57,7 +59,7 @@ function ModuleRoute({ moduleId }: { moduleId: string }) {
     <RoleGuard moduleId={moduleId}>
       <ModuleLayout moduleId={moduleId} tabId={tab}>
         <Suspense fallback={<Loading />}>
-          <Page />
+          <Page key={mod.group === 'partner' ? partnerKeyFor(customerId) : undefined} />
         </Suspense>
       </ModuleLayout>
     </RoleGuard>

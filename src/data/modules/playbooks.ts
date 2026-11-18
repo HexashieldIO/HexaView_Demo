@@ -277,6 +277,8 @@ const REG_CLOCKS: RegClock[] = [
   { re: /PDPA/, name: 'PDPA data breach notification', regime: 'Singapore PDPA s26D', deadline: '3 calendar days to the PDPC', cond: 'affected_individuals >= 500 || significant_harm' },
   { re: /NIS2/, name: 'NIS2 significant incident early warning', regime: 'NIS2 Art. 23', deadline: '24 h early warning, 72 h notification', cond: 'service_disruption > 1 h || cross_border_impact' },
   { re: /GDPR/, name: 'GDPR personal data breach clock', regime: 'GDPR Art. 33', deadline: '72 h to the supervisory authority', cond: 'personal_data_breach && risk_to_individuals' },
+  { re: /Privacy Protection Law/, name: 'PPA severe security incident notification', regime: 'Privacy Protection Regulations (Data Security)', deadline: 'notify the Privacy Protection Authority without delay (PPA guidance: within 72 h)', cond: 'subscriber_records_exposed > 0 && database_security_level != "basic"' },
+  { re: /Ministry of Communications/, name: 'Ministry of Communications and INCD incident report', regime: 'Ministry of Communications licence · INCD', deadline: 'report without delay (24 h internal target)', cond: 'core_network_affected || subscriber_service_degraded' },
 ];
 
 function templates(c: CustomerProfile): Tpl[] {
@@ -728,6 +730,29 @@ function templates(c: CustomerProfile): Tpl[] {
         const tk = g.node('act.itsm.ticket');
         const e = g.node('end', 'Sessions revoked, under review');
         const eb = g.node('end', 'Closed: business need', { outcome: 'Close as benign' });
+        g.chain(t, e1, e2, d);
+        g.link(d, a, 'yes');
+        g.link(d, eb, 'no');
+        g.link(a, r, 'yes');
+        g.link(a, n, 'no');
+        g.chain(r, n, tk, e);
+      },
+    });
+  } else if (/telecom/i.test(sector)) {
+    out.push({
+      key: 'sec-simswap', name: 'SIM-swap burst from one agent or store', category: 'Sector', volume: 22, manualMttr: 95, autoClosed: [30, 45],
+      summary: 'A burst of SIM swaps or eSIM re-issues from one contact-centre desktop, store or dealer code holds further swaps, revokes the agent session after approval and pages fraud management.',
+      build: (g) => {
+        const t = g.node('trg.siem', 'SIM-swap velocity above baseline', { rule: 'HV - SIM swaps per agent > 6 in 30 min' });
+        const e1 = g.node('enr.identity', 'Agent role, desktop and shift');
+        const e2 = g.node('enr.siem', 'Fraud scores and BSS audit (24 h)');
+        const d = g.node('cond', 'High-risk pattern?', { expr: 'swaps_30m > baseline_p99 && high_risk_score_share > 0.5' });
+        const a = g.gate('high', 'Two-person approval');
+        const r = g.node('act.idp.revoke');
+        const n = g.node('ntf.page', 'Page fraud management', { who: 'Fraud management duty lead' });
+        const tk = g.node('act.itsm.ticket', 'Reverse swaps and notify subscribers');
+        const e = g.node('end', 'Session revoked, swaps under review');
+        const eb = g.node('end', 'Closed: campaign or store event', { outcome: 'Close as benign' });
         g.chain(t, e1, e2, d);
         g.link(d, a, 'yes');
         g.link(d, eb, 'no');

@@ -42,7 +42,7 @@ function fill(s: string, c: PartnerClient, b: Brand): string {
     'client.name': c.name, 'client.short': c.short, 'contact.first': contact, ri: String(c.ri), 'ri.delta': `${c.riTrend[11] - c.riTrend[10] >= 0 ? '+' : ''}${c.riTrend[11] - c.riTrend[10]}`,
     'incidents.open': String(c.openIncidents), 'incidents.critical': String(c.critical), 'incidents.handled': String(c.openIncidents * 6 + 11), top_action: c.topAction,
     period: `${monthLabels(2)[0]} 2026`, product: b.productName, 'partner.name': PARTNER.name, 'partner.short': PARTNER.short, csm: c.csm, 'renewal.days': String(c.renewalDays), domain: b.domain,
-    'incident.severity': c.critical ? 'Critical' : 'High', 'incident.time': '06:42 UTC', 'invoice.no': 'NW-4412',
+    'incident.severity': c.critical ? 'Critical' : 'High', 'incident.time': '06:42 UTC', 'invoice.no': `${PARTNER.prefix}-4412`,
   };
   return s.replace(/\{\{([a-z_.]+)\}\}/g, (_, k: string) => vals[k] ?? `{{${k}}}`);
 }

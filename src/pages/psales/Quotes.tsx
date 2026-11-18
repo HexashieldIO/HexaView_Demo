@@ -6,7 +6,7 @@ import { Card, KpiStrip, Btn, Callout, Legend, Ring, Stacked, StatusBadge } from
 import { DataTable } from '../../components/DataTable';
 import { SERVICE_BY_ID } from '../../modules/registry';
 import {
-  CAP_LIST, PARTNER, SERVICE_LIST_USD, SIZE_BANDS, TIERS, TIER_BY_ID, EXTRA_INTEGRATION_USD, bandFor, clientBook, deals, priceQuote, savedQuotes,
+  CAP_LIST, PARTNER, SERVICE_LIST_USD, SIZE_BANDS, TIERS, TIER_BY_ID, EXTRA_INTEGRATION_USD, bandFor, clientBook, deals, priceQuote, savedQuotes, staffAlias,
   type SavedQuote, type SizeBand,
 } from '../../data/modules/partner';
 import type { ServiceId, Tier } from '../../data/types';
@@ -23,7 +23,7 @@ export default function PartnerQuotes() {
   const dealClient = deal ? book.find((c) => c.id === deal.existingClientId) : undefined;
   const [saved, setSaved] = useState<SavedQuote[]>(() => savedQuotes());
 
-  const [client, setClient] = useState(deal?.endClient ?? 'Meridian Foods Ltd');
+  const [client, setClient] = useState(deal?.endClient ?? deals()[0].endClient);
   const [tier, setTier] = useState<Tier>(deal?.tier ?? 'Professional');
   const [band, setBand] = useState<SizeBand>(dealClient ? bandFor(dealClient.employees) : 'm');
   const [integrations, setIntegrations] = useState(dealClient?.integrations ?? 14);
@@ -40,7 +40,7 @@ export default function PartnerQuotes() {
   const open = saved.filter((s) => s.status === 'Draft' || s.status === 'Sent');
 
   const save = (status: SavedQuote['status']) => {
-    setSaved((s) => [{ id: nextId, client, dealId: deal?.id, tier, services: services.length, sellUsd: Math.round(res.sellY1), marginPct: Math.round(res.marginPct * 10) / 10, status, daysAgo: 0, owner: 'Tom Ellery' }, ...s]);
+    setSaved((s) => [{ id: nextId, client, dealId: deal?.id, tier, services: services.length, sellUsd: Math.round(res.sellY1), marginPct: Math.round(res.marginPct * 10) / 10, status, daysAgo: 0, owner: staffAlias('Tom Ellery') }, ...s]);
   };
 
   return (

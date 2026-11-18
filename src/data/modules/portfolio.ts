@@ -1,16 +1,20 @@
 // Portfolio & M&A data for the Partner Console. A portfolio lens over many
 // companies, used by private-equity sponsors, insurers, groups and MSSPs:
-// the five demo customers (full tenants) plus lighter-weight portfolio
+// the demo customers (full tenants) plus lighter-weight portfolio
 // companies, cyber due diligence on acquisition targets, a first-100-days
 // integration plan and benchmarks. Partner-side, USD, seeded and stable.
+// Follows the active partner (partner.ts): Northwind's portfolio, or Kinneret
+// Telecom Group's own group companies and targets (portfolioKinneret.ts).
 
 import type { CustomerId } from '../types';
 import { CUSTOMER_LIST } from '../customers';
 import { headlines, resilienceIndex, riTrend, riDrivers } from '../core';
 import { rng } from '../../lib/rng';
 import { forCustomer, type CustomerMap } from '../customerMap';
+import { activePartner, staffAlias } from './partner';
+import { KT_EXTRA, KT_DD_TARGETS } from './portfolioKinneret';
 
-export const FX_TO_USD = { USD: 1, GBP: 1.27, EUR: 1.08, CHF: 1.13, SGD: 0.74 } as const;
+export const FX_TO_USD = { USD: 1, GBP: 1.27, EUR: 1.08, CHF: 1.13, SGD: 0.74, ILS: 0.27 } as const;
 
 /* =====================================================================
    Portfolio companies
@@ -65,9 +69,12 @@ const DEMO_META: CustomerMap<{ ownership: PortfolioCo['ownership']; holdingMonth
   pharma: { ownership: 'Minority', holdingMonths: 15, multiple: 3.4, owner: 'Grace Okafor', country: 'CH' },
   sghospital: { ownership: 'Majority', holdingMonths: 9, multiple: 2.4, owner: 'Grace Okafor', country: 'SG' },
   studio: { ownership: 'Minority', holdingMonths: 21, multiple: 1.9, owner: 'Daniel Moretti', country: 'US' },
+  // The group's own estate: only in the Kinneret partner's portfolio.
+  telco: { ownership: 'Platform', holdingMonths: 120, multiple: 1.6, owner: 'Grace Okafor', country: 'IL' },
 };
 
-const EXTRA: { name: string; short: string; colour: string; sector: string; country: string; ownership: PortfolioCo['ownership']; revenueM: number; employees: number; multiple: number; topRisk: string; frameworks: string[]; ri: number; status: PfStatus; ot: boolean; day?: number; holdingMonths: number }[] = [
+export interface PfSeed { name: string; short: string; colour: string; sector: string; country: string; ownership: PortfolioCo['ownership']; revenueM: number; employees: number; multiple: number; topRisk: string; frameworks: string[]; ri: number; status: PfStatus; ot: boolean; day?: number; holdingMonths: number }
+const EXTRA: PfSeed[] = [
   { name: 'Brindle Freight Forwarding', short: 'Brindle', colour: '#0e7490', sector: 'Logistics', country: 'NL', ownership: 'Add-on', revenueM: 420, employees: 1900, multiple: 1.1, topRisk: 'Shared admin accounts on the customs-declaration platform; no MFA for brokers', frameworks: ['ISO 27001', 'NIS2'], ri: 66, status: 'watch', ot: true, holdingMonths: 14 },
   { name: 'Calder Precision Components', short: 'Calder', colour: '#7c3aed', sector: 'Manufacturing', country: 'GB', ownership: 'Platform', revenueM: 310, employees: 1400, multiple: 1.3, topRisk: 'Flat plant network: engineering workstations reach CNC controllers directly', frameworks: ['Cyber Essentials+', 'IEC 62443'], ri: 61, status: 'critical', ot: true, holdingMonths: 26 },
   { name: 'Northgate Dental Partners', short: 'Northgate', colour: '#0891b2', sector: 'Healthcare', country: 'US', ownership: 'Platform', revenueM: 540, employees: 3600, multiple: 1.6, topRisk: '212 practice-management servers still on an end-of-life OS', frameworks: ['HIPAA', 'PCI DSS'], ri: 64, status: 'watch', ot: false, holdingMonths: 31 },
@@ -102,10 +109,14 @@ function dimsFor(seed: string, ri: number, ot: boolean): Record<Dimension, numbe
   return out;
 }
 
-let PF: PortfolioCo[] | null = null;
+// Cached per active partner: Northwind holds the ten demo customers, Kinneret its own estate.
+const PF: Partial<Record<ReturnType<typeof activePartner>, PortfolioCo[]>> = {};
 export function portfolio(): PortfolioCo[] {
-  if (PF) return PF;
-  const demo: PortfolioCo[] = CUSTOMER_LIST.map((c) => {
+  const key = activePartner();
+  const cached = PF[key];
+  if (cached) return cached;
+  const kt = key === 'kinneret';
+  const demo: PortfolioCo[] = CUSTOMER_LIST.filter((c) => (c.id === 'telco') === kt).map((c) => {
     const h = headlines(c);
     const ri = resilienceIndex(c).value;
     const trend = riTrend(c);
@@ -120,10 +131,10 @@ export function portfolio(): PortfolioCo[] {
       employees: c.employees, ri, trend, delta: trend[11] - trend[8], topRisk: riDrivers(c)[0].text, insurability: h.insurance.insurability,
       openCritical: crit, expectedLossM: Math.round(h.insurance.expectedLossM * fx * 10) / 10,
       frameworks: c.frameworks.map((f) => ({ short: f.short, pct: f.documented })),
-      dims: dimsFor(c.id, ri, c.tenants.some((t) => t.env.includes('ot'))), status, onHexaView: true, owner: m.owner,
+      dims: dimsFor(c.id, ri, c.tenants.some((t) => t.env.includes('ot'))), status, onHexaView: true, owner: staffAlias(m.owner),
     };
   });
-  const extra: PortfolioCo[] = EXTRA.map((x) => {
+  const extra: PortfolioCo[] = (kt ? KT_EXTRA : EXTRA).map((x) => {
     const r = rng(`pf-co-${x.short}`);
     const trend = trendTo(r, x.ri, x.status === 'integrating' ? r.int(5, 8) : r.int(3, 9));
     return {
@@ -133,11 +144,10 @@ export function portfolio(): PortfolioCo[] {
       insurability: Math.max(40, Math.min(92, x.ri + r.int(-6, 6))), openCritical: x.ri < 60 ? r.int(4, 7) : x.ri < 70 ? r.int(1, 4) : r.int(0, 1),
       expectedLossM: Math.round(x.revenueM * (100 - x.ri) * 0.00055 * 10) / 10,
       frameworks: x.frameworks.map((f) => ({ short: f, pct: Math.max(30, Math.min(95, x.ri + r.int(-12, 10))) })),
-      dims: dimsFor(x.short, x.ri, x.ot), status: x.status, onHexaView: x.status !== 'integrating' || (x.day ?? 0) > 30, owner: r.pick(['Grace Okafor', 'Daniel Moretti', 'Owen Price']), day: x.day,
+      dims: dimsFor(x.short, x.ri, x.ot), status: x.status, onHexaView: x.status !== 'integrating' || (x.day ?? 0) > 30, owner: staffAlias(r.pick(['Grace Okafor', 'Daniel Moretti', 'Owen Price'])), day: x.day,
     };
   });
-  PF = [...demo, ...extra];
-  return PF;
+  return (PF[key] = [...demo, ...extra]);
 }
 
 export function portfolioTotals(cos: PortfolioCo[]) {
@@ -254,7 +264,7 @@ export interface DdTarget {
 
 const F = (id: string, category: DdCategory, sev: DdSev, title: string, detail: string, source: string, lo: number, hi: number, redFlag?: boolean): DdFinding => ({ id, category, sev, title, detail, source, fixLowK: lo, fixHighK: hi, redFlag });
 
-export const DD_TARGETS: DdTarget[] = [
+const NW_DD_TARGETS: DdTarget[] = [
   {
     id: 'brightwater', name: 'Brightwater Cold Chain B.V.', short: 'Brightwater', colour: '#0e7490', sector: 'Temperature-controlled logistics', hq: 'Venlo, Netherlands',
     employees: 2300, revenueM: 510, dealValueM: 640, stage: 'Confirmatory DD', dealLead: 'Priya Raman', signingIn: 26, domains: 14, externalAssets: 412, outsideIn: 58, peer: 69,
@@ -324,6 +334,13 @@ export const DD_TARGETS: DdTarget[] = [
     summary: 'Strong product engineering but immature governance for a regulated payments firm: a leaked cloud key, an unverified ISO 27001 claim and DORA gaps. Recommend escrow tied to evidence of key rotation and certification.',
   },
 ];
+
+const DD: Partial<Record<ReturnType<typeof activePartner>, DdTarget[]>> = {};
+/** Acquisition targets in diligence for the active partner (deal leads are that partner's people). */
+export function ddTargets(): DdTarget[] {
+  const key = activePartner();
+  return (DD[key] ??= (key === 'kinneret' ? KT_DD_TARGETS : NW_DD_TARGETS).map((t) => ({ ...t, dealLead: staffAlias(t.dealLead) })));
+}
 
 export const DD_SEV_W: Record<DdSev, number> = { critical: 4, high: 3, medium: 2, low: 1 };
 
@@ -395,7 +412,7 @@ export function hundredDayPlan(co: PortfolioCo): Milestone[] {
     if (m.due < day - 4) status = r.chance(0.86) ? 'done' : 'at-risk';
     else if (m.due <= day + 8) status = r.chance(0.7) ? 'in-progress' : m.due < day ? 'at-risk' : 'in-progress';
     else status = 'not-started';
-    return { ...m, riGain: Math.round(m.riGain * 6) / 10, id: `${co.id}-m${i + 1}`, status };
+    return { ...m, owner: staffAlias(m.owner), riGain: Math.round(m.riGain * 6) / 10, id: `${co.id}-m${i + 1}`, status };
   });
 }
 

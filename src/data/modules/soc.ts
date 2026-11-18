@@ -33,6 +33,9 @@ const SHORT: Record<string, string> = {
   'c-labware': 'LabWare LIMS', 'c-viewlinc': 'viewLinc EMS', 'c-rave': 'Medidata Rave', 'c-veeva-qms': 'Veeva QMS', 'c-veeva-etmf': 'Veeva eTMF',
   'c-argus': 'Argus Safety', 'c-pi': 'PI System', 'c-m365': 'Defender for Office 365', 'c-akamai': 'Akamai App & API Protector', 'c-panorama': 'Panorama (resorts)',
   'c-aspera': 'Aspera', 'c-frameio': 'Frame.io', 'c-nexguard': 'NexGuard', 'c-signiant': 'Signiant', 'c-irdeto': 'Irdeto',
+  'c-sigfw': 'Signalling firewall', 'c-fraud': 'Mobileum fraud management', 'c-radware': 'Radware DDoS', 'c-checkpoint': 'Check Point Quantum', 'c-harmony': 'Harmony Email',
+  'c-silverfort': 'Silverfort', 'c-cato': 'Cato SASE', 'c-salt': 'Salt Security', 'c-cyera': 'Cyera', 'c-bss': 'BSS / CRM audit', 'c-torq': 'Torq',
+  'c-xmcyber': 'XM Cyber', 'c-cyberint': 'Cyberint Argos', 'c-promptsec': 'Prompt Security', 'c-veeam': 'Veeam', 'c-axonius': 'Axonius',
 };
 export function toolShort(k: Connector): string {
   return SHORT[k.id] ?? k.product;
@@ -344,6 +347,29 @@ const INC_TPL: CustomerMap<IncTpl[]> = {
     { title: 'Turnstile controller at Orlando Resort scanning the park BMS network', sev: ['medium', 'low'], tech: ['T0846', 'T1046'], src: ['c-armis', 'c-hexaot', 'c-splunk'], tenants: ['parks'], ot: true, playbook: 'OT: discovery activity' },
     { title: 'Impossible travel: freelance editor signed in from Burbank and Bucharest within 2 h', sev: ['low', 'medium'], tech: ['T1078'], src: ['c-okta', 'c-secops'], tenants: ['studios', 'post'], playbook: 'Identity: suspicious sign-in' },
   ],
+  telco: [
+    { title: 'Diameter location and subscriber-profile queries from a roaming partner outside its agreed range, then a bulk read on KTG-UDM-PT01', sev: ['critical', 'high'], tech: ['T1199', 'T1213', 'T1046'], src: ['c-sigfw', 'c-splunk', 'c-sentinel'], tenants: ['mobile', 'intl'], host: 'KTG-UDM-PT01', personal: true, playbook: 'Signalling: roaming-partner abuse', actor: 2 },
+    { title: 'Bulk CDR export from KTG-BILL-MED01 by a mediation service account outside the billing run', sev: ['critical', 'high'], tech: ['T1213', 'T1560.001', 'T1048.003'], src: ['c-varonis', 'c-cyera', 'c-hexacustody', 'c-sentinel'], tenants: ['retail', 'mobile'], host: 'KTG-BILL-MED01', personal: true, leak: true, playbook: 'Data: CDR and subscriber-data exfiltration', actor: 1 },
+    { title: 'Living-off-the-land activity on KTG-OSS-NMS01: new local admin and outbound tunnel from the network management zone', sev: ['critical', 'high'], tech: ['T1078', 'T1572', 'T1059.003'], src: ['c-s1', 'c-silverfort', 'c-splunk'], tenants: ['mobile', 'fixed'], host: 'KTG-OSS-NMS01', playbook: 'Network management: targeted intrusion', actor: 1 },
+    { title: 'SIM-swap cluster: 14 swaps approved from one contact-centre desktop in 40 minutes', sev: ['high', 'critical'], tech: ['T1078', 'T1098', 'T1657'], src: ['c-fraud', 'c-bss', 'c-entra', 'c-sentinel'], tenants: ['retail'], personal: true, playbook: 'Fraud: SIM-swap cluster', actor: 3 },
+    { title: 'DNS amplification and water-torture attack on the resolver farm (KTG-DNS-RES01), peak 38 Gbps', sev: ['high', 'critical'], tech: ['T1595', 'T1190'], src: ['c-radware', 'c-checkpoint', 'c-splunk'], tenants: ['fixed', 'mobile'], host: 'KTG-DNS-RES01', playbook: 'DDoS: DNS and mobile core', actor: 5 },
+    { title: 'BGP: more-specific announcement of a Kinneret /22 seen from an unrelated origin AS', sev: ['high', 'medium'], tech: ['T1199', 'T1090.003'], src: ['c-radware', 'c-hexaint', 'c-splunk'], tenants: ['intl', 'fixed'], playbook: 'Routing: BGP hijack or leak' },
+    { title: 'Help-desk social engineering: MFA reset requested by phone for a core network engineer', sev: ['high', 'medium'], tech: ['T1078', 'T1098', 'T1621'], src: ['c-entra', 'c-servicenow', 'c-silverfort', 'c-sentinel'], tenants: ['mobile', 'corp'], playbook: 'Identity: help-desk social engineering', actor: 3 },
+    { title: 'GTP-C create-session flood from an unlisted roaming peer against the packet gateway', sev: ['high', 'medium'], tech: ['T1190', 'T1046'], src: ['c-sigfw', 'c-radware', 'c-splunk'], tenants: ['mobile', 'intl'], playbook: 'Signalling: roaming-partner abuse', actor: 2 },
+    { title: 'Object-level authorisation probing on the eSIM activation API (esim.kinneret-telecom.co.il)', sev: ['high', 'medium'], tech: ['T1190', 'T1550.001'], src: ['c-salt', 'c-checkpoint', 'c-sentinel'], tenants: ['retail', 'mobile'], host: 'KTG-SMDP-01', personal: true, playbook: 'Web: API abuse' },
+    { title: 'Vendor remote session to RAN management outside the approved maintenance window', sev: ['high', 'medium'], tech: ['T1133', 'T1219'], src: ['c-cyberark', 'c-silverfort', 'c-splunk'], tenants: ['mobile', 'fixed'], host: 'KTG-JUMP-NOC', playbook: 'Vendor remote access breach' },
+    { title: 'Unscheduled Modbus parameter writes to generator controllers at northern cell sites ({ot})', sev: ['high', 'medium'], tech: ['T0855', 'T0836'], src: ['c-armis', 'c-hexaot', 'c-splunk'], tenants: ['mobile'], ot: true, playbook: 'OT: unauthorised command' },
+    { title: 'Store tablet in Netanya queried 380 subscriber accounts with no matching service tickets', sev: ['medium', 'high'], tech: ['T1213', 'T1078'], src: ['c-bss', 'c-varonis', 'c-sentinel'], tenants: ['retail'], personal: true, playbook: 'Insider: subscriber-record snooping' },
+    { title: 'Unexpected third-party script on the pay.kinneret-telecom.co.il top-up page', sev: ['high', 'medium'], tech: ['T1059.007', 'T1190'], src: ['c-checkpoint', 'c-salt', 'c-sentinel'], tenants: ['retail'], card: true, personal: true, playbook: 'Web: client-side skimming' },
+    { title: 'Unsigned software package staged for a 5G core network function ahead of the upgrade window', sev: ['medium', 'high'], tech: ['T1195.002'], src: ['c-splunk', 'c-servicenow', 'c-cyberark'], tenants: ['mobile'], host: 'KTG-AMF-PT01', playbook: 'Supply chain: network software integrity' },
+    { title: 'Phishing: fake interconnect invoice from a lookalike carrier domain opened by {user}', sev: ['medium', 'high'], tech: ['T1566.001', 'T1204.002'], src: ['c-harmony', 'c-s1', 'c-sentinel'], tenants: ['intl', 'corp', 'business'], playbook: 'Phishing: malicious attachment', actor: 0 },
+    { title: 'BMS operator workstation at the Haifa landing station scanning the power-feed network', sev: ['medium', 'low'], tech: ['T0846', 'T1046'], src: ['c-claroty', 'c-hexaot', 'c-splunk'], tenants: ['intl'], ot: true, playbook: 'OT: discovery activity' },
+    { title: 'Public snapshot of a subscriber-analytics storage account detected in ktg-subscriber-analytics', sev: ['medium', 'high'], tech: ['T1530'], src: ['c-wiz', 'c-cyera', 'c-sentinel'], tenants: ['retail'], personal: true, playbook: 'Cloud: storage exposure' },
+    { title: 'International revenue share fraud: call burst to premium ranges from 60 newly activated SIMs', sev: ['medium', 'high'], tech: ['T1657'], src: ['c-fraud', 'c-sigfw', 'c-splunk'], tenants: ['mobile', 'intl'], playbook: 'Fraud: IRSF and Wangiri' },
+    { title: 'SentinelOne agent disabled on {host}', sev: ['medium'], tech: ['T1562.001'], src: ['c-s1', 'c-sentinel'], playbook: 'Endpoint: defence evasion' },
+    { title: 'Managed-security customer portal: admin sign-in to cloud.kinneret-telecom.co.il without MFA from a new device', sev: ['medium', 'low'], tech: ['T1078', 'T1539'], src: ['c-entra', 'c-cato', 'c-sentinel'], tenants: ['business'], playbook: 'Identity: suspicious sign-in' },
+    { title: 'Impossible travel: {user} signed in from Petah Tikva and Limassol within 50 min', sev: ['low', 'medium'], tech: ['T1078'], src: ['c-entra', 'c-sentinel'], tenants: ['corp', 'intl', 'business'], playbook: 'Identity: suspicious sign-in' },
+  ],
 };
 
 const OT_TARGET: CustomerMap<string[]> = {
@@ -357,6 +383,7 @@ const OT_TARGET: CustomerMap<string[]> = {
   pharma: ['CRK-LYO-01', 'CRK-LYO-02', 'CRK-LYO-03'],
   sghospital: ['DSC-OT-AHU-02', 'DSC-OT-AHU-04'],
   studio: ['PARKS-RIDECTL-PLC07', 'PARKS-RIDECTL-PLC11', 'PARKS-RIDECTL-PLC14'],
+  telco: ['CS-N-0412-GEN', 'CS-N-0437-GEN', 'CS-N-0466-GEN', 'TLV-DC1-CHL-02'],
 };
 
 function fill(s: string, c: CustomerProfile, r: ReturnType<typeof rng>, ctx: { host: string; user: string; vip: string }): string {
@@ -574,6 +601,11 @@ export function regClocks(c: CustomerProfile, inc: Incident): RegClock[] {
     if (inc.personal) add('PDPC data breach notification', 'Personal Data Protection Commission', 3 * 1440, 'PDPA s26D · 3 calendar days after assessing a notifiable breach');
   }
   if (c.id === 'studio' && inc.personal && rg.includes('APPI')) add('APPI breach report', 'Personal Information Protection Commission (Japan)', 30 * 1440, 'APPI Art. 26 · preliminary report promptly (3–5 days), final within 30 days');
+  if (c.id === 'telco') {
+    if (inc.personal) add('PPA severe security incident notification', 'Privacy Protection Authority (PPA)', 72 * 60, 'Privacy Protection Regulations (Data Security) · notify without delay (PPA guidance: within 72 hours)');
+    if (inc.sev === 'critical') add('INCD incident report', 'Israel National Cyber Directorate (INCD)', 24 * 60, 'Report without delay · 24 h internal target');
+    if (rg.includes('MoC licence')) add('Ministry of Communications notification', 'Ministry of Communications', 24 * 60, 'Ministry of Communications licence · report without delay (24 h internal target)');
+  }
   return out;
 }
 
@@ -589,6 +621,7 @@ const LEAK_CLOCK: CustomerMap<[string, string, number, string] | false> = {
   pharma: ['CRO / CDMO partner notification', 'Contract partners (quality & data agreements)', 48 * 60, 'Quality and data-transfer agreements · 48 h'],
   sghospital: false,
   studio: ['Talent, licensor & co-financier notification', 'Content owners and co-financiers (contractual)', 24 * 60, 'Distribution, co-production & talent agreements · MPA CSBP'],
+  telco: ['Business customer & roaming partner notification', 'Affected enterprise customers and roaming partners (contractual)', 72 * 60, 'Managed-service and roaming agreements · 72 h'],
 };
 
 /* =====================================================================
@@ -636,6 +669,7 @@ const TACTIC_SKEW: CustomerMap<Record<string, number>> = {
   pharma: { Collection: 1.6, Exfiltration: 1.5, 'Initial Access': 1.4, Impact: 1.3, 'Credential Access': 1.2 },
   sghospital: { 'Initial Access': 1.6, Impact: 1.4, 'Credential Access': 1.3, Collection: 1.2, 'Lateral Movement': 1.2 },
   studio: { Exfiltration: 1.8, Collection: 1.6, 'Credential Access': 1.4, 'Initial Access': 1.4, Impact: 1.1 },
+  telco: { 'Initial Access': 1.5, 'Credential Access': 1.5, Collection: 1.5, Impact: 1.3, Discovery: 1.2, Exfiltration: 1.2 },
 };
 
 export function mdrData(c: CustomerProfile, tenantId: string, days: number): MdrData {
@@ -1097,6 +1131,12 @@ const ACTOR_TECH: Record<string, string[]> = {
   UNC3886: ['T1190', 'T1133', 'T1078', 'T1556', 'T1059.004', 'T1070.001', 'T1071.001', 'T1021.004'],
   LAPSUS$: ['T1589', 'T1621', 'T1078', 'T1098', 'T1199', 'T1213', 'T1530', 'T1567.002', 'T1489'],
   NullBulge: ['T1195.002', 'T1204.002', 'T1059.006', 'T1567.002', 'T1213', 'T1041'],
+  // Actors named by the telecommunications customer (technique sets as described in public vendor reporting).
+  MuddyWater: ['T1566.001', 'T1566.002', 'T1204.002', 'T1219', 'T1059.001', 'T1027', 'T1053.005', 'T1003.001', 'T1071.001', 'T1041'],
+  'Salt Typhoon': ['T1190', 'T1133', 'T1078', 'T1505.003', 'T1059.003', 'T1003.001', 'T1070.001', 'T1572', 'T1090.003', 'T1213', 'T1560.001', 'T1048.003'],
+  'LightBasin (UNC1945)': ['T1199', 'T1133', 'T1078', 'T1110.003', 'T1046', 'T1572', 'T1090.003', 'T1213', 'T1560.001', 'T1070.001'],
+  Agrius: ['T1190', 'T1505.003', 'T1078', 'T1003.001', 'T1021.001', 'T1562.001', 'T1560.001', 'T1041', 'T1486', 'T1489', 'T1490'],
+  'Hacktivist DDoS collectives': ['T1595', 'T1589', 'T1190', 'T1110.003', 'T1078', 'T1565.001', 'T0883', 'T0814', 'T0826'],
 };
 export function actorTechniques(actor: string): string[] {
   if (ACTOR_TECH[actor]) return ACTOR_TECH[actor];
@@ -1128,12 +1168,14 @@ const MATRIX_PCT: CustomerMap<Record<Exclude<Matrix, 'enterprise'>, number>> = {
   pharma: { ics: 57, atlas: 44 },
   sghospital: { ics: 44, atlas: 31 },
   studio: { ics: 49, atlas: 42 },
+  telco: { ics: 46, atlas: 43 },
 };
 
 /** The control that supplies ATLAS (AI) telemetry for each customer. */
 const ATLAS_SRC: CustomerMap<string> = {
   maritime: 'HexaAI guardrails', finserv: 'Netskope SkopeAI', media: 'HexaAI guardrails', healthcare: 'HexaAI guardrails', automotive: 'Zscaler GenAI controls',
   insurance: 'Netskope SkopeAI', defence: 'Purview DSPM for AI', pharma: 'Lakera Guard · Protect AI', sghospital: 'Purview DSPM for AI · Lakera Guard', studio: 'Lakera Guard · Protect AI',
+  telco: 'Prompt Security',
 };
 
 export function matrixTechniques(m: Matrix): Technique[] {
@@ -1220,6 +1262,7 @@ export interface DetectionData {
 const ISAC: CustomerMap<string> = {
   finserv: 'FS-ISAC advisory', maritime: 'Maritime ISAC bulletin', media: 'HexaInt leak watch', healthcare: 'Health-ISAC / HHS HC3 alert', automotive: 'Auto-ISAC advisory',
   insurance: 'FS-ISAC insurance community alert', defence: 'DC3 DCISE / NDISAC advisory', pharma: 'Health-ISAC / NCSC Switzerland alert', sghospital: 'CSA SingCERT / MOH advisory', studio: 'MPA / TPN content security alert',
+  telco: 'National CERT / telecom sector advisory',
 };
 
 export function detectionData(c: CustomerProfile, tenantId: string, days: number): DetectionData {
@@ -1449,9 +1492,19 @@ const HUNT_TPL: CustomerMap<HuntTpl[]> = {
     { name: 'Poisoned tooling in generative VFX', hyp: 'NullBulge-style poisoned model nodes and extensions reach generative VFX workstations.', actor: 5, tech: ['T1195.002', 'T1204.002'], trigger: 'Protect AI Guardian finding', tenants: ['post', 'studios'] },
     { name: 'Checkout script integrity', hyp: 'Third-party scripts on Starfall+ and resort e-commerce checkouts change without a release, a sign of skimming.', actor: 1, tech: ['T1059.007', 'T1190'], trigger: 'PCI DSS 6.4.3 script review', tenants: ['play', 'corp'] },
   ],
+  telco: [
+    { name: 'Roaming-partner signalling outside agreed ranges', hyp: 'Location and subscriber-profile queries arrive over SS7 and Diameter from partners or global titles that have no roaming subscribers to justify them.', actor: 2, tech: ['T1199', 'T1046', 'T1213'], trigger: 'Signalling firewall anomaly report (GSMA FS.11 / FS.19)', tenants: ['mobile', 'intl'] },
+    { name: 'Living-off-the-land in the network management zone', hyp: 'State-aligned actors reported against telecom operators use built-in tools and tunnels on OSS and element-management hosts rather than malware.', actor: 1, tech: ['T1078', 'T1059.003', 'T1572', 'T1070.001'], trigger: 'National CERT / telecom sector advisory', tenants: ['mobile', 'fixed'] },
+    { name: 'SIM-swap velocity by agent, store and dealer', hyp: 'Fraud rings recruit or impersonate contact-centre and store staff; swaps cluster by desktop, shift and dealer code before account takeover.', actor: 3, tech: ['T1078', 'T1098', 'T1657'], trigger: 'Fraud management: SIM-swap score shift', tenants: ['retail'] },
+    { name: 'CDR and subscriber data outside approved stores', hyp: 'Extracts of call records and subscriber master data are staged on file shares and analytics workspaces that are not approved stores.', actor: 1, tech: ['T1213', 'T1560.001', 'T1530'], trigger: 'Cyera DSPM finding + HexaCustody anomaly', tenants: ['retail', 'mobile', 'business'] },
+    { name: 'Vendor sessions to network elements outside change windows', hyp: 'Remote support sessions reach RAN, transport or core elements with no matching change record, or from a path that bypasses the PAM jump host.', actor: 0, tech: ['T1133', 'T1219', 'T1078'], trigger: 'CyberArk session review', tenants: ['mobile', 'fixed', 'intl'] },
+    { name: 'Route-origin anomalies for Kinneret prefixes', hyp: 'More-specific or RPKI-invalid announcements of Kinneret address space appear at upstream peers before any customer notices.', actor: 5, tech: ['T1199', 'T1090.003'], trigger: 'HexaInt routing watch', tenants: ['intl', 'fixed'] },
+    { name: 'Site plant changes outside work orders', hyp: 'Parameter writes to generator, rectifier or cooling controllers come from hosts other than the contractor jump host, or outside approved work orders.', actor: 5, tech: ['T0836', 'T0855', 'T0886'], trigger: 'HexaMatrix ICS gap', tenants: ['mobile', 'fixed', 'intl'] },
+    { name: 'Exposure API token misuse', hyp: 'Tokens for the eSIM activation and 5G exposure APIs are replayed from infrastructure that does not belong to the registered partner application.', actor: 3, tech: ['T1190', 'T1550.001'], trigger: 'Salt Security API anomaly', tenants: ['retail', 'mobile'] },
+  ],
 };
 
-const SCAN_MUL: CustomerMap<number> = { maritime: 1, finserv: 2.4, media: 1, healthcare: 1.6, automotive: 3.1, insurance: 1.8, defence: 0.7, pharma: 2.6, sghospital: 1.1, studio: 3.4 };
+const SCAN_MUL: CustomerMap<number> = { maritime: 1, finserv: 2.4, media: 1, healthcare: 1.6, automotive: 3.1, insurance: 1.8, defence: 0.7, pharma: 2.6, sghospital: 1.1, studio: 3.4, telco: 2.8 };
 
 export function hunts(c: CustomerProfile, tenantId: string, days: number): Hunt[] {
   const h = headlines(c, tenantId).soc;
@@ -1656,6 +1709,19 @@ const EV_TYPES: CustomerMap<{ type: string; source: string; min: number; max: nu
     { type: 'Ride-zone PCAP', source: 'Dragos Platform (span, read-only)', min: 1e9, max: 25e9, tenants: ['parks'] },
     { type: 'Memory capture (raw)', source: 'CrowdStrike RTR (resorts)', min: 8e9, max: 64e9, tenants: ['parks', 'parksasia'] },
   ],
+  telco: [
+    { type: 'Disk image (E01)', source: 'SentinelOne remote shell + FTK Imager', min: 120e9, max: 1.2e12 },
+    { type: 'Memory capture (raw)', source: 'SentinelOne remote shell (WinPmem)', min: 16e9, max: 128e9 },
+    { type: 'Entra ID sign-in and audit export', source: 'Microsoft Entra ID', min: 60e6, max: 2e9 },
+    { type: 'Signalling firewall log export (SS7 / Diameter / GTP)', source: 'Enea AdaptiveMobile Signalling Protection', min: 500e6, max: 30e9, tenants: ['mobile', 'intl'] },
+    { type: 'BSS and CRM agent-action audit', source: 'BSS / CRM audit feed (OCSF)', min: 80e6, max: 4e9, tenants: ['retail'] },
+    { type: 'CyberArk session recording', source: 'CyberArk Privileged Access Manager', min: 200e6, max: 5e9 },
+    { type: 'Network-element configuration snapshot', source: 'OSS configuration archive (KTG-OSS-NMS01)', min: 5e6, max: 600e6, tenants: ['mobile', 'fixed', 'intl'] },
+    { type: 'DDoS attack telemetry and flow records', source: 'Radware DefensePro', min: 300e6, max: 20e9, tenants: ['mobile', 'fixed', 'business', 'intl'] },
+    { type: 'Fraud case export', source: 'Mobileum Risk Management', min: 10e6, max: 800e6, tenants: ['mobile', 'retail', 'intl'] },
+    { type: 'Site plant PCAP', source: 'HexaOT sensor (span, read-only)', min: 1e9, max: 25e9, tenants: ['mobile', 'fixed', 'business', 'intl'] },
+    { type: 'Azure activity and storage logs', source: 'Azure (ktg-bss-prod, ktg-subscriber-analytics)', min: 200e6, max: 8e9, tenants: ['retail', 'business', 'corp'] },
+  ],
 };
 
 const TL_SOURCES: CustomerMap<string[]> = {
@@ -1669,9 +1735,10 @@ const TL_SOURCES: CustomerMap<string[]> = {
   pharma: ['$MFT', 'EVTX', 'Entra sign-ins', 'CrowdStrike', 'LIMS audit trail', 'PAS-X audit trail', 'DeltaV Event Chronicle'],
   sghospital: ['$MFT', 'EVTX', 'Entra sign-ins', 'CrowdStrike', 'TrakCare audit', 'HealthConnect', 'Claroty xDome'],
   studio: ['$MFT', 'Okta System Log', 'Drive audit', 'SentinelOne', 'S3 access', 'Aspera / Signiant', 'NexGuard'],
+  telco: ['$MFT', 'EVTX', 'Entra sign-ins', 'SentinelOne', 'Signalling firewall', 'BSS / CRM audit', 'CyberArk sessions'],
 };
 
-const DFIR_CASES: CustomerMap<number> = { finserv: 8, maritime: 7, media: 5, healthcare: 6, automotive: 9, insurance: 6, defence: 5, pharma: 8, sghospital: 5, studio: 9 };
+const DFIR_CASES: CustomerMap<number> = { finserv: 8, maritime: 7, media: 5, healthcare: 6, automotive: 9, insurance: 6, defence: 5, pharma: 8, sghospital: 5, studio: 9, telco: 8 };
 
 /** Sector wording for the second forensic question (what left, or what was touched). */
 const DFIR_Q: CustomerMap<{ leak?: string; ot?: string; personal?: string }> = {
@@ -1685,6 +1752,7 @@ const DFIR_Q: CustomerMap<{ leak?: string; ot?: string; personal?: string }> = {
   pharma: { leak: 'Which study, process or compound files left custody, and to which partner?', ot: 'Did any change reach a controller or batch record, and is batch release affected?', personal: 'Was personal or trial-subject data accessed (GDPR / revDSG assessment)?' },
   sghospital: { ot: 'Did any change reach a medical device or affect patient care?', personal: 'Was patient data accessed or acquired (PDPA notifiable-breach and MOH assessment)?' },
   studio: { leak: 'Which titles and versions left custody, and through which vendor?', ot: 'Did any command reach a ride or show controller, and were safety systems ever bypassed?', personal: 'Were subscriber or guest records accessed (CCPA / PCI assessment)?' },
+  telco: { leak: 'Which subscriber, CDR or network-configuration files left custody, and to whom?', ot: 'Did any change reach site power, cooling or the landing-station plant, and was service affected?', personal: 'Were subscriber records, CDRs or location data accessed or acquired (PPA severe-incident assessment)?' },
 };
 
 export function forensicCases(c: CustomerProfile, tenantId: string): ForensicCase[] {
@@ -1770,7 +1838,7 @@ export function forensicCases(c: CustomerProfile, tenantId: string): ForensicCas
 /* =====================================================================
    IR retainer & playbooks
    ===================================================================== */
-const IR_HOURS: CustomerMap<number> = { finserv: 600, maritime: 400, media: 200, healthcare: 400, automotive: 800, insurance: 500, defence: 160, pharma: 800, sghospital: 240, studio: 900 };
+const IR_HOURS: CustomerMap<number> = { finserv: 600, maritime: 400, media: 200, healthcare: 400, automotive: 800, insurance: 500, defence: 160, pharma: 800, sghospital: 240, studio: 900, telco: 700 };
 const ONSITE_SLA: CustomerMap<string> = {
   maritime: '24 h (port), 48 h (vessel at next port call)',
   finserv: '24 h',
@@ -1782,6 +1850,7 @@ const ONSITE_SLA: CustomerMap<string> = {
   pharma: '24 h (Basel, Valais, Cork), 48 h (Cambridge MA, Morristown)',
   sghospital: '4 h (all Singapore campuses)',
   studio: '24 h (Burbank, London, Orlando), 48 h (Osaka)',
+  telco: '4 h (Petah Tikva, Tel Aviv, Haifa), 24 h (other sites in Israel), 48 h (Limassol and Athens PoPs)',
 };
 
 export function irRetainer(c: CustomerProfile, tenantId: string) {
@@ -1810,6 +1879,7 @@ const PLAYBOOKS: CustomerMap<string[]> = {
   pharma: ['GxP: data integrity breach', 'IP theft: process & formulation data', 'Ransomware: pre-encryption', 'Clinical: unblinding integrity', 'OT: unauthorised controller change', 'Vendor: abnormal access', 'Identity: help-desk social engineering'],
   sghospital: ['Ransomware: pre-encryption', 'Identity: help-desk social engineering', 'Medical device: unauthorised change', 'Privacy: inappropriate EHR access', 'Data integrity: NEHR interface', 'Vendor remote access breach', 'DLP: data exfiltration'],
   studio: ['Content leak: external sighting', 'Vendor: compromised VFX partner', 'OT: ride-control segmentation breach', 'Content leak: exfiltration', 'Identity: credential stuffing', 'Web: client-side skimming', 'Ransomware: pre-encryption'],
+  telco: ['Signalling: roaming-partner abuse', 'Fraud: SIM-swap cluster', 'Data: CDR and subscriber-data exfiltration', 'DDoS: DNS and mobile core', 'Routing: BGP hijack or leak', 'Network management: targeted intrusion', 'Vendor remote access breach', 'Insider: subscriber-record snooping'],
 };
 export function playbooks(c: CustomerProfile, incs: Incident[]) {
   const r = rng(`soc-pb-${c.id}`);
@@ -1980,6 +2050,20 @@ const SECTOR_RULES: CustomerMap<Record<string, string[]>> = {
     T1486: ['ESXi datastore encryption pattern on render hypervisors'],
     T1078: ['Freelancer sign-in from two continents within 2 h'],
   },
+  telco: {
+    T1199: ['Roaming-partner signalling outside the agreed range', 'Interconnect global title not in the partner register'],
+    T1213: ['Bulk subscriber-profile read on the UDM / HSS', 'Store or contact-centre account viewing subscribers with no ticket', 'CDR query volume above the role baseline'],
+    T1098: ['SIM swap or eSIM re-issue without verified identity', 'MFA reset for a network engineer without call-back'],
+    T1657: ['SIM-swap velocity by agent desktop', 'Call burst to premium international ranges from new SIMs'],
+    T1078: ['Network-element login that bypassed the PAM jump host', 'Dealer portal sign-in from a new ASN'],
+    T1133: ['Vendor session to RAN or core outside the change window'],
+    T1572: ['Outbound tunnel from the network management zone'],
+    T1190: ['Object-level authorisation probing on the eSIM activation API', 'GTP-C create-session flood from an unlisted peer'],
+    T1595: ['DNS query flood against the resolver farm'],
+    T1195: ['Unsigned package staged for a core network function'],
+    T1560: ['Archive of CDR extracts on a mediation host'],
+    T1530: ['Public access enabled on a subscriber-analytics store'],
+  },
 };
 
 const MATRIX_SEED_TECHS: CustomerMap<string[]> = {
@@ -1993,6 +2077,7 @@ const MATRIX_SEED_TECHS: CustomerMap<string[]> = {
   pharma: ['T1565', 'T1562', 'T1213', 'T1199', 'T1560', 'T1567', 'T1078', 'T1098', 'T1219', 'T1190', 'T1505', 'T1486', 'T1490', 'T1566', 'T1530', 'T1133'],
   sghospital: ['T1078', 'T1098', 'T1621', 'T1213', 'T1565', 'T1219', 'T1490', 'T1486', 'T1133', 'T1190', 'T1566', 'T1052', 'T1110', 'T1562', 'T1071'],
   studio: ['T1567', 'T1530', 'T1213', 'T1199', 'T1078', 'T1621', 'T1098', 'T1110', 'T1059', 'T1195', 'T1486', 'T1490', 'T1560', 'T1539', 'T1566', 'T1562'],
+  telco: ['T1199', 'T1213', 'T1078', 'T1098', 'T1621', 'T1657', 'T1190', 'T1133', 'T1572', 'T1046', 'T1560', 'T1048', 'T1530', 'T1195', 'T1595', 'T1566', 'T1562'],
 };
 
 export function hexaMatrix(c: CustomerProfile, tenantId: string) {
@@ -2194,6 +2279,18 @@ const TICKET_TPL: CustomerMap<TT[]> = {
     ['Why did custody anomalies jump after the trailer launch?', 'Reports & questions', 'Low', 'The board view showed a spike last week.', 'Trailer vendors pulled more assets than their work orders allowed; two access grants trimmed.', 'corp'],
     ['Dubbing vendor needs scripts 1–4 for The Hollow Coast S3', 'Vendor & third party', 'Normal', 'Localisation kick-off for the new season.', 'TPN status checked; scripts shared through HexaCustody with per-recipient watermarking.', 'post'],
   ],
+  telco: [
+    ['Subscriber says her number stopped working and her bank app was reset', 'Report suspicious activity', 'Urgent', 'Raised by the Netanya contact centre for a business subscriber.', 'SIM swap confirmed as unauthorised and reversed; linked to the SIM-swap cluster incident and passed to Fraud Management.', 'retail'],
+    ['Ericsson needs remote access to the packet core for Thursday night maintenance', 'Change request', 'Normal', 'Software correction agreed with core engineering, change CHG0061507, 01:00-04:00.', 'CyberArk vendor window created for the named engineers only; session recorded and watched live.', 'mobile'],
+    ['Roaming partner asks us to open a new Diameter peer this week', 'Change request', 'High', 'Commercial wants the new roaming agreement live before the holiday period.', 'Peer added to the signalling firewall in monitor mode first; anomaly baseline reviewed after 72 hours before full service.', 'intl'],
+    ['Store manager reports a colleague looking up celebrity accounts', 'Report suspicious activity', 'High', 'Raised in confidence by a store manager in the north.', 'BSS audit shows 46 lookups with no service ticket; account suspended pending HR and the Data Protection Officer.', 'retail'],
+    ['Tower contractor needs access to the generator controllers at 12 northern sites', 'Vendor & third party', 'Normal', 'Planned battery and fuel-sensor replacement by Galil Tower Services.', 'Time-bound access through the contractor jump host; site plant stays read-only for HexaView.', 'mobile'],
+    ['Phone call claiming to be IT asking a NOC engineer for an MFA code', 'Report suspicious activity', 'Urgent', 'The shift lead refused and reported it.', 'Matches an active vishing pattern against telecom staff; sign-ins reviewed, no misuse, sessions revoked as a precaution.', 'mobile'],
+    ['Why did DDoS alerts triple on Tuesday?', 'Reports & questions', 'Low', 'The weekly report shows a spike.', 'One DNS amplification wave against the resolver farm, mitigated in 14 seconds with no subscriber impact.', 'fixed'],
+    ['New analytics partner needs a CDR sample for a churn model', 'Vendor & third party', 'High', 'Marketing wants to start a proof of concept.', 'Declined as raw CDRs; pseudonymised sample shared through HexaCustody after Data Protection Officer approval.', 'retail'],
+    ['Landing-station technician asks to connect a vendor laptop to the plant network', 'Change request', 'High', 'Power-feed equipment diagnostics requested by the cable consortium.', 'Approved for a scanned laptop on the maintenance VLAN only, under the site change process.', 'intl'],
+    ['Managed-security customer asks for our SOC 2 report and last pen-test summary', 'Reports & questions', 'Normal', 'Request from an enterprise customer of Business & Cloud.', 'Shared through the trust portal under NDA with current evidence attached.', 'business'],
+  ],
 };
 
 export function tickets(c: CustomerProfile, tenantId: string): Ticket[] {
@@ -2321,6 +2418,11 @@ const CVE_SECTOR: CustomerMap<CveSeed[]> = {
     ['CVE-2025-24813', 'Apache Tomcat', 'Partial PUT path equivalence RCE', 9.8, true, 570, 'Server', 'Remote code execution on review-portal servers that serve press and screener pages.', 'Upgrade Tomcat to 10.1.35 / 9.0.99 or later.'],
     ['CVE-2025-0108', 'Palo Alto PAN-OS management interface', 'Authentication bypass', 8.8, true, 600, 'Remote access', 'Bypasses login on resort firewall management interfaces reachable from the park admin network.', 'Upgrade PAN-OS and restrict management to the jump host.'],
   ],
+  telco: [
+    ['CVE-2023-20198', 'Cisco IOS XE web UI', 'Privilege escalation to full administrator', 10.0, true, 760, 'Remote access', 'Creates an administrator account on edge routers whose web UI is reachable; reported in campaigns against telecom operators.', 'Upgrade IOS XE and disable the HTTP server on untrusted interfaces.'],
+    ['CVE-2024-24919', 'Check Point Security Gateway', 'Information disclosure on remote-access gateways', 8.6, true, 540, 'Remote access', 'Lets an unauthenticated attacker read sensitive files, including credential material, from gateways with remote access enabled.', 'Apply the vendor hotfix and rotate local account passwords.'],
+    ['CVE-2025-22224', 'VMware ESXi', 'VMCI time-of-check race (VM escape)', 9.3, true, 580, 'Server', 'Code execution on hypervisors that host virtualised network functions and BSS workloads from inside a VM.', 'Upgrade ESXi to 8.0 U3d or later.'],
+  ],
 };
 
 export function endpointCves(c: CustomerProfile, tenantId: string): EndpointCve[] {
@@ -2379,6 +2481,7 @@ const DEVICE_KINDS: CustomerMap<DevSeed[]> = {
   pharma: [['WS', 'Office workstation', ['Windows 11 24H2']], ['LAB', 'Laboratory instrument PC', ['Windows 10 LTSC 2019', 'Windows 10 22H2']], ['HMI', 'Process HMI (DeltaV / PCS 7 operator station)', ['Windows 10 LTSC 2019']], ['MES', 'PAS-X MES terminal', ['Windows 10 LTSC 2021']], ['SRV', 'Server', ['Windows Server 2022', 'Windows Server 2019']], ['HPC', 'Research HPC node', ['Rocky Linux 9.4']], ['LT', 'Laptop', ['Windows 11 24H2', 'macOS 15 Sequoia']]],
   sghospital: [['WOW', 'Workstation on wheels (ward)', ['Windows 11 23H2', 'Windows 10 22H2']], ['NS', 'Nursing station (shared, Imprivata)', ['Windows 11 23H2']], ['RAD', 'Radiology reading workstation', ['Windows 11 24H2']], ['MOD', 'Imaging modality console', ['Windows 7 Embedded', 'Windows 10 LTSC 2019']], ['SRV', 'Server', ['Windows Server 2022', 'Windows Server 2019', 'Windows Server 2016']], ['LT', 'Clinician laptop', ['Windows 11 24H2']], ['KSK', 'Patient registration kiosk', ['Windows 10 IoT Enterprise']]],
   studio: [['EDT', 'Edit bay workstation', ['macOS 15 Sequoia', 'Windows 11 23H2']], ['DIT', 'DIT cart (on set)', ['macOS 14 Sonoma']], ['RND', 'Render node', ['Rocky Linux 9.4']], ['WS', 'Office workstation', ['Windows 11 24H2']], ['HMI', 'Ride control HMI', ['Windows 10 LTSC 2019']], ['POS', 'Park point-of-sale terminal', ['Windows 10 IoT Enterprise']], ['SRV', 'Server', ['Windows Server 2022']], ['MAC', 'Laptop (macOS)', ['macOS 15 Sequoia']]],
+  telco: [['WS', 'Office workstation', ['Windows 11 24H2']], ['NOC', 'NOC operator workstation', ['Windows 11 23H2']], ['CC', 'Contact-centre agent desktop', ['Windows 11 24H2']], ['STR', 'Store tablet / point-of-sale terminal', ['Windows 11 IoT Enterprise', 'Android 14']], ['EMS', 'Element management server', ['RHEL 9.4', 'RHEL 8.10']], ['BMS', 'Data-centre BMS operator HMI', ['Windows 10 LTSC 2019']], ['SRV', 'Server', ['Windows Server 2022', 'Windows Server 2019']], ['FLD', 'Field engineer laptop', ['Windows 11 24H2']]],
 };
 
 export function endpointDevices(c: CustomerProfile, tenantId: string): Device[] {
@@ -2522,6 +2625,13 @@ const REC_SECTOR: CustomerMap<RecSeed[]> = {
     ['Require FIDO2 for vendor and freelancer Okta accounts', 'Help-desk and push-MFA attacks on vendors are the usual first step in content theft.', 'Accounts', 'MFA', 9, 'Medium', 'Medium', ['T1621', 'T1078']],
     ['Block USB mass storage on park point-of-sale terminals', 'POS terminals in the parks are in PCI DSS scope.', 'OS', 'Removable media', 6, 'Low', 'Low', ['T1091']],
   ],
+  telco: [
+    ['Require FIDO2 for every account that can change a SIM or reset a subscriber', 'Contact-centre, store and dealer accounts are the usual first step in SIM-swap fraud.', 'Accounts', 'MFA', 10, 'Medium', 'Medium', ['T1621', 'T1078', 'T1098']],
+    ['Route all network-element and OSS logins through the PAM jump host', 'Direct logins to element managers bypass session recording and MFA (ISO 27001 A.8.2).', 'Network', 'Privileged access', 9, 'High', 'Medium', ['T1133', 'T1078']],
+    ['Application allow-listing on BMS and site-controller HMIs', 'Plant HMIs on LTSC builds cannot run the full EDR sensor; allow-listing closes the gap.', 'Plant', 'Application control', 8, 'High', 'Low', ['T1204.002', 'T1059']],
+    ['Block bulk export and personal cloud on contact-centre and store desktops', 'Subscriber data should only leave the BSS through approved, custody-tracked exports.', 'Application', 'Data protection', 8, 'Low', 'Medium', ['T1567.002', 'T1213']],
+    ['Block USB mass storage on store point-of-sale terminals', 'Store terminals that accept cards are in PCI DSS scope.', 'OS', 'Removable media', 6, 'Low', 'Low', ['T1091']],
+  ],
 };
 
 export function recommendations(c: CustomerProfile, tenantId: string) {
@@ -2572,9 +2682,10 @@ const GEO_EXTRA: CustomerMap<{ name: string; port: number; w: number; note: stri
   pharma: [{ name: 'OPC UA', port: 4840, w: 1.4, note: 'Probes for plant historians' }, { name: 'SAProuter', port: 3299, w: 1.2, note: 'SAP gateway scans' }, { name: 'EtherNet/IP', port: 44818, w: 0.8, note: 'Probes for packaging-line PLCs' }],
   sghospital: [{ name: 'DICOM', port: 104, w: 1.6, note: 'Probes for imaging archives' }, { name: 'HL7 MLLP', port: 2575, w: 1.0, note: 'HealthConnect interface probes' }, { name: 'FortiGate SSL VPN', port: 10443, w: 1.5, note: 'Remote clinician gateway' }],
   studio: [{ name: 'Aspera FASP', port: 33001, w: 1.8, note: 'Pre-release transfer gateway' }, { name: 'Art-Net', port: 6454, w: 0.6, note: 'Probes for show lighting controllers' }, { name: 'RTSP', port: 554, w: 1.0, note: 'Park camera and media server probes' }],
+  telco: [{ name: 'SIGTRAN (SCTP)', port: 2905, w: 1.6, note: 'Signalling interconnect probes' }, { name: 'GTP-C', port: 2123, w: 1.4, note: 'Roaming and packet-core probes' }, { name: 'BGP', port: 179, w: 1.0, note: 'Peering edge probes' }, { name: 'DNS', port: 53, w: 1.8, note: 'Resolver farm probes and floods' }],
 };
 
-const GEO_SIZE: CustomerMap<number> = { maritime: 1, finserv: 2.6, media: 0.9, healthcare: 1.5, automotive: 3.2, insurance: 1.4, defence: 0.5, pharma: 2.2, sghospital: 0.8, studio: 3.6 };
+const GEO_SIZE: CustomerMap<number> = { maritime: 1, finserv: 2.6, media: 0.9, healthcare: 1.5, automotive: 3.2, insurance: 1.4, defence: 0.5, pharma: 2.2, sghospital: 0.8, studio: 3.6, telco: 2.4 };
 
 export function geoThreats(c: CustomerProfile, tenantId: string, days: number) {
   const r = rng(`soc-geo-${c.id}-${tenantId}-${days}`);
@@ -2644,6 +2755,7 @@ const ID_APPS: CustomerMap<string[]> = {
   pharma: ['Veeva Vault QMS', 'Medidata Rave', 'SAP S/4HANA', 'Workday', 'Outlook Web', 'Microsoft Teams', 'Windows Sign In'],
   sghospital: ['TrakCare', 'Imprivata OneSign', 'PACS viewer', 'Outlook Web', 'Microsoft Teams', 'ServiceNow', 'Windows Sign In'],
   studio: ['Okta Dashboard', 'Avid NEXIS', 'Frame.io', 'Google Workspace', 'Aspera on Cloud', 'ServiceNow', 'Windows Sign In'],
+  telco: ['BSS / CRM agent desktop', 'OSS network management portal', 'Dealer & store portal', 'Outlook Web', 'Microsoft Teams', 'ServiceNow', 'CyberArk PVWA', 'Windows Sign In'],
 };
 const ID_EXTRA: CustomerMap<[string, string, IdUser['source']][]> = {
   maritime: [['Svc-Navis-Integration', 'Service account', 'Hybrid'], ['Konecranes Field Engineer', 'Vendor (B2B guest)', 'Guest (B2B)'], ['Bridge Officer (shared)', 'Vessel shared logon', 'Shared / kiosk']],
@@ -2656,6 +2768,7 @@ const ID_EXTRA: CustomerMap<[string, string, IdUser['source']][]> = {
   pharma: [['Svc-PASX-Interface', 'Service account', 'Hybrid'], ['IQVIA Clinical Research Associate', 'CRO partner (B2B guest)', 'Guest (B2B)'], ['Emerson Service Engineer', 'DCS OEM (B2B guest)', 'Guest (B2B)'], ['Cork QC Lab Bench 3 (shared)', 'Shared lab logon', 'Shared / kiosk']],
   sghospital: [['Svc-TrakCare-Interface', 'Service account', 'Hybrid'], ['Siemens Healthineers Engineer', 'Biomed vendor (B2B guest)', 'Guest (B2B)'], ['Ward 7A Nursing Station', 'Shared clinical workstation', 'Shared / kiosk'], ['Locum Doctor', 'Contract clinician', 'Cloud only'], ['Svc-Pump-Server', 'Medical device service account', 'Hybrid']],
   studio: [['Svc-MAM-Transcode', 'Service account', 'Cloud only'], ['Northlight Pixel Compositor', 'VFX vendor (B2B guest)', 'Guest (B2B)'], ['Iyuno Dubbing Engineer', 'Localisation vendor (B2B guest)', 'Guest (B2B)'], ['Edit Suite 12 (shared)', 'Shared workstation', 'Shared / kiosk'], ['Orlando Ride Ops Console', 'Ride operations shared logon', 'Shared / kiosk']],
+  telco: [['Svc-Mediation-Billing', 'Service account', 'Hybrid'], ['Negev Contact Solutions Agent', 'Outsourced contact centre (B2B guest)', 'Guest (B2B)'], ['Galil Tower Services Technician', 'Site maintenance contractor (B2B guest)', 'Guest (B2B)'], ['Netanya Store Tablet 07 (shared)', 'Shared store device', 'Shared / kiosk'], ['NOC Wallboard Console', 'NOC shared logon', 'Shared / kiosk']],
 };
 const LOCS: CustomerMap<string[]> = {
   maritime: ['Rotterdam, NL', 'Antwerp, BE', 'Port Klang, MY', 'Santos, BR', 'London, GB', 'At sea (VSAT)'],
@@ -2668,6 +2781,7 @@ const LOCS: CustomerMap<string[]> = {
   pharma: ['Basel, CH', 'Sierre, CH', 'Ringaskiddy, IE', 'Dublin, IE', 'Cambridge, MA', 'Morristown, NJ', 'Remote'],
   sghospital: ['Novena, SG', 'Tanglin, SG', 'Punggol, SG', 'Science Park, SG', 'Changi Business Park, SG', 'Remote'],
   studio: ['Burbank, US', 'London, GB', 'Santa Monica, US', 'Orlando, US', 'Osaka, JP', 'New York, US', 'Vancouver, CA', 'Remote'],
+  telco: ['Petah Tikva, IL', 'Tel Aviv, IL', 'Haifa, IL', 'Netanya, IL', 'Rishon LeZion, IL', 'Ramat Gan, IL', 'Limassol, CY', 'Remote'],
 };
 
 /** Shared clinical workstations switch user by Imprivata badge tap where the customer runs it. */
@@ -2809,6 +2923,13 @@ const INSIGHTS: CustomerMap<InsSeed[]> = {
     ['Patch update', 22, 'Patch priorities: ESXi, Tomcat review portals, resort firewalls', 'The render hypervisors, review portals and resort firewall management carry KEV-listed flaws. Ride systems follow the park change calendar.', ['The ESXi flaw lets code inside a VM reach the hypervisor.'], ['Upgrade ESXi on the London render farm', 'Restrict resort firewall management to the jump host'], ['T1190', 'T1486']],
     ['Threat brief', 35, 'Theme park OT: keeping ride control isolated', 'Ride and show control networks are safety-critical. This brief shows how HexaOT and Dragos watch the ride zones in Orlando and Osaka without ever sending a command.', ['One maintenance laptop bridged a ride network to guest Wi-Fi this quarter and was removed within 20 minutes.'], ['Lock down maintenance laptop network profiles', 'Review ride-zone firewall rules each season'], ['T0866', 'T0886', 'T0883']],
   ],
+  telco: [
+    ['Incident report', 3, 'Roaming-partner signalling abuse contained in 31 minutes', 'A roaming partner link carried location and subscriber-profile queries far outside its agreed range. The signalling firewall and Splunk agreed, the link was rate-limited by approval and 412 affected subscribers were identified.', ['The queries came through the roaming hub, not from Kinneret systems.', 'A matching bulk read on the subscriber database was reviewed; the Data Protection Officer opened a severe-incident assessment.', 'The partner has been asked for its own investigation under the roaming agreement.'], ['Move the partner to strict category filtering', 'Add roaming-partner baselines to the weekly signalling review'], ['T1199', 'T1213', 'T1046']],
+    ['Advisory', 8, 'SIM-swap fraud is clustering by agent desktop', 'Fraud scoring flagged 14 swaps from one outsourced contact-centre desktop in 40 minutes. The swaps were reversed and the session revoked before any reported loss.', ['Rings recruit or impersonate agents rather than attack the network.', 'Accounts that can change a SIM should use phishing-resistant MFA.'], ['Enforce FIDO2 for SIM-change roles', 'Hold high-risk swaps for a second approval'], ['T1078', 'T1098', 'T1657']],
+    ['Phishing', 15, 'Fake interconnect invoices from lookalike carrier domains', 'Wholesale and finance staff received invoices from domains one letter away from real carriers. Harmony Email caught most; two attachments were opened and stopped by SentinelOne.', ['The lures quote real route names and settlement periods.'], ['Verify bank-detail changes by phone on the number in the carrier register'], ['T1566.001', 'T1204.002']],
+    ['Patch update', 21, 'Patch priorities: edge routers, remote-access gateways, hypervisors', 'Edge router web interfaces, remote-access gateways and the hypervisors under virtualised network functions carry KEV-listed flaws. Core network elements follow the network change calendar.', ['Two of the three flaws are reachable from the internet if management interfaces are exposed.'], ['Close management interfaces on untrusted networks', 'Schedule hypervisor upgrades with core engineering'], ['T1190', 'T1133']],
+    ['Threat brief', 34, 'Critical infrastructure campaigns: what they look for in a telecom operator', 'Public vendor reporting describes state-aligned and hacktivist campaigns that favour network management systems, subscriber data and service disruption. This brief maps those behaviours to your detections; no attribution is made here.', ['Coverage is strongest on identity and weakest on signalling and site plant.', 'DDoS waves against DNS are short and frequent; all were mitigated this quarter.'], ['Close the staged signalling detections', 'Review vendor paths into the landing station'], ['T1078', 'T1572', 'T1595', 'T0886']],
+  ],
 };
 
 export function insights(c: CustomerProfile): Insight[] {
@@ -2856,6 +2977,7 @@ const REPORT_FOCUS: CustomerMap<string[]> = {
   pharma: ['GxP data integrity', 'Process and formulation IP', 'Plant ransomware readiness', 'CRO and CDMO access'],
   sghospital: ['Help-desk reset abuse and TrakCare access', 'Ransomware readiness for PACS and TrakCare', 'Medical device segmentation', 'MOH and PDPC notification readiness'],
   studio: ['Pre-release content custody', 'VFX vendor access', 'Starfall+ account takeover', 'Ride-control segmentation'],
+  telco: ['Signalling and roaming-partner abuse', 'SIM-swap and subscriber fraud', 'Subscriber and CDR data access', 'DDoS and routing resilience', 'Vendor access to network elements and site plant'],
 };
 
 export function socReports(c: CustomerProfile, tenantId: string): SocReport[] {

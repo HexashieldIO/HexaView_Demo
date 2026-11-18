@@ -29,6 +29,9 @@ const SHORT_BY_VENDOR: Record<string, (k: Connector) => string> = {
   SWIFT: () => 'SWIFT Alliance',
   'Schneider Electric': () => 'EcoStruxure BMS',
   Atlassian: () => 'Jira',
+  Enea: () => 'Signalling firewall',
+  'Check Point': (k) => (k.product.startsWith('Harmony') ? 'Harmony Email' : 'Check Point'),
+  'Cyberint (Check Point)': () => 'Cyberint',
 };
 
 /** Short display name for a connector ("Sentinel", "CrowdStrike", "AWS Security Hub"). */
@@ -378,6 +381,7 @@ const DEPLOY_HIGHLIGHTS: CustomerMap<string[]> = {
   pharma: ['dedicated', 'hosted', 'airgap'],
   sghospital: ['saas', 'hosted'],
   studio: ['dedicated', 'hosted'],
+  telco: ['dedicated', 'hosted'],
 };
 export function deploymentHighlights(c: CustomerProfile): string[] {
   return forCustomer(DEPLOY_HIGHLIGHTS, c);
@@ -451,6 +455,12 @@ const TYPE_MIX: CustomerMap<TypeMix> = {
     ot: [['Ride control PLC (safety-rated)', 0.12], ['Show control & animatronics', 0.1], ['Turnstile & ticket gate', 0.22], ['Projection & LED media server', 0.12], ['ST 2110 router & switch', 0.06], ['Park BMS & fire panel', 0.2], ['Water ride pump VFD', 0.08], ['Wearable & queue beacon', 0.1]],
     saas: [['SaaS application', 1]],
   },
+  telco: {
+    cloud: [['Cloud VM', 0.3], ['Container workload', 0.42], ['Managed database', 0.13], ['Storage account / bucket', 0.15]],
+    onprem: [['Workstation & laptop', 0.36], ['Workstation (contact centre & store)', 0.2], ['Linux server (OSS / BSS, core management)', 0.14], ['Windows server', 0.08], ['Network device (router, switch, firewall)', 0.14], ['Store POS & kiosk', 0.05], ['Home gateway management node', 0.03]],
+    ot: [['Cell-site rectifier & DC power', 0.26], ['Site battery management system', 0.14], ['Standby generator controller', 0.1], ['Tower site controller (RTU)', 0.2], ['Cell-site HVAC controller', 0.12], ['Data-centre BMS, chiller & UPS', 0.08], ['Site access control & CCTV', 0.08], ['Landing-station power feed equipment', 0.02]],
+    saas: [['SaaS application', 1]],
+  },
 };
 const ENV_SPLIT: CustomerMap<Record<'cloud' | 'onprem' | 'saas', number>> = {
   maritime: { cloud: 0.14, onprem: 0.78, saas: 0.08 },
@@ -463,6 +473,7 @@ const ENV_SPLIT: CustomerMap<Record<'cloud' | 'onprem' | 'saas', number>> = {
   pharma: { cloud: 0.26, onprem: 0.66, saas: 0.08 },
   sghospital: { cloud: 0.18, onprem: 0.74, saas: 0.08 },
   studio: { cloud: 0.36, onprem: 0.55, saas: 0.09 },
+  telco: { cloud: 0.24, onprem: 0.68, saas: 0.08 },
 };
 /** Entity-resolution queue: pending merge suggestions (group roll-up) and the share merged automatically. */
 const MERGES: CustomerMap<{ pending: number; autoPct: number }> = {
@@ -476,6 +487,7 @@ const MERGES: CustomerMap<{ pending: number; autoPct: number }> = {
   pharma: { pending: 412, autoPct: 94.1 },
   sghospital: { pending: 141, autoPct: 92.6 },
   studio: { pending: 538, autoPct: 95 },
+  telco: { pending: 346, autoPct: 94.8 },
 };
 
 export interface AssetSummary {
@@ -587,6 +599,7 @@ const CLOUD_REGIONS: CustomerMap<RegionPools> = {
   pharma: { Azure: ['Switzerland North', 'West Europe', 'North Europe'], AWS: ['eu-central-2', 'eu-west-1', 'us-east-1'], GCP: ['europe-west6', 'us-east4'], mixed: ['Switzerland North', 'eu-central-2', 'West Europe', 'eu-west-1', 'us-east-1'], awsHome: 'eu-central-2', gcpZone: 'europe-west6-a' },
   sghospital: { Azure: ['Southeast Asia'], AWS: ['ap-southeast-1'], GCP: ['asia-southeast1'], mixed: ['Southeast Asia', 'ap-southeast-1'], awsHome: 'ap-southeast-1', gcpZone: 'asia-southeast1-a' },
   studio: { Azure: ['East US 2', 'Japan East', 'West US 2'], AWS: ['us-west-2', 'us-east-1', 'ap-northeast-1'], GCP: ['us-west1', 'asia-northeast1'], mixed: ['us-west-2', 'us-east-1', 'East US 2', 'Japan East'], awsHome: 'us-west-2', gcpZone: 'us-west1-a' },
+  telco: { Azure: ['Israel Central'], AWS: ['il-central-1'], GCP: ['me-west1'], mixed: ['Israel Central', 'il-central-1'], awsHome: 'il-central-1', gcpZone: 'me-west1-a' },
 };
 
 export function assetEntities(c: CustomerProfile, tenantId: string, n = 150): AssetEntity[] {
@@ -848,6 +861,7 @@ const ID_PROFILE: CustomerMap<IdProfile> = {
   pharma: { mfa: 98.4, phish: 58, humanPct: 0.78, privileged: 2900, standing: 34, dormantPct: 0.052, guests: 6200, oldSecrets: 88, sod: 46, risky: 58 },
   sghospital: { mfa: 96.1, phish: 34, humanPct: 0.8, privileged: 380, standing: 27, dormantPct: 0.071, guests: 520, oldSecrets: 31, sod: null, risky: 18 },
   studio: { mfa: 95.4, phish: 41, humanPct: 0.84, privileged: 3100, standing: 48, dormantPct: 0.088, guests: 14800, oldSecrets: 112, sod: null, risky: 71 },
+  telco: { mfa: 97.6, phish: 46, humanPct: 0.72, privileged: 1420, standing: 44, dormantPct: 0.048, guests: 3900, oldSecrets: 84, sod: 32, risky: 44 },
 };
 /** Why standing admin accounts persist, per customer (Identity page callout). */
 const STANDING_NOTE: CustomerMap<string> = {
@@ -861,6 +875,7 @@ const STANDING_NOTE: CustomerMap<string> = {
   pharma: 'Most are OEM and MES integrator accounts at Valais and Cork; GxP change control should gate every elevation.',
   sghospital: 'Most are NCS outsourced service-desk and biomedical OEM accounts; broker them through CyberArk Vendor PAM.',
   studio: 'Most are post-production and ride-systems admins; move them to CyberArk just-in-time with Okta step-up.',
+  telco: 'Most are network-element and OSS admin accounts held by vendors and tower contractors; move them behind CyberArk just-in-time with Silverfort MFA.',
 };
 export function standingAdminNote(c: CustomerProfile): string {
   return forCustomer(STANDING_NOTE, c);
@@ -896,12 +911,13 @@ const MFA_METHODS: CustomerMap<MfaMethod[]> = {
   pharma: [M('Windows Hello for Business', 34, true), M('FIDO2 security key (GMP & privileged)', 14, true), M('Okta FastPass (US & CRO partners)', 10, true), M('Authenticator push (number match)', 33, false), M('SMS (CRO site staff)', 7, false), M('None', 2, false)],
   sghospital: [M('Windows Hello for Business', 20, true), M('FIDO2 security key', 8, true), M('Passkey (Authenticator)', 6, true), M('Authenticator push (number match)', 46, false), M('SMS OTP (visiting consultants)', 16, false), M('None', 4, false)],
   studio: [M('Okta FastPass', 24, true), M('FIDO2 security key (talent & content security)', 11, true), M('Passkey', 6, true), M('Okta Verify push', 41, false), M('SMS (freelancers & seasonal park staff)', 14, false), M('None', 4, false)],
+  telco: [M('Windows Hello for Business', 27, true), M('FIDO2 security key (network & privileged admins)', 13, true), M('Passkey (Authenticator)', 6, true), M('Authenticator push (number match)', 38, false), M('SMS OTP (dealers & contact-centre agents)', 13, false), M('None', 3, false)],
 };
 export function mfaMethods(c: CustomerProfile): MfaMethod[] {
   return forCustomer(MFA_METHODS, c);
 }
 /** Risky sign-ins per day at group level (scaled by tenant share and range). */
-const SIGNIN_BASE: CustomerMap<number> = { finserv: 38, maritime: 22, media: 16, healthcare: 31, automotive: 46, insurance: 34, defence: 9, pharma: 52, sghospital: 14, studio: 68 };
+const SIGNIN_BASE: CustomerMap<number> = { finserv: 38, maritime: 22, media: 16, healthcare: 31, automotive: 46, insurance: 34, defence: 9, pharma: 52, sghospital: 14, studio: 68, telco: 41 };
 export function riskySignins(c: CustomerProfile, tenantId: string, days: number) {
   const r = rng(`fab-signins-${c.id}-${tenantId}-${days}`);
   const s = tenantShare(c, tenantId);
@@ -922,7 +938,7 @@ type ItdrSeed = Omit<ItdrDetection, 'id' | 'ageMin'>;
 /** Service account named in the Kerberoasting detection. */
 const KERBEROAST_SVC: CustomerMap<string> = {
   finserv: 't24_batch', maritime: 'veeam', media: 'mam_sync', healthcare: 'epic_interconnect', automotive: 'mes_opcua_bridge',
-  insurance: 'guidewire_cc_batch', defence: 'teamcenter_sync', pharma: 'pasx_opcua_bridge', sghospital: 'trakcare_ens', studio: 'aspera_node',
+  insurance: 'guidewire_cc_batch', defence: 'teamcenter_sync', pharma: 'pasx_opcua_bridge', sghospital: 'trakcare_ens', studio: 'aspera_node', telco: 'bss_mediation',
 };
 const staffName = (c: CustomerProfile, part: string, i: number) => (c.people.staff.find((p) => p.name.includes(part)) ?? c.people.staff[i % c.people.staff.length]).name;
 /** Sector-specific ITDR detections: `first` lead the list, `last` close it. */
@@ -951,6 +967,10 @@ const ITDR_EXTRA: CustomerMap<(c: CustomerProfile) => { first?: ItdrSeed[]; last
   studio: () => ({
     first: [{ title: 'Freelancer added a new Okta factor, then pulled Aspera packages', technique: 'T1098', user: 'freelance-vfx-2291', source: 'Okta', sev: 'high', detail: 'Factor reset by help desk, then 41 Lodestar plate downloads from a new device within the hour' }],
     last: [{ title: 'Seasonal park account re-activated without a rehire record', technique: 'T1078', user: 'orl-seasonal-0884', source: 'Entra ID', sev: 'medium', detail: 'Account unused for 211 days signed in to StarPass back office from a home network' }],
+  }),
+  telco: () => ({
+    first: [{ title: 'Contact-centre agent approved 14 SIM swaps in 40 minutes', technique: 'T1098', user: 'ncs-agent-0412', source: 'Entra ID', sev: 'high', detail: 'Negev Contact Solutions desktop; 11 swaps scored high risk by the fraud system, session revoked and swaps reversed' }],
+    last: [{ title: 'Shared OSS service account used interactively from a NOC laptop', technique: 'T1078', user: 'svc_oss_nms', source: 'Silverfort', sev: 'high', detail: 'Interactive logon to KTG-OSS-NMS01 from KTG-LT-3318 through an unregistered MCP client; the account is now restricted to its usual sources' }],
   }),
 };
 export function itdrDetections(c: CustomerProfile, tenantId: string, days: number): ItdrDetection[] {
@@ -994,6 +1014,7 @@ export function serviceAccounts(c: CustomerProfile, tenantId: string): SvcAccoun
     pharma: [['svc_pasx_opcua_bridge', 'PAS-X MES OPC UA bridge'], ['svc_deltav_pi', 'DeltaV to PI interface'], ['svc_sap_rfc_qm', 'SAP S/4HANA QM (batch release)'], ['svc_veeva_bridge', 'Veeva Vault integration'], ['svc_labware_lims', 'LabWare LIMS'], ['iam-rave-export', 'Rave EDC export (AWS)'], ['sp-molgen-train', 'MolGen training pipeline (Azure)'], ['svc_serial_l4', 'Serialisation L4 (Cork)']],
     sghospital: [['svc_trakcare_ens', 'TrakCare HealthShare ensemble'], ['svc_nehr_contrib', 'NEHR contribution (HealthConnect)'], ['svc_pacs_dicom', 'PACS DICOM router'], ['svc_alaris_sync', 'Alaris pump server'], ['svc_lis_hl7', 'LIS HL7 interface'], ['sp-patient-portal', 'Patient portal API (Azure)'], ['iam-imaging-ai', 'Chest X-ray AI (AWS)'], ['svc_cohesity', 'Cohesity']],
     studio: [['svc_aspera_node', 'Aspera on Cloud node'], ['svc_mam_sync', 'Media asset management'], ['svc_deadline_render', 'Render manager (Deadline)'], ['iam-content-vault-ci', 'Pre-release vault CI (AWS)'], ['svc_signiant_jet', 'Signiant Jet'], ['iam-starfallplus-drm', 'Starfall+ DRM licences (AWS)'], ['svc_ridectl_hist', 'Ride control historian (Orlando)'], ['svc_starpass_api', 'StarPass ticketing API']],
+    telco: [['svc_bss_mediation', 'CDR mediation & billing'], ['svc_oss_nms', 'OSS / NMS'], ['svc_esim_smdp', 'eSIM SM-DP+'], ['svc_udm_prov', 'HSS / UDM provisioning'], ['sp-selfcare-api', 'Self-care API (AWS)'], ['svc_dns_ipam', 'DNS & IPAM'], ['sp-nef-exposure', '5G exposure API (NEF)'], ['svc_veeam', 'Veeam B&R']],
   };
   const people = [c.people.admin.name, c.people.socLead.name, ...c.people.staff.filter((p) => !p.vip).map((p) => p.name)];
   return forCustomer(names, c).map(([name, system]) => ({
@@ -1008,6 +1029,17 @@ const R = (rule: string, process: string, source: string, regime: string, w: num
 /** Segregation-of-duties rule sets (null: not tracked for this customer). Weights split the headline count. */
 const SOD: CustomerMap<SodSpec | null> = {
   maritime: null, media: null, healthcare: null, automotive: null, sghospital: null, studio: null,
+  telco: {
+    hint: 'Entra ID · BSS', source: 'Entra ID Governance · Amdocs BSS roles · CyberArk', sub: 'Toxic entitlement combinations in SIM changes, billing, network change and the lawful-interception enclave',
+    rules: [
+      R('Approve SIM change + override the fraud hold', 'BSS SIM-change workflow', 'Amdocs BSS', 'ISO 27011 · PPL / DSR', 9),
+      R('Create billing adjustment + approve credit', 'Billing & collections', 'Amdocs BSS', 'Financial-reporting ITGC · PCI DSS 7.2', 7),
+      R('Export subscriber data + approve the export', 'Subscriber analytics', 'Entra ID', 'PPL / DSR', 5),
+      R('Change network-element configuration + approve the change', 'OSS / NMS change', 'CyberArk', 'ISO 27011 · MoC licence', 5),
+      R('Vendor master create + AP invoice approve', 'Procure-to-pay', 'Entra ID', 'Financial-reporting ITGC', 4),
+      R('Lawful-interception administration + audit log administration', 'Lawful-interception enclave', 'CyberArk', 'MoC licence (dual control)', 2),
+    ],
+  },
   finserv: {
     hint: 'SailPoint', source: 'SailPoint IdentityIQ · z/OS RACF', sub: 'Toxic entitlement combinations from SailPoint — regulated financial controls',
     rules: [
@@ -1136,6 +1168,7 @@ const STORES: CustomerMap<[string, string][]> = {
   pharma: [['Rave EDC exports (RHN-4471)', 'Clinical · pseudonymised'], ['Pharmacovigilance case store', 'Health data (GDPR Art. 9)'], ['Compound library & assay data', 'Trade secret'], ['MolGen training sets', 'Trade secret · IP'], ['Manufacturing analytics lake', 'GxP · ALCOA+'], ['Patient-services CRM (US)', 'PHI (HIPAA)']],
   sghospital: [['Patient portal DB', 'Patient data (HIA)'], ['Chest X-ray AI training set', 'Patient data (de-identified)'], ['Clinical research dataset CR-HEART-22', 'Patient data · research'], ['Telehealth recordings', 'Patient data (HIA)'], ['Insurer claims exports', 'Patient data · financial'], ['Oncology registry ONC-SG-07', 'Patient data (de-identified)']],
   studio: [['Pre-release vault (Object Lock)', 'Content: pre-release'], ['Starfall+ subscriber DB', 'PII · payment tokens'], ['Dailies proxies', 'Content: pre-release'], ['Render outputs (burst)', 'Content: WIP'], ['StarPass guest profiles', 'PII · biometric (opt-in)'], ['Viewing analytics', 'PII (pseudonymised)']],
+  telco: [['Subscriber master (BSS)', 'PII · high-security database'], ['CDR mediation lake', 'Personal data (traffic & location)'], ['Billing & card tokens (CDE)', 'PCI'], ['Self-care app user store', 'PII'], ['Network analytics lake', 'Operational · confidential'], ['Fraud case store', 'PII · restricted']],
 };
 function coversProvider(k: Connector, p: 'Azure' | 'AWS' | 'GCP'): boolean {
   if (/Defender for Cloud/.test(k.product)) return p === 'Azure';
@@ -1197,6 +1230,7 @@ const PATHS_NOTE: CustomerMap<string> = {
   pharma: ', including OEM routes to the Valais DeltaV DCS and CRO access into Rave EDC',
   sghospital: ', including biomedical routes to the infusion pump server and vendor access into TrakCare',
   studio: ', including VFX-vendor routes into the pre-release vault and OEM access to ride control',
+  telco: ', including roaming-partner routes to the subscriber database and contractor access to cell-site and landing-station plant',
 };
 export function pathsIntroNote(c: CustomerProfile): string {
   return forCustomer(PATHS_NOTE, c);
@@ -1492,6 +1526,73 @@ const OWN_PATHS: Partial<Record<CustomerId, (c: CustomerProfile) => PathSpec>> =
         'h-jump': ['Allow only named engineering protocols from the parks jump host, with recording', 'Medium · next maintenance night'],
         'h-hmi': ['Monitor HMI and PLC program changes (read-only); ride safety systems stay untouched', 'Medium · next maintenance night'],
         'h-tkt': ['Page-integrity monitoring and CSP on payment pages', 'Low · 2 weeks'],
+      },
+    };
+  },
+  telco: (c) => {
+    const v = c.vocab;
+    const cj = v.crownJewels;
+    const hub = tpBy(c, 'Syniverse');
+    const cc = tpBy(c, 'Negev');
+    const ran = tpBy(c, 'Ericsson');
+    const tower = tpBy(c, 'Galil');
+    const cable = tpBy(c, 'Levant');
+    return {
+      nodes: [
+        PN('e-roam', hub.name, 'entry', `Roaming hub · ${hub.access}`),
+        PN('e-cc', `${cc.name} agent (phished)`, 'entry', `Outsourced contact centre · ${cc.access}`),
+        PN('e-dealer', v.externalHosts[7], 'entry', 'Dealer and partner portal'),
+        PN('e-vendor', ran.name, 'entry', `Network vendor · ${ran.access}`),
+        PN('e-tower', tower.name, 'entry', `Tower contractor · ${tower.access}`),
+        PN('e-pop', 'Limassol PoP management link', 'entry', `${cable.name} co-location`),
+        PN('e-ddos', 'Internet (volumetric and DNS amplification traffic)', 'entry', 'Resolver and core-facing prefixes'),
+        PN('i-crm', 'CRM agent role: SIM change', 'identity', '1,180 dealer and contact-centre accounts without phishing-resistant MFA'),
+        PN('i-svc', 'svc_bss_mediation', 'identity', 'Service account with read on the CDR lake; secret not vaulted'),
+        PN('i-vendor', 'ericsson-support01', 'identity', 'Standing vendor account in CyberArk'),
+        PN('i-tower', 'gts-field-svc', 'identity', 'Shared contractor account, sessions not recorded'),
+        PN('h-dra', v.servers[5], 'host', 'Diameter routing agent'),
+        PN('h-udm', v.servers[1], 'host', 'Subscriber database front end'),
+        PN('h-bss', v.servers[7], 'host', 'BSS and CRM'),
+        PN('h-smdp', v.servers[10], 'host', 'eSIM subscription manager'),
+        PN('h-med', v.servers[8], 'host', 'CDR mediation'),
+        PN('h-jump', v.servers[11], 'host', 'NOC jump host'),
+        PN('h-oss', v.servers[6], 'host', 'OSS / network management'),
+        PN('h-cls', v.servers[12], 'host', 'Landing-station network management'),
+        PN('h-dns', v.servers[9], 'host', 'Recursive DNS resolver farm'),
+        PN('ot-site', v.otSystems[3], 'ot', 'Cell-site power, cooling and generator control'),
+        PN('ot-pfe', v.otSystems[8], 'ot', 'Landing-station plant, Level 1'),
+        PN('j-subs', cj[0], 'jewel', 'Crown jewel: 3.1M subscribers'),
+        PN('j-esim', cj[6], 'jewel', 'Crown jewel'),
+        PN('j-bill', cj[2], 'jewel', 'Crown jewel: CDRs and billing'),
+        PN('j-core', cj[1], 'jewel', 'Crown jewel'),
+        PN('j-sites', '2,940 cell sites (power and cooling)', 'jewel', 'Crown jewel (OT, service availability)'),
+        PN('j-cls', cj[5], 'jewel', 'Crown jewel (OT, international capacity)'),
+        PN('j-dns', cj[4], 'jewel', 'Crown jewel'),
+      ],
+      paths: [
+        { name: 'Roaming-partner signalling reaches the subscriber database', steps: ['e-roam', 'h-dra', 'h-udm', 'j-subs'], techniques: ['T1199', 'T1190', 'T1213'], tenants: ['mobile', 'intl'], likelihood: 'High', actor: 'LightBasin (UNC1945)', evidence: 'Signalling firewall: queries outside the agreed range · Splunk: bulk read on the subscriber database' },
+        { name: 'Contact-centre account takeover reaches SIM changes and eSIM profiles', steps: ['e-cc', 'i-crm', 'h-bss', 'h-smdp', 'j-esim'], techniques: ['T1566.002', 'T1078', 'T1098', 'T1657'], tenants: ['retail', 'mobile'], likelihood: 'High', actor: 'Scattered Spider', evidence: 'Entra ID: sign-in from a new device · Mobileum: SIM-swap velocity · BSS audit feed (failing)' },
+        { name: 'Dealer portal flaw reaches CDR and billing data', steps: ['e-dealer', 'i-svc', 'h-med', 'j-bill'], techniques: ['T1190', 'T1078', 'T1530', 'T1567.002'], tenants: ['retail'], likelihood: 'Medium', actor: 'Agrius', evidence: 'Salt Security: object-level authorisation finding · Cyera: CDR extract outside approved stores' },
+        { name: 'Network vendor remote support reaches the 5G core', steps: ['e-vendor', 'i-vendor', 'h-jump', 'h-oss', 'j-core'], techniques: ['T1199', 'T1133', 'T1021.001', 'T1213'], tenants: ['mobile', 'fixed'], likelihood: 'Medium', actor: 'Salt Typhoon', evidence: 'CyberArk session recordings · Silverfort: service-account use from a new source · OSS audit log' },
+        { name: 'Tower contractor access reaches cell-site power controllers (IT to OT)', steps: ['e-tower', 'i-tower', 'h-jump', 'ot-site', 'j-sites'], techniques: ['T1133', 'T1078', 'T0886', 'T0836', 'T0814'], tenants: ['mobile', 'fixed'], likelihood: 'Medium', actor: 'Hacktivist DDoS collectives', evidence: 'Armis: Modbus writes outside the change window · HexaOT baseline deviation · CyberArk: no recorded session' },
+        { name: 'PoP management link reaches the landing-station plant (IT to OT)', steps: ['e-pop', 'h-cls', 'ot-pfe', 'j-cls'], techniques: ['T1133', 'T1021.001', 'T0886', 'T0826'], tenants: ['intl'], likelihood: 'Low', actor: 'MuddyWater', evidence: 'Check Point: management VLAN reachable from the PoP · Claroty zone map (collector lagging) · HexaOT sensor' },
+        { name: 'Volumetric attack degrades DNS resolvers and the BGP edge', steps: ['e-ddos', 'h-dns', 'j-dns'], techniques: ['T1498', 'T1499'], tenants: ['fixed', 'mobile', 'business'], likelihood: 'High', actor: 'Hacktivist DDoS collectives', evidence: 'Radware: 38 Gbps DNS amplification mitigated in 14 s · resolver latency telemetry' },
+      ],
+      fixes: {
+        'h-dra': ['Enforce roaming-partner address ranges on the signalling firewall and alert on out-of-range queries', 'Low · 1 week'],
+        'h-udm': ['Alert on bulk subscriber-profile reads outside provisioning flows', 'Low · 1 week'],
+        'i-crm': ['Phishing-resistant MFA and a second approver for high-risk SIM changes', 'Low · 2 weeks'],
+        'h-bss': ['Restore the BSS audit feed and rate-limit SIM changes per agent', 'Low · 3 days'],
+        'h-smdp': ['Release eSIM profiles only against a verified SIM-change case', 'Medium · 3 weeks'],
+        'i-svc': ['Vault and rotate the mediation service account; restrict it to the mediation hosts', 'Low · 3 days'],
+        'h-med': ['Custody-track CDR exports and block bulk reads from web-tier hosts', 'Medium · 2 weeks'],
+        'i-vendor': ['Approval-required vendor sessions tied to a change record, with recording', 'Low · 1 week'],
+        'h-jump': ['Allow only named management protocols from the NOC jump host; Silverfort MFA on every hop', 'Medium · 2 weeks'],
+        'h-oss': ['Segment OSS / NMS from the corporate network and remove standing admin rights', 'Medium · 1 month'],
+        'i-tower': ['Replace the shared contractor account with named, time-bound CyberArk sessions', 'Low · 2 weeks'],
+        'ot-site': ['Monitor controller parameter changes (read-only); site power and safety systems stay untouched', 'Medium · next maintenance window'],
+        'h-cls': ['Remove the PoP route to the landing-station management VLAN; broker access through PAM', 'Medium · next cable maintenance window'],
+        'h-dns': ['Keep always-on scrubbing on resolver prefixes and rate-limit recursive queries per subscriber', 'Low · 1 week'],
       },
     };
   },
@@ -1830,6 +1931,7 @@ const ENTITLEMENTS: CustomerMap<{ tenants: number | null; copilotTokens: number 
   pharma: { tenants: null, copilotTokens: null },
   sghospital: { tenants: 6, copilotTokens: 20_000_000 },
   studio: { tenants: null, copilotTokens: null },
+  telco: { tenants: null, copilotTokens: null },
 };
 export function meterMetrics(c: CustomerProfile, tenantId: string): MeterMetric[] {
   const ent = forCustomer(ENTITLEMENTS, c);

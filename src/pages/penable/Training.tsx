@@ -11,7 +11,7 @@ import { PT_TONE } from '../partner/parts';
 const STATES: CertState[] = ['certified', 'expiring', 'in-progress', 'expired', 'not-started'];
 const SESSIONS = [
   { days: 6, title: 'HexaSOC Delivery Specialist: agentic triage lab', mode: 'Virtual · 3 h', seats: 4 },
-  { days: 13, title: 'HexaOT Specialist: Purdue, passive sensors and safe testing', mode: 'Manchester · 1 day', seats: 2 },
+  { days: 13, title: 'HexaOT Specialist: Purdue, passive sensors and safe testing', mode: 'In person · 1 day', seats: 2 },
   { days: 20, title: 'Technical Professional exam window', mode: 'Proctored online', seats: 6 },
   { days: 34, title: 'Selling closed-loop assurance to GRC buyers', mode: 'Virtual · 90 min', seats: 10 },
 ];

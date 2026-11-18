@@ -9,9 +9,10 @@ import { defence } from './defence';
 import { pharma } from './pharma';
 import { sghospital } from './sghospital';
 import { studio } from './studio';
+import { telco } from './telco';
 
-export const CUSTOMERS: Record<CustomerId, CustomerProfile> = { maritime, finserv, media, healthcare, automotive, insurance, defence, pharma, sghospital, studio };
-export const CUSTOMER_LIST: CustomerProfile[] = [maritime, finserv, media, healthcare, automotive, insurance, defence, pharma, sghospital, studio];
+export const CUSTOMERS: Record<CustomerId, CustomerProfile> = { maritime, finserv, media, healthcare, automotive, insurance, defence, pharma, sghospital, studio, telco };
+export const CUSTOMER_LIST: CustomerProfile[] = [maritime, finserv, media, healthcare, automotive, insurance, defence, pharma, sghospital, studio, telco];
 
 /** Tenants in scope for the current tenant filter ('all' = group roll-up). */
 export function scopedTenants(c: CustomerProfile, tenantId: string): Tenant[] {

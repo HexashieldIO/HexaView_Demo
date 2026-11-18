@@ -147,6 +147,7 @@ const CONTACT_FIRST: CustomerMap<string[]> = {
   pharma: ['Matthias', 'Céline', 'Niamh', 'Reto', 'Aoife', 'Dominik', 'Chiara', 'Ciarán', 'Sandrine', 'Florian', 'Elena', 'Seán'],
   sghospital: ['Wei Ling', 'Hafiz', 'Siew Mei', 'Arjun', 'Nurul', 'Kelvin', 'Pei Shan', 'Ravi', 'Farhana', 'Desmond', 'Huimin', 'Imran'],
   studio: ['Jordan', 'Kenji', 'Avery', 'Sienna', 'Marco', 'Harper', 'Dev', 'Lucía', 'Theo', 'Naomi', 'Felix', 'Ivy'],
+  telco: ['Noam', 'Yael', 'Tomer', 'Rotem', 'Amit', 'Lina', 'Elad', 'Shir', 'Wael', 'Hadas', 'Idan', 'Mor'],
 };
 const CONTACT_LAST: CustomerMap<string[]> = {
   maritime: ['de Vries', 'Peeters', 'Hansen', 'Lindqvist', 'Tan', 'Rahman', 'Costa', 'Bakker', 'Jensen', 'Verhoeven'],
@@ -159,6 +160,7 @@ const CONTACT_LAST: CustomerMap<string[]> = {
   pharma: ['Keller', 'Baumann', 'Rochat', 'Murphy', 'Brennan', 'Fischer', 'Dubois', 'Steiner', 'Gallagher', 'Moser'],
   sghospital: ['Tan', 'Lim', 'Ng', 'Goh', 'Rahman', 'Kumar', 'Chua', 'Ismail', 'Wong', 'Pillai'],
   studio: ['Caldwell', 'Ortega', 'Nakamura', 'Fitzgerald', 'Reyes', 'Hollis', 'Park', 'Delgado', 'Whitmore', 'Sato'],
+  telco: ['Levi', 'Cohen', 'Edri', 'Khalil', 'Shalom', 'Jaber', 'Malka', 'Navon', 'Sabag', 'Gabay', 'Amar', 'Haddad'],
 };
 
 function regimes(c: CustomerProfile, v: Vendor): string[] {
@@ -211,6 +213,13 @@ function regimes(c: CustomerProfile, v: Vendor): string[] {
       if (d.includes('Payments')) out.push('PCI DSS');
       if (d.includes('OT')) out.push('IEC 62443');
       break;
+    case 'telco':
+      if (d.includes('Network elements')) out.push('GSMA NESAS', 'ISO 27011');
+      if (d.includes('OT')) out.push('INCD CDM');
+      if (d.includes('Personal data')) out.push('PPL / DSR');
+      if (d.includes('Payments')) out.push('PCI DSS');
+      if (v.tier === 1 && /roaming|cable|RAN|core|BSS|interception/i.test(v.category)) out.push('MoC licence');
+      break;
     case 'ot':
       if (d.includes('OT')) out.push(/vessel|engine|cargo|VSAT|LEO|ship/i.test(v.access + v.category) ? 'IACS E27' : 'IEC 62443');
       if (/gate|guard|CCTV|badge|security/i.test(v.access + v.category)) out.push('ISPS');
@@ -226,7 +235,7 @@ function classification(v: Vendor): string {
   const d = v.dataAccess.join(' ');
   if (/Pre-release|Prototype|PHI|Payments|CUI|ITAR|Clinical|Patient/.test(d)) return 'Restricted';
   if (/Personal|Vehicle|NPI/.test(d)) return 'Confidential · personal data';
-  if (/OT|Medical device|GxP/.test(d)) return 'Confidential · operational';
+  if (/OT|Medical device|GxP|Network elements/.test(d)) return 'Confidential · operational';
   if (/Confidential/.test(d)) return 'Confidential';
   return 'Internal';
 }
@@ -250,11 +259,14 @@ function gapText(c: CustomerProfile, v: Vendor, id: TpCheckId): { title: string;
       if (lens === 'tpn' && v.dataAccess.includes('Pre-release')) return { title: 'Receives pre-release content without a current TPN shield', guidance: 'Ask for a TPN+ assessment. Custody policy can hold deliveries to this vendor until the shield is current.' };
       if (lens === 'baa' && v.dataAccess.includes('PHI')) return { title: 'No HITRUST or SOC 2 report on file', guidance: 'Request the current HITRUST r2 or SOC 2 Type II report, or record why the business associate is out of scope for one.' };
       if (lens === 'dora' && v.cif) return { title: 'No independent assurance for a critical ICT provider', guidance: 'DORA Art. 28 expects ISO 27001 or SOC 2 Type II evidence, or a pooled audit, before relying on the provider.' };
+      if (lens === 'telco' && v.nesas && v.nesas !== 'Not required') return { title: v.nesas === 'No evidence' ? 'Network equipment supplied without NESAS or SCAS evidence' : 'NESAS / SCAS evidence requested, not yet received', guidance: 'Ask for the GSMA NESAS audit summary and the 3GPP SCAS test results for the release in service before the next software load.' };
+      if (lens === 'telco' && v.dataAccess.includes('OT')) return { title: 'No ISO 27001 certificate or equivalent for a contractor with site access', guidance: 'Ask for the certificate, or record the compensating checks we rely on: staff vetting, escorted access and brokered, recorded sessions.' };
       if (lens === 'ot' && v.dataAccess.includes('OT')) return { title: 'No IEC 62443-2-4 or IACS E27 evidence on file', guidance: 'Ask for the service-provider certificate or the type-approval evidence for the systems they maintain.' };
       return { title: 'No third-party certification on file', guidance: 'Request the current ISO 27001 or SOC 2 report, or record why the supplier is out of scope for one.' };
     case 'nda':
       return { title: 'Security terms in place, but no NDA', guidance: 'The contract carries security terms. Add an NDA so confidentiality survives the contract ending.' };
     case 'access':
+      if (lens === 'telco' && v.otRemote) return { title: v.dataAccess.includes('OT') ? 'Remote access to site plant with no access controls recorded' : 'Remote access to network elements with no access controls recorded', guidance: `Sessions must run through ${pam} with recording and named accounts. Site plant is read-only in HexaView by policy.` };
       if (v.otRemote && medical) return { title: 'Remote device service with no session recording on file', guidance: `OEM sessions to clinical devices must be brokered and recorded in ${pam}. Medical devices are read-only in HexaView by policy.` };
       if (v.otRemote) return { title: 'Remote OT access with no access controls recorded', guidance: `Sessions must run through ${pam} with recording and named accounts. OT is read-only in HexaView by policy.` };
       return { title: 'System access with no access controls recorded', guidance: 'They hold access and the register does not say how it is controlled. Confirm SSO, MFA and the review cycle.' };
@@ -267,11 +279,13 @@ function gapText(c: CustomerProfile, v: Vendor, id: TpCheckId): { title: string;
       if (lens === 'baa' && v.dataAccess.includes('PHI')) return { title: v.baa === 'Expired' ? 'Business Associate Agreement has expired' : 'PHI shared without a signed Business Associate Agreement', guidance: 'HIPAA 164.308(b) requires a BAA before ePHI is disclosed. Route the HexaShield BAA template to legal.' };
       if (lens === 'tisax' && v.dataAccess.includes('Vehicle data')) return { title: 'No processing agreement for vehicle and driver data', guidance: 'Connected-car data is personal data under GDPR. A processor agreement with sub-processor terms is needed before the next transfer.' };
       if (lens === 'dora' && v.dataAccess.includes('Payments')) return { title: 'No PCI DSS responsibility matrix for cardholder data', guidance: 'Agree which PCI DSS 4.0 requirements the provider owns (Req. 12.8.5) and get its AOC.' };
+      if (lens === 'telco') return { title: 'No data-security agreement for subscriber data', guidance: 'They process subscriber or call-record data on our behalf. The Privacy Protection Regulations (Data Security) expect a written agreement on permitted use, security measures and incident reporting before the next transfer.' };
       if (lens === 'tpn') return { title: 'No processing agreement for personal data', guidance: 'They process talent or subscriber data on our behalf, so a GDPR / CCPA processor agreement is required before the next transfer.' };
       return { title: 'No processing agreement for personal data', guidance: 'They process personal data on our behalf, so a GDPR processor agreement is required before the next transfer.' };
     case 'class':
       return { title: 'Information shared is not classified', guidance: 'Record what we share and its classification, so the right handling rules follow it to the supplier.' };
     case 'sla':
+      if (lens === 'telco' && v.otRemote) return { title: 'No service level for network or site fault response', guidance: 'Nothing commits them to a response time when a core site, a cell-site power system or the landing-station plant is down. Agree one with network operations.' };
       if (lens === 'ot' && v.dataAccess.includes('OT')) return { title: 'No service level for OT fault response', guidance: 'Nothing commits them to a response time when a crane, AGV or vessel system is down. Agree one with the terminal.' };
       if (medical && v.otRemote) return { title: 'No uptime commitment for a clinical system', guidance: 'Agree response and restore times aligned to the clinical downtime procedure for this device.' };
       return { title: 'No service level agreed', guidance: 'Nothing commits the supplier to a recovery time. Agree one, or record what we would do without them.' };
@@ -288,6 +302,7 @@ function gapText(c: CustomerProfile, v: Vendor, id: TpCheckId): { title: string;
       if (lens === 'cmmc') return { title: `Cyber incident notice window is ${v.obligations.breachNotifyHrs} h`, guidance: 'DFARS 7012 gives 72 hours to report through DIBNet, and sub-tiers must report to us and to DoD. Require notice within 24 hours.' };
       if (lens === 'pdpa') return { title: `Breach notice window is ${v.obligations.breachNotifyHrs} h`, guidance: 'MOH must hear within 2 hours of us assessing a notifiable incident, so suppliers must tell us immediately, and within 24 hours at most.' };
       if (lens === 'gxp') return { title: `Incident notification window is ${v.obligations.breachNotifyHrs} h`, guidance: 'NIS2 early warning is due within 24 hours and GxP impact must be assessed at once. Policy is notice within 24 hours in writing.' };
+      if (lens === 'telco') return { title: `Incident notification window is ${v.obligations.breachNotifyHrs} h`, guidance: 'A severe security incident has to reach the Privacy Protection Authority without delay, and our licence reporting depends on early notice. Policy is notice within 24 hours in writing.' };
       if (lens === 'tisax' || lens === 'ot') return { title: `Incident notification window is ${v.obligations.breachNotifyHrs} h`, guidance: 'NIS2 early warning is due within 24 hours, so the supplier must tell us sooner. Policy is notice within 24 hours in writing.' };
       return { title: `Breach notification window is ${v.obligations.breachNotifyHrs} h`, guidance: 'Policy requires notice within 24 hours in writing, with a named contact.' };
     case 'monitor':
@@ -319,6 +334,7 @@ function domainScores(results: Partial<Record<TpCheckId, boolean>>) {
 function isFact(c: CustomerProfile, v: Vendor, id: TpCheckId): boolean {
   const lens = vendorLens(c);
   if (id === 'cert' && lens === 'cmmc' && v.dataAccess.includes('CUI')) return true;
+  if (id === 'cert' && lens === 'telco' && v.nesas !== undefined && v.nesas !== 'Not required') return true;
   if (id === 'dpa' && ((lens === 'gxp' && v.qa !== undefined && v.qa !== 'Not required') || (lens === 'pdpa' && v.xfer === 'No safeguards'))) return true;
   if (id === 'review' || id === 'window') return true;
   if (id === 'confirm') return true;
@@ -334,10 +350,11 @@ function buildSupplier(c: CustomerProfile, v: Vendor, ratingsConnector: boolean)
   const pass = (p: number) => !r.chance(Math.max(0, Math.min(0.95, p)));
   const lens = vendorLens(c);
   // Cyber security
-  if (v.tier <= 2 || v.dataAccess.some((d) => /Prototype|Pre-release|PHI|OT|CUI|Patient|GxP/.test(d))) {
+  if (v.tier <= 2 || v.dataAccess.some((d) => /Prototype|Pre-release|PHI|OT|CUI|Patient|GxP|Network elements/.test(d))) {
     if (lens === 'cmmc' && v.dataAccess.includes('CUI')) res.cert = v.cmmc === 'L2 C3PAO' || v.cmmc === 'L2 self-assessed';
     else if (lens === 'tisax' && v.dataAccess.includes('Prototype')) res.cert = v.tisax === 'AL3 valid';
     else if (lens === 'tpn' && v.dataAccess.includes('Pre-release')) res.cert = !(v.tpn === 'Not assessed' || v.tpn === 'Expired');
+    else if (lens === 'telco' && v.nesas !== undefined && v.nesas !== 'Not required') res.cert = v.nesas === 'NESAS audited' || v.nesas === 'SCAS evidence on file';
     else res.cert = !(v.findings > 5 || v.rating < 64) && pass(0.14 + f * 0.45);
   }
   res.nda = pass(0.2 + f * 0.4);
@@ -399,6 +416,7 @@ function buildSupplier(c: CustomerProfile, v: Vendor, ratingsConnector: boolean)
     if (lens === 'pdpa' && v.dataAccess.includes('Patient data')) certs.push(r.chance(0.5) ? 'CSA Cyber Trust' : 'ISO 27001:2022');
     if (lens === 'nydfs' && v.dataAccess.includes('NPI')) certs.push('SOC 2 Type II');
     if (lens === 'ot' && v.dataAccess.includes('OT')) certs.push(r.chance(0.5) ? 'IEC 62443-2-4' : 'IACS E27 type approval');
+    if (lens === 'telco' && (v.nesas === 'NESAS audited' || v.nesas === 'SCAS evidence on file')) certs.push(v.nesas === 'NESAS audited' ? 'GSMA NESAS' : '3GPP SCAS evidence');
     if (res.cert === true || r.chance(0.5)) certs.push(r.pick(['ISO 27001:2022', 'SOC 2 Type II', 'ISO 27001:2022', 'Cyber Essentials Plus']));
   }
   const src = ratingsSource(c);
@@ -487,6 +505,7 @@ export function tpQuestionSets(c: CustomerProfile): QSet[] {
     pharma: { initial: 'GxP supplier qualification (GAMP 5)', annual: 'Quality agreement & data-integrity refresh', critical: 'CRO / CMO critical-supplier annex (Annex 11 §3, ICH E6(R3))', privacy: 'GDPR Art. 28 & revDSG trial-data addendum' },
     sghospital: { initial: 'HIA third-party intake (CS/DS Essentials)', annual: 'Cyber Trust and PDPA refresh', critical: 'HSA GL-04 medical device annex', privacy: 'PDPA s24 / s26 patient-data addendum' },
     studio: { initial: 'TPN+ self-assessment', annual: 'MPA content security refresh', critical: 'TPN Gold Shield pre-release annex', privacy: 'CCPA / CPRA talent & subscriber data' },
+    telco: { initial: 'Supplier intake: subscriber data & network access', annual: 'INCD supply-chain cyber defence refresh', critical: 'Network equipment annex · GSMA NESAS & 3GPP SCAS evidence', privacy: 'Privacy Protection Regulations data-security addendum · PCI DSS 12.8' },
   };
   const a = forCustomer(annex, c);
   return [
@@ -535,6 +554,7 @@ const LOG_TEMPLATES: CustomerMap<string[]> = {
   pharma: ['Quality agreement countersigned by QA', 'Supplier audit report uploaded (GMP)', 'CRO partner accounts moved to FIDO2', 'DeltaV OEM access moved to BeyondTrust recorded sessions'],
   sghospital: ['PDPA transfer clauses countersigned', 'MDS2 and SBOM uploaded for device fleet (HSA GL-04)', 'OEM remote access moved to CyberArk brokered sessions', 'Cyber Trust mark recorded'],
   studio: ['TPN Gold Shield recorded', 'Forensic watermark profile assigned', 'Custody agent enforced on vendor workstations', 'Ride OEM access moved behind CyberArk'],
+  telco: ['NESAS audit summary recorded for the 5G core release', 'Tower contractor access moved behind CyberArk brokered sessions', 'Data-security agreement countersigned (subscriber data)', 'Roaming partner signalling profile reviewed'],
 };
 
 export function tpChangeLog(c: CustomerProfile, tenantId: string, sup: TpSupplier[], tasks: TpTask[]): TpLogEntry[] {

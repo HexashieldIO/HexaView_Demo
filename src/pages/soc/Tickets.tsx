@@ -18,6 +18,7 @@ const NEW_TICKET_HINT: CustomerMap<string> = {
   pharma: 'e.g. LIMS audit trail switched off on a QC instrument',
   sghospital: 'e.g. Caller posing as IT asked a ward nurse for an MFA code',
   studio: 'e.g. Screener link shared outside the guild list',
+  telco: 'e.g. Subscriber reports a SIM swap they did not request',
 };
 
 const STATUS_LABEL: Record<TicketStatus, string> = { open: 'Open', in_progress: 'In progress', waiting: 'Waiting on you', resolved: 'Resolved' };

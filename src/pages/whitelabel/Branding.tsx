@@ -3,9 +3,9 @@ import { CheckCircle2, Upload, RotateCcw, Rocket, AlertTriangle, X } from 'lucid
 import { useApp } from '../../state/AppContext';
 import { Card, KpiStrip, Badge, Btn, Callout, KV, SectionLabel, Timeline } from '../../components/ui';
 import { Modal } from '../../components/Overlay';
-import { clientBook } from '../../data/modules/partner';
+import { PARTNER, clientBook, staffAlias } from '../../data/modules/partner';
 import { Field, PT_TONE, Seg, Toggle } from '../partner/parts';
-import { PRESETS, contrast, resetBrand, setBrand, useBrand, publishBrand, revertToHexaView, usePublishedBrand, brandChanges, brandBaseline, brandVersion, type Brand } from './brand';
+import { PRESETS, defaultBrand, contrast, resetBrand, setBrand, useBrand, publishBrand, revertToHexaView, usePublishedBrand, brandChanges, brandBaseline, brandVersion, type Brand } from './brand';
 import { PublishBar } from './PublishBar';
 import { BrandPreview } from './Preview';
 
@@ -83,8 +83,8 @@ export default function WhiteLabelBranding() {
             </div>
             <Field label="Theme colours" hint="These colour the console itself: header, rail and controls">
               <div className="row wrap" style={{ gap: 6, marginBottom: 8 }}>
-                {PRESETS.map((p) => (
-                  <button key={p.name} className={`pt-swatch ${brand.primary === p.primary ? 'on' : ''}`} title={p.name} style={{ background: `linear-gradient(135deg, ${p.sidebar} 50%, ${p.primary} 50%)` }} onClick={() => set({ primary: p.primary, sidebar: p.sidebar, accent: p.accent })} />
+                {PRESETS.filter((p) => !p.partner || p.partner === PARTNER.key).map((p) => (
+                  <button key={p.name} className={`pt-swatch ${brand.primary === p.primary ? 'on' : ''}`} title={p.name} style={{ background: `linear-gradient(135deg, ${p.sidebar} 50%, ${p.primary} 50%)` }} onClick={() => set({ primary: p.primary, sidebar: p.sidebar, accent: p.accent, ...p.brand })} />
                 ))}
               </div>
               <div className="grid g3" style={{ gap: 8 }}>
@@ -153,9 +153,9 @@ export default function WhiteLabelBranding() {
         <Card title="Publish history" sub="Every theme change is versioned and recorded in the audit ledger">
           <Timeline
             items={[
-              { time: '12 d ago', title: 'v7 · Accent changed to amber; service names enabled', body: 'Published by Jack Turner to 15 client tenants', color: PT_TONE },
-              { time: '41 d ago', title: 'v6 · Wide logo lockup for reports', body: 'Published by Elena Novak', color: 'var(--good)' },
-              { time: '3 mo ago', title: 'v5 · Custom domain portal.northwindcyber.com', body: 'Published by Jack Turner', color: 'var(--good)' },
+              { time: '12 d ago', title: 'v7 · Accent changed to amber; service names enabled', body: `Published by ${staffAlias('Jack Turner')} to ${clientBook().length} client tenants`, color: PT_TONE },
+              { time: '41 d ago', title: 'v6 · Wide logo lockup for reports', body: `Published by ${staffAlias('Elena Novak')}`, color: 'var(--good)' },
+              { time: '3 mo ago', title: `v5 · Custom domain ${defaultBrand().domain}`, body: `Published by ${staffAlias('Jack Turner')}`, color: 'var(--good)' },
               { time: '7 mo ago', title: 'v4 · Light theme default for GRC users', body: 'Rolled back after 2 days (client feedback)', color: 'var(--sev-medium)' },
             ]}
           />

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="telco logo">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1f93d1"/><stop offset="1" stop-color="#03456b"/></linearGradient></defs>
+  <rect width="64" height="64" rx="14" fill="url(#g)"/>
+  <rect x="1" y="1" width="62" height="62" rx="13" fill="none" stroke="#fff" stroke-opacity=".18"/>
+  <g fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="32" cy="25" r="3.2" fill="#fff" stroke="none"/><path d="M24.5 32.5a10.6 10.6 0 0 1 0-15M39.5 17.5a10.6 10.6 0 0 1 0 15"/><path d="M18.5 38.5a19 19 0 0 1 0-27M45.5 11.5a19 19 0 0 1 0 27"/><path d="M13 49c4.2-3.4 8.4-3.4 12.6 0s8.4 3.4 12.8 0 8.4-3.4 12.6 0"/></g>
+</svg>

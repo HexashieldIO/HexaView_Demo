@@ -27,6 +27,7 @@ export const TP_FLAGS: Record<string, { label: string; test: (s: TpSupplier) => 
   qa: { label: 'GxP data without a quality agreement', test: (s) => s.v.qa === 'Missing' || s.v.qa === 'Expired' },
   xfer: { label: 'Patient data overseas without safeguards', test: (s) => s.v.xfer === 'No safeguards' },
   npi: { label: 'Holds NPI with notice window over 24 h', test: (s) => s.v.dataAccess.includes('NPI') && s.v.obligations.breachNotifyHrs > 24 },
+  nesas: { label: 'Network equipment without NESAS / SCAS evidence', test: (s) => s.v.nesas === 'No evidence' || s.v.nesas === 'Requested' },
 };
 
 const SECTOR_COL: Record<string, { header: string; render: (s: TpSupplier) => ReactNode; sort: (s: TpSupplier) => string } | undefined> = {
@@ -39,6 +40,7 @@ const SECTOR_COL: Record<string, { header: string; render: (s: TpSupplier) => Re
   pharma: { header: 'Quality agreement', sort: (s) => s.v.qa ?? '', render: (s) => (s.v.qa && s.v.qa !== 'Not required' ? <Pill color={s.v.qa === 'Signed' ? 'var(--good)' : 'var(--bad)'}>{s.v.qa}</Pill> : <span className="tp-muted">n/a</span>) },
   sghospital: { header: 'Data location', sort: (s) => s.v.xfer ?? '', render: (s) => (s.v.xfer && s.v.xfer !== 'No patient data' ? <Pill color={s.v.xfer === 'Singapore only' ? 'var(--good)' : s.v.xfer === 'Safeguards on file' ? 'var(--m-matrix)' : 'var(--bad)'}>{s.v.xfer}</Pill> : <span className="tp-muted">—</span>) },
   maritime: { header: 'OT access', sort: (s) => (s.v.otRemote ? '1' : '0'), render: (s) => (s.v.otRemote ? <Pill color="var(--m-ot)">Remote OT</Pill> : <span className="tp-muted">—</span>) },
+  telco: { header: 'Network & site', sort: (s) => `${s.v.otRemote ? 1 : 0}${s.v.nesas ?? ''}`, render: (s) => (s.v.otRemote ? <span className="tp-tags"><Pill color="var(--m-ot)">{s.v.dataAccess.includes('OT') ? 'Site access' : 'Network access'}</Pill>{s.v.nesas && s.v.nesas !== 'Not required' && <Pill color={s.v.nesas === 'NESAS audited' ? 'var(--good)' : s.v.nesas === 'SCAS evidence on file' ? 'var(--m-matrix)' : 'var(--bad)'}>{s.v.nesas}</Pill>}</span> : <span className="tp-muted">—</span>) },
 };
 
 export function Suppliers() {

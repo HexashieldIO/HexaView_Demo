@@ -27,6 +27,7 @@ const AI_REGIME_NOTE: CustomerMap<ReactNode> = {
   pharma: <><b>Pharma AI.</b> The EU AI Act applies directly in the EU entities; AI used in GxP processes must also be validated under GAMP 5 and Annex 11, and trial data in prompts is special-category data under GDPR and revDSG.</>,
   sghospital: <><b>Singapore hospital.</b> The EU AI Act classes are used as the risk taxonomy; the binding expectations are the MOH AI in Healthcare guidelines, HSA rules for AI in medical devices, and PDPA for patient data in prompts.</>,
   studio: <><b>Studio AI.</b> Generative tools are governed by guild agreements on AI and digital replicas, the talent consent register, and state likeness laws; EU AI Act transparency applies to content released in the EU.</>,
+  telco: <><b>Israeli operator.</b> Israel has no dedicated AI statute, so the EU AI Act classes below are used as the risk taxonomy, alongside the national AI policy principles, sector-regulator guidance and ISO/IEC 42001. Subscriber and call-record data in prompts falls under the Privacy Protection Law and its data-security regulations.</>,
 };
 
 const tone = MODULE_BY_ID.comply.tone;

@@ -36,7 +36,7 @@ export default function PartnerPortfolio() {
       </nav>
       {sp.get('report') !== '1' && (
         <p className="page-intro" style={{ margin: 0 }}>
-          <b>{PARTNER.name}</b> · portfolio programme for sponsors, insurers and groups: {cos.length} companies ({cos.filter((c) => c.demoId).length} on full HexaView tenants, the rest via HexaInt outside-in and questionnaires). {INTRO[section]}
+          <b>{PARTNER.name}</b> · {PARTNER.key === 'kinneret' ? 'group portfolio for Kinneret Telecom Group (subsidiaries, joint ventures, minority investments and acquisitions)' : 'portfolio programme for sponsors, insurers and groups'}: {cos.length} companies ({cos.filter((c) => c.demoId).length} on full HexaView tenants, the rest via HexaInt outside-in and questionnaires). {INTRO[section]}
         </p>
       )}
       <Body key={section} />

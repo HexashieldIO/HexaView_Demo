@@ -20,6 +20,7 @@ const PATCH_RING: CustomerMap<string> = {
   pharma: 'Validated GxP systems go through GxP change control; plant HMIs are excluded',
   sghospital: 'Clinical workstations follow the TrakCare release calendar; medical devices only with vendor approval (HSA GL-04)',
   studio: 'Edit bays patched between productions; ride control HMIs are excluded',
+  telco: 'OSS, BSS and element-management hosts follow the network change calendar and freeze periods; site and BMS HMIs are excluded',
 };
 
 /** Why a KEV-listed flaw is urgent for this customer (its own regulator or framework). */
@@ -34,6 +35,7 @@ const KEV_NOTE: CustomerMap<string> = {
   pharma: 'NIS2 applies, and on validated systems the fix is fast-tracked through GxP change control; the HexaSOC target is 14 days.',
   sghospital: 'the MOH Cybersecurity & Data Security Essentials and CSA Cyber Essentials expect critical patches applied promptly; the HexaSOC target is 14 days.',
   studio: 'TPN and PCI DSS 6.3.3 expect critical fixes within one month; the HexaSOC target is 14 days.',
+  telco: 'the INCD Cyber Defense Methodology and ISO 27001 A.8.8 expect exploited flaws to be prioritised, and PCI DSS 6.3.3 applies to the billing environment; the HexaSOC target is 14 days.',
 };
 
 type SevF = 'all' | Severity;

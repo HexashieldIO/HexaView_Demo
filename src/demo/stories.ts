@@ -217,6 +217,55 @@ export const STORIES: Story[] = [
       },
     ],
   },
+  {
+    id: 'telco',
+    title: 'The roaming partner',
+    blurb: 'Signalling abuse reaches subscriber data. Contain it, start every regulatory clock and show what it could cost.',
+    audience: 'CISO · network security · regulatory affairs',
+    minutes: 5,
+    customer: 'telco',
+    persona: 'master',
+    color: '#0ea5e9',
+    steps: [
+      {
+        path: '/',
+        title: 'A roaming partner outside its agreed range',
+        body: 'The signalling firewall and the network SOC agree: one roaming partner is asking where subscribers are and reading their profiles, far beyond normal roaming. HexaView has put it at the top of the queue, with the tools that saw it.',
+        target: { text: 'Diameter location', up: '.list-row, button, .att-row, li' },
+        tip: 'Point out that two independent sources corroborate each other.',
+      },
+      {
+        path: '/soc/ir',
+        title: 'One case across signalling, core and identity',
+        body: 'HexaSOC joins the signalling alerts, the bulk read on the subscriber database and the account behind it into one case, with the notification clocks that now apply.',
+        target: { sel: '.card', up: '.card' },
+      },
+      {
+        path: '/incident-response/warroom',
+        title: 'Declare, and bring in the right people',
+        body: 'The war room opens with network security, the data protection officer, regulatory affairs and fraud management, each with their decisions on an audited timeline.',
+        target: { sel: '.card', up: '.card' },
+      },
+      {
+        path: '/incident-response/notifications',
+        title: 'Every clock in one place',
+        body: 'The Privacy Protection Authority, the national CERT and the Ministry of Communications each expect their own notice. HexaView drafts them from the case and tracks who signs.',
+        target: { sel: '.card', up: '.card' },
+      },
+      {
+        path: '/custody/lineage',
+        title: 'Which subscriber data, and where it went',
+        body: 'Chain of custody shows which extracts and exports hold the affected records, who touched them and which suppliers hold copies.',
+        target: { sel: '.card', up: '.card' },
+      },
+      {
+        path: '/insurance/quantification',
+        title: 'What it could cost',
+        body: 'The same scenario is already priced in shekels: the expected loss, the tail, and how the insurance tower would respond.',
+        target: { sel: '.card', up: '.card' },
+      },
+    ],
+  },
 ];
 
 export const STORY_BY_ID = Object.fromEntries(STORIES.map((s) => [s.id, s])) as Record<string, Story>;

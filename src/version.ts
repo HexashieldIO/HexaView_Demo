@@ -9,6 +9,14 @@ export const APP_BUILT: string = __APP_BUILT__;
 /** Short release notes shown under Help & support → What's new. Newest first. */
 export const RELEASE_NOTES: { version: string; items: string[] }[] = [
   {
+    version: '1.0.9',
+    items: [
+      'Kinneret Telecom Group: a telecoms tenant with mobile, fibre, wholesale and retail estates, priced in ₪',
+      'Kinneret Business Cyber: the partner modules for a telco reselling managed security',
+      'Telecoms in the Marketplace: signalling security and fraud management integrations',
+    ],
+  },
+  {
     version: '1.0.8',
     items: [
       'The closed loop runs live on the Command Centre, each link in its module colour, and opens the loops with a gap there',

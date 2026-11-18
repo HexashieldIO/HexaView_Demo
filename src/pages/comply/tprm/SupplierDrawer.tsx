@@ -43,7 +43,8 @@ export function SupplierDrawer({ s, onClose }: { s: TpSupplier; onClose: () => v
   if (v.cmmc) rows.push(['CMMC / SPRS', v.cmmc]);
   if (v.qa) rows.push(['GxP quality agreement', v.qa]);
   if (v.xfer) rows.push(['Patient data location (PDPA s26)', v.xfer]);
-  if (v.otRemote) rows.push([v.dataAccess.includes('Medical device') ? 'Remote device access' : 'Remote OT access', `Brokered via ${pam ?? 'PAM jump host'} · read-only in HexaView`]);
+  if (v.nesas && v.nesas !== 'Not required') rows.push(['Network equipment assurance (GSMA NESAS / 3GPP SCAS)', v.nesas]);
+  if (v.otRemote) rows.push([v.dataAccess.includes('Medical device') ? 'Remote device access' : v.dataAccess.includes('Network elements') ? 'Remote network access' : 'Remote OT access', `Brokered via ${pam ?? 'PAM jump host'} · read-only in HexaView`]);
   const gapsByDomain = TP_DOMAINS.flatMap((d) => s.gaps.filter((g) => g.domain === d));
   const defaultSet: QSetId = v.tier === 1 ? 'critical' : s.state === 'Pending docs' ? 'initial' : 'annual';
   const [setId, setSetId] = useState<QSetId>(defaultSet);

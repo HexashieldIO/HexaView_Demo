@@ -28,12 +28,12 @@ export function fmtCompact(n: number): string {
 
 /** Display symbol for a customer currency (CHF has no single-glyph symbol). */
 export function currencySymbol(currency: string): string {
-  return currency === 'GBP' ? '£' : currency === 'EUR' ? '€' : currency === 'CHF' ? 'CHF ' : currency === 'SGD' ? 'S$' : '$';
+  return currency === 'GBP' ? '£' : currency === 'EUR' ? '€' : currency === 'CHF' ? 'CHF ' : currency === 'SGD' ? 'S$' : currency === 'ILS' ? '₪' : '$';
 }
 
 /** Rough conversion from USD into the customer currency, for sizing sector figures. */
 export function fxFromUsd(currency: string): number {
-  return currency === 'GBP' ? 0.79 : currency === 'EUR' ? 0.92 : currency === 'CHF' ? 0.88 : currency === 'SGD' ? 1.34 : 1;
+  return currency === 'GBP' ? 0.79 : currency === 'EUR' ? 0.92 : currency === 'CHF' ? 0.88 : currency === 'SGD' ? 1.34 : currency === 'ILS' ? 3.7 : 1;
 }
 
 export function fmtMoney(n: number, currency = 'USD', compact = true): string {

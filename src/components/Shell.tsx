@@ -3,6 +3,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { CheckCircle2, ChevronDown, ChevronRight, Lock, Menu, Moon, RefreshCw, Search, Sun, Building2 } from 'lucide-react';
 import { MODULES, NAV_GROUPS, SERVICES, moduleForPath, type ModuleDef } from '../modules/registry';
 import { CUSTOMER_LIST } from '../data/customers';
+import { partnerKeyFor } from '../data/modules/partner';
 import { useApp, rangeLabel, type TimeRange } from '../state/AppContext';
 import type { CustomerId } from '../data/types';
 import { HexIcon } from './HexIcon';
@@ -192,7 +193,7 @@ function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () => void }
       </button>
       {orgOpen && (
         <div style={{ display: 'grid', gap: 4, marginTop: -6, marginBottom: 12 }}>
-          <div className="side-label" style={{ padding: '4px 8px' }}>{account === 'partner' ? 'YOUR CLIENTS' : 'DEMO CUSTOMERS'}</div>
+          <div className="side-label" style={{ padding: '4px 8px' }}>{account === 'partner' && partnerKeyFor(customer.id) === 'northwind' ? 'YOUR CLIENTS' : 'DEMO CUSTOMERS'}</div>
           {CUSTOMER_LIST.map((c) => (
             <button
               key={c.id}

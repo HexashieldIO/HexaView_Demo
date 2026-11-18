@@ -909,6 +909,14 @@ DRIVERS.sghospital = [
   { id: 'pdpa', name: 'PDPA Part 6A', requirement: 'Data breach management: assess within 30 days, notify PDPC within 3 days', perYear: 1, note: 'DPO owns the assessment' },
   { id: 'ct', name: 'CSA Cyber Trust', requirement: 'Business continuity and incident response tested (risk-based tier)', perYear: 1, note: 'Assessment targeted for June 2027' },
 ];
+DRIVERS.telco = [
+  { id: 'moc', name: 'MoC licence', requirement: 'Network resilience and the incident report to the Ministry exercised', perYear: 2, note: 'Annual licence compliance report in March' },
+  { id: 'incd', name: 'INCD Cyber Defense Methodology', requirement: 'Incident response and recovery plans exercised, with management taking part', perYear: 1, note: 'Maturity self-assessment in February' },
+  { id: 'ppl', name: 'PPL / Data Security Regulations', requirement: 'Security-incident handling for high-security databases rehearsed, incl. the notification decision', perYear: 1, note: 'Data Protection Officer owns the assessment' },
+  { id: 'iso22301', name: 'ISO 22301', requirement: 'Business continuity plans exercised and reviewed', perYear: 2, note: 'Recertification audit in May' },
+  { id: 'pci', name: 'PCI DSS 12.10.2', requirement: 'Incident response plan tested every 12 months', perYear: 1, note: 'Billing, top-up and store card acceptance' },
+  { id: 'soc2', name: 'SOC 2 CC7.4–7.5', requirement: 'Incident response and recovery tested (Business & Cloud managed services)', perYear: 1, note: 'Type II period closes in December' },
+];
 DRIVERS.studio = [
   { id: 'tpn', name: 'TPN Gold Shield', requirement: 'Incident response plan tested yearly with evidence for the assessor', perYear: 1, note: 'London VFX re-assessment in November' },
   { id: 'mpa', name: 'MPA CSBP · IR', requirement: 'Content security incident response tested, including leak scenarios', perYear: 1, note: 'Licensors request evidence' },
@@ -1346,10 +1354,110 @@ function studioScenarios(c: CustomerProfile): Scenario[] {
   ];
 }
 
+function telcoScenarios(c: CustomerProfile): Scenario[] {
+  const p = c.people;
+  return [
+    { id: 'KT-TT-01', title: 'Exec tabletop: DDoS on DNS and the mobile core during a national event', kind: 'tabletop', tenantId: 'all', difficulty: 'Advanced', durationMin: 150,
+      summary: 'On the evening of a national event a sustained DDoS hits the DNS resolver farm and the packet core while a hacktivist channel claims responsibility. Mobile data degrades for 600,000 subscribers and the Ministry of Communications asks for a status report.',
+      objectives: ['Test the decision to divert traffic and shed load', 'Rehearse the Ministry and INCD reports', 'Agree one public line across retail, business and wholesale'],
+      audience: `${p.board.name} (CEO), CFO, CTO, ${p.ciso.name}, General Counsel, communications`, controls: ['CTL-DDS-07', 'CTL-BGP-08'], frameworks: ['MoC licence', 'ISO 22301'], drivers: ['moc', 'iso22301'],
+      injects: inj([
+        [0, 'Radware', 'DNS resolver farm at 4x baseline; mitigation engaged', 'Who declares a major incident: the NOC or the CISO?', 'detect'],
+        [20, 'NOC', 'Packet core signalling load rising; data sessions failing in the north', 'Divert to the scrubbing centre and shed low-priority traffic?', 'decide'],
+        [45, 'Ministry of Communications', 'Asks for a status report within the hour', 'Who signs it and what do you commit to?', 'notify'],
+        [70, 'Press office', 'A social channel claims a breach of subscriber data as well', 'Do you deny, or say you are investigating?', 'communicate'],
+        [110, 'Business & Cloud', 'Two managed-service customers invoke their SLA', 'Which services are restored first?', 'recover'],
+      ]),
+      lessons: [
+        ['The Ministry report waited for a complete picture and went out late', 'Pre-approve a first-hour report template with known unknowns', 'notify'],
+        ['Retail and business channels gave different restoration times', 'One restoration statement, owned by communications, refreshed every 30 minutes', 'communicate'],
+      ] },
+    { id: 'KT-TE-02', title: 'SOC/IR: SIM-swap ring with an insider at a contact centre', kind: 'technical', tenantId: 'retail', difficulty: 'Advanced', durationMin: 150,
+      summary: 'Fraud scoring flags 14 SIM swaps approved from one contact-centre desktop in 40 minutes. The agent account belongs to an outsourced partner and three affected subscribers report drained banking apps.',
+      objectives: ['Validate SIM-swap velocity detection', 'Exercise swap reversal and session revocation at scale', 'Coordinate fraud, HR, the partner and the police liaison'],
+      audience: `${p.socLead.name}, Head of Fraud Management, contact-centre operations, identity team, HexaShield IR`, controls: ['CTL-SIM-02', 'CTL-IAM-03', 'CTL-SUB-05'], frameworks: ['PPL / DSR', 'ISO 27011'], drivers: ['ppl', 'incd'],
+      injects: inj([
+        [0, 'Mobileum', '14 SIM swaps from one agent desktop in 40 minutes', 'Is this fraud or a campaign backlog?', 'detect'],
+        [20, 'Sentinel', 'The agent session came from an unmanaged device', 'Revoke the session and reverse the swaps now?', 'decide'],
+        [50, 'Negev Contact Solutions', 'The partner asks you not to suspend the agent until HR is present', 'Who decides, and on what evidence?', 'decide'],
+        [80, 'Subscribers', 'Three subscribers report losses through banking apps', 'What do you tell them, and who tells the banks?', 'communicate'],
+      ]),
+      lessons: [
+        ['Swap reversal needed a manual ticket per subscriber', 'Add a bulk reversal action for fraud-confirmed swaps, with two approvers', 'recover'],
+        ['Agent desktops at the partner could sign in from unmanaged devices', 'Require managed devices and phishing-resistant MFA for every SIM-change role', 'detect'],
+      ] },
+    { id: 'KT-OT-03', title: 'Landing station: plant alarms and loss of an international route', kind: 'ot', tenantId: 'intl', difficulty: 'Advanced', durationMin: 120,
+      summary: 'HexaOT sees a vendor session change cooling set-points at the Haifa cable landing station outside the maintenance window. Shortly after, a more-specific route for a Kinneret prefix appears from an unrelated network.',
+      objectives: ['Test read-only OT detection to a site decision', 'Exercise vendor session termination and manual plant operation', 'Rehearse traffic re-routing and wholesale customer notices'],
+      audience: `${p.otLead?.name ?? 'Network & site infrastructure lead'}, landing station manager, NOC, wholesale account team, HexaShield OT IR`, controls: ['CTL-OT-11', 'CTL-PAM-04', 'CTL-BGP-08'], frameworks: ['ISO 22301', 'MoC licence'], drivers: ['iso22301', 'moc'],
+      injects: inj([
+        [0, 'HexaOT', 'Cooling set-point change from a vendor session outside the window', 'Is it approved?', 'detect'],
+        [15, 'Vertiv', 'The vendor says no engineer is connected', 'Terminate the session and move the plant to local control?', 'decide'],
+        [40, 'NOC', 'A more-specific route for a Kinneret prefix is seen from an unrelated network', 'Are the two events linked? Who calls the upstreams?', 'detect'],
+        [70, 'Wholesale', 'Two carrier customers ask about latency on the eastern Mediterranean route', 'What do you tell them?', 'communicate'],
+        [95, 'Site manager', 'Hall temperature back in range on local control', 'Who authorises return to remote operation?', 'recover'],
+      ]),
+      lessons: [
+        ['The vendor path reached the plant through a legacy modem line', 'Remove the legacy line and enforce brokered sessions for every plant vendor', 'detect'],
+        ['Upstream contacts for route incidents were out of date', 'Keep a verified upstream and peering contact list in the NOC runbook', 'recover'],
+      ] },
+    { id: 'KT-SC-04', title: 'Supply chain: managed-security tooling compromise reaches business customers', kind: 'supply', tenantId: 'business', difficulty: 'Intermediate', durationMin: 120,
+      summary: 'A remote-management tool used by Business & Cloud to run managed security for 140 business customers shows sign-ins from an unknown location. Kinneret is the supplier in this scenario and its customers are asking questions.',
+      objectives: ['Test containment of a shared management plane', 'Exercise customer-by-customer impact assessment', 'Decide on contractual and SOC 2 notifications'],
+      audience: `${p.grcLead.name}, VP Business & Cloud, managed-security operations, legal, account management`, controls: ['CTL-PAM-04', 'CTL-SUP-10', 'CTL-IAM-03'], frameworks: ['SOC 2', 'ISO 27001'], drivers: ['soc2', 'incd'],
+      injects: inj([
+        [0, 'SentinelOne', 'Remote-management console sign-in from an unknown location', 'What do you isolate first?', 'detect'],
+        [25, 'Managed-security operations', '140 customer environments are reachable from the console', 'Suspend the console for everyone now?', 'decide'],
+        [55, 'Account management', 'A bank and a hospital network ask whether they are affected', 'What can you say before the assessment is complete?', 'communicate'],
+        [85, 'Legal', 'Contracts require notice within 48 hours of a suspected compromise', 'Who is notified, and in what order?', 'notify'],
+      ]),
+      lessons: [
+        ['Customer environments shared one administrative identity in the tool', 'Per-customer administrative identities, vaulted and brokered', 'detect'],
+        ['There was no ready customer notice for a supplier-side incident', 'Pre-approve a customer holding statement and an impact-assessment template', 'notify'],
+      ] },
+    { id: 'KT-RW-05', title: 'Ransomware on billing and the BSS', kind: 'ransomware', tenantId: 'retail', difficulty: 'Advanced', durationMin: 180,
+      summary: 'Ransomware encrypts CDR mediation and the billing database during the monthly bill run. Stores cannot activate new lines and top-ups fail.',
+      objectives: ['Test the recovery order for mediation, rating and billing', 'Rehearse restore from immutable backups', 'Decide how long calls are served without rating'],
+      audience: `${p.ciso.name}, Head of Billing & BSS, VP Retail & Digital, infrastructure, finance`, controls: ['CTL-BKP-13', 'CTL-EDR-12', 'CTL-PCI-14'], frameworks: ['ISO 22301', 'PCI DSS'], drivers: ['iso22301', 'pci'],
+      injects: inj([
+        [0, 'Billing operations', 'Mediation hosts unreadable; the bill run has stopped', 'Isolate the BSS from the network core?', 'detect'],
+        [40, 'Retail', '96 stores cannot activate lines or take top-ups', 'Do you open manual activation with deferred checks?', 'decide'],
+        [80, 'Finance', 'Each day without billing defers about ₪27M of invoicing', 'Restore in place or rebuild in the cloud?', 'recover'],
+        [120, 'Threat actor', 'Claims to hold a copy of the subscriber master', 'Does this become a data-exposure incident too?', 'decide'],
+      ]),
+      lessons: [
+        ['Billing restore took 19 h against a 12 h objective', 'Add parallel restore streams and a pre-staged mediation environment', 'recover'],
+        ['Unrated CDRs were buffered on one host only', 'Replicate the CDR buffer so no usage is lost during a billing outage', 'recover'],
+      ] },
+    { id: 'KT-RD-06', title: 'Notification drill: signalling abuse exposes subscriber location data', kind: 'regulator', tenantId: 'mobile', difficulty: 'Foundation', durationMin: 90,
+      summary: 'Out-of-range Diameter queries from a roaming partner and a bulk read on the subscriber database put location and profile data for 412 subscribers in scope.',
+      objectives: ['Run the severe-incident assessment for the Privacy Protection Authority', 'Decide on the Ministry and INCD reports', 'Prepare subscriber and business-customer notices'],
+      audience: `${p.grcLead.name}, Data Protection Officer, General Counsel, CTO, mobile core engineering`, controls: ['CTL-SIG-01', 'CTL-SUB-05'], frameworks: ['PPL / DSR', 'MoC licence'], drivers: ['ppl', 'moc'],
+      injects: inj([
+        [0, 'Signalling firewall', 'Location and profile queries from a partner outside its agreed range', 'Who owns the decision to rate-limit a partner?', 'detect'],
+        [25, 'Data Protection Officer', 'Location data for 412 subscribers is in scope', 'Is this a severe security incident?', 'notify'],
+        [50, 'General Counsel', 'The Ministry asks whether the licensed service was affected', 'What do you report, and when?', 'notify'],
+        [70, 'Business & Cloud', '38 of the subscribers belong to two managed-service customers', 'Who tells the customers?', 'communicate'],
+      ]),
+      lessons: [
+        ['The severity rationale was agreed verbally and not written down', 'Use a severity decision template for every incident involving subscriber data', 'decide'],
+      ] },
+  ];
+}
+
 const SCENARIO_SETS: CustomerMap<(c: CustomerProfile) => Scenario[]> = {
   maritime: scenarioSeeds, finserv: scenarioSeeds, media: scenarioSeeds, healthcare: scenarioSeeds, automotive: scenarioSeeds,
-  insurance: insuranceScenarios, defence: defenceScenarios, pharma: pharmaScenarios, sghospital: sghospitalScenarios, studio: studioScenarios,
+  insurance: insuranceScenarios, defence: defenceScenarios, pharma: pharmaScenarios, sghospital: sghospitalScenarios, studio: studioScenarios, telco: telcoScenarios,
 };
+
+CLOCKS.telco = [
+  { name: 'Privacy Protection Authority', body: 'Severe security incident: without delay (guidance: within 72 h)', dueMin: 4320 },
+  { name: 'INCD / national CERT', body: 'Report without delay · internal target 24 h', dueMin: 1440 },
+  { name: 'Ministry of Communications', body: 'Licence incident report without delay · internal target 24 h', dueMin: 1440 },
+  { name: 'Card brands (via acquirer)', body: 'Payment data: 24 h', dueMin: 1440 },
+  { name: 'Business customers & cyber insurer', body: 'Contract and policy notice: 48 h', dueMin: 2880 },
+];
+PLAN.telco = [['KT-RD-06', 0, 19], ['KT-TE-02', 1, 24], ['KT-OT-03', 3, 12], ['KT-SC-04', 4, 27], ['KT-TT-01', 6, 9], ['KT-RW-05', 8, 16, true], ['KT-OT-03', 9, 21], ['KT-TT-01', 10, 14], ['KT-RD-06', 11, 6]];
 
 CLOCKS.insurance = [
   { name: 'Connecticut Insurance Dept', body: 'Cybersecurity event: 3 business days', dueMin: 4320 },

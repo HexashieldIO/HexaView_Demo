@@ -437,6 +437,7 @@ export function vendorRegister(c: CustomerProfile, tenantId: string): VendorRec[
       ...(v.cmmc === 'L2 C3PAO' || v.cmmc === 'L2 self-assessed' ? [`CMMC ${v.cmmc}`] : []),
       ...(v.qa === 'Signed' ? ['GxP quality agreement'] : []),
       ...(lens === 'pdpa' && r.chance(0.3) ? ['CSA Cyber Trust'] : []),
+      ...(v.nesas === 'NESAS audited' ? ['GSMA NESAS'] : v.nesas === 'SCAS evidence on file' ? ['3GPP SCAS evidence'] : []),
     ];
     return {
       id: `VEN-${v.id.slice(4)}`, name: v.name, category: v.category, tier: v.tier, country: v.country,
@@ -716,4 +717,37 @@ INC_SEEDS.studio = [
   ['Card-testing bots on the ticketing site', 'Malicious act', 'Stolen cards tested at checkout', true, false, 'Contained', 'Thousands of low-value authorisations from bots. Bot management rules tightened; no stored card data affected.', 5, 13, null],
   ['Screener links forwarded during awards season', 'Human error', 'Voter shared a link with family', false, false, 'Closed', 'An awards screener link was opened from 6 devices. Watermark identified the recipient; link revoked.', 0, 7, null],
   ['Osaka edge backlog delayed vulnerability scans', 'System failure', 'Edge agent queue', false, false, 'Open', 'Resort scan uploads are arriving about 3 hours late. Agent upgrade planned after the Halloween freeze.', null, null, null],
+];
+
+/* Telco (Kinneret Telecom Group): its own entries in the tables above. */
+SECTOR_COURSES.telco = [
+  { title: 'SIM swaps and subscriber identity at Kinneret', kind: 'Mandatory', minutes: 9, audience: 'Store, contact-centre and dealer staff', steps: [
+    { title: 'Why a SIM matters', body: 'Whoever holds the SIM receives the calls and one-time codes. A wrongly approved swap hands over a subscriber\'s bank, email and messaging accounts.' },
+    { title: 'Verify every time', body: 'Check identity in the CRM flow before any SIM swap, eSIM re-issue or ownership change, whoever is asking and however urgent it sounds.', points: ['Identity document or in-app approval', 'No exceptions for VIPs or colleagues'] },
+    { title: 'Signs of a fraud ring', body: 'Several swaps in a short time, callers who know internal terms, or pressure to skip a step. The fraud score is advice; your check is the control.' },
+    { title: 'If you are unsure', body: 'Hold the change and call Fraud Management. Never look up a subscriber or call record without an open service request.' },
+  ] },
+  { title: 'Network and site access: vendors, contractors and change', kind: 'Role-based', minutes: 10, audience: 'Network operations, engineering and field staff', steps: [
+    { title: 'One way in', body: 'Vendors and contractors reach network elements and site plant only through CyberArk, per session, against an approved change or work order.', points: ['Named engineer', 'Time limit', 'Session recorded'] },
+    { title: 'Site plant is read-only here', body: 'HexaView watches cell-site power, cooling and generators, the data-centre BMS and the landing-station plant. It never changes them.' },
+    { title: 'Changes outside the window', body: 'A parameter or firmware change with no matching change ticket is treated as an incident until proven otherwise.' },
+    { title: 'When to stop a session', body: 'Unexpected downloads, new accounts or commands outside the work order mean you end the session and call the Cyber Defence Centre.' },
+  ] },
+];
+SECTOR_FOLDER.telco = ['Network & subscriber security', ['Signalling firewall rule-set review (Q3)', 'Database definitions document: subscriber database', 'NESAS / SCAS evidence register', 'Landing-station generator test report'], ['Signalling security policy', 'SIM-change identity verification procedure', 'Severe security incident notification procedure']];
+RISK_DIMS.telco = ['Financial', 'Regulatory', 'Reputational', 'Operational', 'Subscriber'];
+FUNCTIONS.telco = ['Cyber defence centre', 'Network operations (NOC)', 'Core network engineering', 'Fraud management', 'Billing & BSS', 'Site infrastructure & facilities', 'Vendor management'];
+FIRST.telco = ['Noa', 'Yonatan', 'Shira', 'Omar', 'Tal', 'Rana', 'Guy', 'Liat', 'Ahmad', 'Hadar'];
+LAST.telco = ['Levi', 'Ben-Haim', 'Shoham', 'Darwish', 'Elbaz', 'Halabi', 'Rosen', 'Masarwa', 'Tzur', 'Keinan'];
+SECTOR_REQ.telco = (p, ot) => ['INCD supply-chain cyber requirements', ...(ot ? ['Brokered, recorded access to network and site systems'] : []), ...(p ? ['Privacy Protection Regulations data-security agreement'] : []), 'Licence security obligations flow-down'];
+INC_SEEDS.telco = [
+  ['Subscriber export sent to the wrong collections agency', 'Human error', 'Wrong recipient picked in the transfer portal', true, true, 'Closed', 'A debtor file with 2,100 subscriber records went to a different agency under contract. The agency confirmed deletion in writing and the subscribers were told.', 2, null, 'Privacy Protection Authority'],
+  ['Contact-centre agent opened call records with no service request', 'Malicious act', 'Browsing outside any open ticket', true, false, 'Under investigation', 'An outsourced agent viewed call-detail records of a public figure without a ticket. Access removed; the Data Protection Officer is assessing notification.', 2, 9, null],
+  ['Tower contractor left a site cabinet unlocked for 3 days', 'Third party', 'Lock not re-armed after a battery replacement', false, false, 'Closed', 'Door-contact alarms from a northern cell site were not acted on by the contractor desk. No equipment was touched; alarm routing now goes to the NOC.', null, 8, null],
+  ['Roaming partner sent malformed signalling for 5 h', 'Third party', 'Partner network upgrade', false, false, 'Resolved', 'A partner flooded the Diameter edge with malformed requests after an upgrade. The signalling firewall dropped them; no subscriber impact.', 1, 5, null],
+  ['Landing-station chiller tripped during a heatwave', 'Physical / environmental', 'Condenser fan failure', false, false, 'Resolved', 'One of two chillers at Haifa tripped and the second carried the load for 9 hours. Not security-related; fan replaced.', 5, 12, null],
+  ['Dealer shared one CRM login across a store team', 'Process gap', 'Shared account never retired', true, false, 'Contained', 'Six staff at a franchise store used one CRM account, so SIM changes could not be attributed. Named accounts issued; shared login disabled.', 0, null, null],
+  ['Card-testing bots on the top-up page', 'Malicious act', 'Stolen cards tested at checkout', true, false, 'Contained', 'Thousands of low-value top-up attempts from bots. Rate limits tightened with the processor; no stored card data affected.', 2, 15, null],
+  ['Billing migration left a test extract in an open storage container', 'Human error', 'Container created without the private-access policy', true, true, 'Under investigation', 'A wave 3 test extract with real subscriber rows sat in a storage container reachable by link. Access closed 40 minutes after discovery; exposure is being assessed.', 2, 6, 'Privacy Protection Authority'],
+  ['Landing-station edge backlog delayed plant alerts', 'System failure', 'Edge agent queue', false, false, 'Open', 'Alerts from the Haifa plant collector are arriving about 3 hours late. Agent upgrade planned for the next cable maintenance window.', 5, null, null],
 ];

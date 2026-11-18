@@ -64,6 +64,11 @@ const OVERLAY: CustomerMap<{ label: string; techs: string[]; note: string }> = {
     techs: ['T1567', 'T1530', 'T1213', 'T1199', 'T1078', 'T1621', 'T1110', 'T1539', 'T1059', 'T1195', 'T1486', 'T1560', 'T0866', 'T0886', 'T0883', 'T0855', 'AML.T0057'],
     note: 'Studio overlay maintained by HexaShield and aligned to MPA CSBP, TPN and IEC 62443: pre-release leaks, VFX vendor abuse, subscriber account takeover and ride-control segmentation.',
   },
+  telco: {
+    label: 'Telecommunications overlay',
+    techs: ['T1199', 'T1213', 'T1078', 'T1098', 'T1621', 'T1657', 'T1190', 'T1133', 'T1572', 'T1046', 'T1560', 'T1048', 'T1195', 'T1595', 'T0886', 'T0836', 'T0855', 'T0814'],
+    note: 'Telecommunications overlay maintained by HexaShield and aligned to GSMA signalling security guidance (FS.11, FS.19, FS.20), MITRE FiGHT for 5G and national CERT reporting: signalling and roaming-partner abuse, SIM-swap fraud, subscriber and CDR data access, vendor access to network elements and site plant.',
+  },
 };
 
 const MAP_LEVEL: Record<CovLevel, FullCov> = { validated: 'full', detected: 'full', logged: 'partial', none: 'none' };

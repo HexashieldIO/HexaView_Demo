@@ -167,6 +167,7 @@ const SEEDED: Partial<Record<string, { usd: number; daysAgo: number; fill: numbe
   pharma: { usd: 100_000, daysAgo: 150, fill: 0.4 },
   defence: { usd: 25_000, daysAgo: 240, fill: 0.6 },
   studio: { usd: 25_000, daysAgo: 120, fill: 0.5 },
+  telco: { usd: 50_000, daysAgo: 160, fill: 0.5 },
   insurance: { usd: 10_000, daysAgo: 300, fill: 0.95 },
 };
 

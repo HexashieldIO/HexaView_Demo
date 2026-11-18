@@ -57,6 +57,7 @@ const EXTRA: CustomerMap<{ approver: string; analysts: string[]; auditor: string
   pharma: { approver: 'Simon Baumann', analysts: ['Lea Fischer', 'Aoife Byrne', 'Matteo Russo'], auditor: 'Corinne Vogel', support: 'P. Gruber (HexaShield)', partner: 'Rheinknie Cyber AG' },
   sghospital: { approver: 'Kelvin Lau', analysts: ['Siti Aminah', 'Ravi Shankar', 'Joanne Lim'], auditor: 'Patricia Goh', support: 'W. Tan (HexaShield)', partner: 'Merlion Health Cyber' },
   studio: { approver: 'Victor Morales', analysts: ['Kiara Johnson', 'Ethan Park', 'Lucia Romero'], auditor: 'Harold Benson', support: 'N. Price (HexaShield)', partner: 'Cahuenga Secure' },
+  telco: { approver: 'Yonatan Ashkenazi', analysts: ['Reem Jabarin', 'Itai Shalom', 'Noga Elkayam'], auditor: 'Miriam Stern', support: 'D. Halevi (HexaShield)', partner: 'Kinneret Business Cyber' },
 };
 export function extraPeople(c: CustomerProfile) {
   return forCustomer(EXTRA, c);
@@ -95,6 +96,7 @@ export function openc2For(write: string): { action: string; target: string } {
   if (w.includes('app instance')) return { action: 'deny', target: 'x-sse:app_instance' };
   if (w.includes('waf')) return { action: 'deny', target: 'x-waf:rule' };
   if (w.includes('quarantine')) return { action: 'contain', target: 'x-email:message' };
+  if (w.includes('api client')) return { action: 'deny', target: 'x-api:client' };
   if (w.includes('block list') || w.includes('address')) return { action: 'deny', target: 'ipv4_net' };
   if (w.includes('blocklist')) return { action: 'deny', target: 'file' };
   if (w.includes('ioc') || w.includes('indicator')) return { action: 'deny', target: 'domain_name' };
@@ -414,16 +416,48 @@ const PENDING: CustomerMap<PendingSeed[]> = {
       reason: 'Faster attribution if the FYC screener leaks during awards season', linked: 'MI-2026-038',
     },
   ],
+  telco: [
+    {
+      conn: 'c-cyberark', write: 'Terminate session', tenant: 'mobile', target: 'gts-field-svc · KTG-JUMP-NOC', title: 'Terminate the tower-contractor session on the NOC jump host', by: 'agent', created: 24,
+      diff: [['PAM session', 'Active 1 h 52 min', 'Terminated'], ['Account', 'gts-field-svc (shared)', 'Locked; recording preserved'], ['Approval policy', 'Standing', 'Per-session approval, named users only']],
+      reason: 'Modbus parameter writes to generator controllers at 23 northern cell sites outside the change window', linked: 'INC-KT-5101',
+    },
+    {
+      conn: 'c-entra', write: 'Revoke sessions', tenant: 'retail', target: '4 billing-migration contractor accounts (mig-w3-*)', title: 'Revoke Entra ID sessions for 4 billing-migration contractor accounts', by: 'analyst', received: 1, created: 31,
+      diff: [['Active sessions', '7 (4 accounts)', '0'], ['Refresh tokens', 'Valid', 'Revoked'], ['Conditional Access', 'Contractor policy', 'Blocked pending review'], ['Storage role on ktg-subscriber-analytics', 'Contributor', 'Removed']],
+      reason: 'Export session EX-20931 and the exposed development container both trace to the migration team', linked: 'MI-2026-047',
+    },
+    {
+      conn: 'c-salt', write: 'Block API client', tenant: 'retail', target: 'client selfcare-partner-7f3a', title: 'Block an API client enumerating account records on the self-care API', by: 'agent', created: 44,
+      diff: [['API client', 'selfcare-partner-7f3a (active)', 'Blocked'], ['Calls in the last hour', '18,400 to the account-profile endpoint', '0'], ['Other partner clients', '41 active', 'Unchanged']],
+      reason: 'Sequential account identifiers requested with one token; returned fields match the forum sample', linked: 'MI-2026-047',
+    },
+    {
+      conn: 'c-splunk', write: 'Enable correlation search', tenant: 'mobile', target: 'HV-T1199-roaming-range', title: 'Enable search: roaming-partner queries outside the agreed range', by: 'me', created: 63,
+      diff: [['Correlation search', 'Disabled (staged)', 'Enabled, every 5 min'], ['Severity', '—', 'High'], ['Notable routing', '—', 'HexaSOC, with the signalling-firewall alert attached']],
+      reason: 'Closes 4 partial Ministry of Communications licence loops on signalling monitoring (CTL-SIG-01)', linked: 'LP-MOBILE-SIG-01-T1199',
+    },
+    {
+      conn: 'c-harmony', write: 'Quarantine message', tenant: 'corp', target: '212 messages · "Your Kinneret bill is ready"', title: 'Quarantine 212 delivered copies of a billing-notice phish', by: 'analyst', created: 88,
+      diff: [['Messages', '212 delivered (64 opened)', 'Quarantined'], ['Sender', 'billing-notice@kinneret-telecom-bill[.]com', 'Blocked'], ['Link', 'Credential page live', 'Rewritten and blocked']],
+      reason: 'Lookalike domain using the incident to phish staff; 3 credentials entered', linked: 'INT-LOOKALIKE-12',
+    },
+    {
+      conn: 'c-hexacustody', write: 'Revoke access (supplier / user / session)', tenant: 'retail', target: 'Billing migration · subscriber master export wave 3', title: 'Revoke supplier access to the subscriber master export (wave 3)', by: 'grc', created: 140,
+      diff: [['Supplier grant', 'Active (9 users)', 'Revoked'], ['Assets', 'Subscriber master export wave 3 (1.2M records)', 'Inaccessible; cached copies wiped by agent'], ['Open export sessions', '2', '0']],
+      reason: 'The custody watermark in the forum sample traces to export session EX-20931', linked: 'MI-2026-047',
+    },
+  ],
 };
 
 const POLICY_BUNDLE: CustomerMap<string> = {
   maritime: 'pb-2026.09.4', finserv: 'pb-2026.10.1', media: 'pb-2026.09.2', healthcare: 'pb-2026.09.3', automotive: 'pb-2026.10.2',
-  insurance: 'pb-2026.10.3', defence: 'pb-2026.09.6', pharma: 'pb-2026.10.1', sghospital: 'pb-2026.09.5', studio: 'pb-2026.10.4',
+  insurance: 'pb-2026.10.3', defence: 'pb-2026.09.6', pharma: 'pb-2026.10.1', sghospital: 'pb-2026.09.5', studio: 'pb-2026.10.4', telco: 'pb-2026.10.5',
 };
 /** Customer key store holding the action-signing key when the customer brings its own key. */
 const SIGNING_KV: CustomerMap<string> = {
   maritime: 'kv-hps-weu', finserv: 'luna-ald-01', media: 'kv-kst-use2', healthcare: 'kv-mrh-cus', automotive: 'kv-vmg-gwc',
-  insurance: 'kv-kmi-eus2', defence: 'mhsm-spd-usgv', pharma: 'luna-rhn-bsl01', sghospital: 'kv-obh-sea', studio: 'kv-sfe-wus2',
+  insurance: 'kv-kmi-eus2', defence: 'mhsm-spd-usgv', pharma: 'luna-rhn-bsl01', sghospital: 'kv-obh-sea', studio: 'kv-sfe-wus2', telco: 'mhsm-ktg-ilc',
 };
 export function policyBundle(c: CustomerProfile): string {
   return forCustomer(POLICY_BUNDLE, c);
@@ -503,6 +537,7 @@ const HISTORY_TARGETS: CustomerMap<string[]> = {
   pharma: ['HV-T1133-OEM-OUTSIDE-GXP-CHANGE', 'HV - Rave bulk export by CRO account', '91.92.247.18/32', 'emerson-svc-vls session', 'CTL-GXP-AUD-04', 'VLS-MES-WS07', 'phish msg <edelweiss-dataroom@…>', 'rhenara-clinical[.]com', 'ICON CRA sessions', 'Netskope: ChatGPT upload of trial data'],
   sghospital: ['HV-T1133-VENDOR-PAM-OFF-WINDOW', 'HV - TrakCare IRIS bulk export', 'cdn-trakupdate[.]com', 'isc-support-sg session', 'CTL-IAM-02 (HIA CS/DS)', 'OBH-TRAK-APP03', 'phish msg <outstanding-bill@…>', 'orchidbay-billing[.]com', 'BD Alaris remote session', 'FairWarning VIP record access'],
   studio: ['hv_aspera_bulk_pull_new_host', 'hv_frameio_link_forward', 'leak-mirror[.]cc', 'freelance-vfx-2291', 'CTL-WAT-03', 'Northlight Pixel grant', 'Crown of Ash screener link', 'WAF rule: screener token replay', 'intamin-svc-orl session', 'starfallplus-login[.]help'],
+  telco: ['HV-T1199-roaming-range', 'HV-T1098-simswap-velocity', 'kinneret-telecom-bill[.]com', 'ncs-agent-0412 session', 'CTL-SIM-02', 'KTG-JUMP-NOC', 'phish msg <billing-notice@…>', 'gts-field-svc session', 'API client selfcare-partner-7f3a', 'DDoS protection profile: resolver farm'],
 };
 
 export function actionHistory(c: CustomerProfile, tenantId: string): HistoryAction[] {
@@ -680,6 +715,21 @@ deny contains "custody revoke needs title + grant" if {
 deny contains "ride & show control is read-only" if {
   input.tenant in {"parks", "parksasia"}
   input.connector.category == "OT"
+}`,
+    telco: `# Network tenants: high-risk write-back held during a declared network change freeze unless a major incident is open
+deny contains "network change freeze" if {
+  input.tenant in {"mobile", "fixed", "intl"}
+  input.action.risk == "high"
+  data.calendar.network_freeze_active
+  not input.incident.major
+}
+
+# Network elements, site plant and the lawful-interception enclave are never a write-back target
+deny contains "network and site infrastructure is read-only" if {
+  input.connector.category == "OT"
+}
+deny contains "lawful-interception enclave is out of scope" if {
+  "li-enclave" in input.target.tags
 }`,
 };
 
@@ -861,6 +911,7 @@ const ANCHOR_STORE: CustomerMap<string> = {
   pharma: 'Azure immutable blob (WORM, Switzerland North)',
   sghospital: 'Azure immutable blob (WORM, Southeast Asia)',
   studio: 'S3 Object Lock (compliance mode, us-west-2)',
+  telco: 'Azure immutable blob (WORM, Israel Central)',
 };
 export function anchors(c: CustomerProfile, tenantId: string, lastSeq: number): Anchor[] {
   const h = headlines(c, tenantId).ops;
@@ -950,6 +1001,13 @@ export function supportSessions(c: CustomerProfile): SupportSession[] {
       { reason: 'Irdeto connector failing: API token expired', requestedMinAgo: 110, approvedBy: null, scope: 'Read-only · connector c-irdeto', durationH: 1, status: 'pending', ticket: 'HS-SUP-84009' },
       { reason: 'Moxion dailies connector lag after the Autodesk platform move', requestedMinAgo: 330, approvedBy: ta, scope: 'Read-only · connector c-moxion', durationH: 2, status: 'active', ticket: 'HS-SUP-83981' },
       { reason: 'Osaka resort edge agent 1.8.9 → 1.9.2 upgrade (data stays in Japan)', requestedMinAgo: 6 * 1440, approvedBy: ta, scope: 'Read-only · data plane dp-osaka health', durationH: 2, status: 'closed', ticket: 'HS-SUP-83702' },
+    ],
+    telco: [
+      { reason: 'MI-2026-047: custody lineage and watermark decode for the subscriber export (metadata only)', requestedMinAgo: 28, approvedBy: null, scope: 'Read-only · War Room MI-2026-047 metadata and HexaCustody events (no subscriber data)', durationH: 4, status: 'pending', ticket: 'HS-SUP-95214' },
+      { reason: 'BSS audit connector failing (401) after billing migration wave 3', requestedMinAgo: 130, approvedBy: null, scope: 'Read-only · connector c-bss config & logs', durationH: 2, status: 'pending', ticket: 'HS-SUP-95207' },
+      { reason: 'Signalling firewall GTP-C field drift after the rule-set update', requestedMinAgo: 310, approvedBy: ta, scope: 'Read-only · connector c-sigfw mapping (no message content)', durationH: 3, status: 'active', ticket: 'HS-SUP-95181' },
+      { reason: 'Landing-station edge agent 1.8.9 → 1.9.2 upgrade plan', requestedMinAgo: 5 * 1440, approvedBy: ta, scope: 'Read-only · data plane dp-cls health', durationH: 2, status: 'closed', ticket: 'HS-SUP-94902' },
+      { reason: 'Request to read lawful-interception enclave logs for tuning', requestedMinAgo: 9 * 1440, approvedBy: null, scope: 'Requested access to a legally sealed system (out of scope by policy)', durationH: 2, status: 'denied', ticket: 'HS-SUP-94655' },
     ],
   };
   const r = rng(`ops-support-${c.id}`);
@@ -1385,6 +1443,89 @@ const OWN_WARROOMS: Partial<Record<CustomerId, (c: CustomerProfile) => WarScenar
         { name: bs[5], status: 'operational', recovery: 100, rto: '—', note: 'Not affected' },
       ],
       ioc: ['WM-31877 (NexGuard session mark)', 'Vendor Aspera node key used from 185.243.x.x', 't.me/… (leak channel, 4 mirrors)'],
+    };
+  },
+  telco: (c) => {
+    const p = c.people;
+    const bs = c.vocab.businessServices;
+    const x = forCustomer(EXTRA, c);
+    const dpo = c.rolePeople?.privacy?.name ?? 'Data Protection Officer';
+    const bss = staffOf(c, 'Lior', 'Head of Billing & BSS');
+    const gc = staffOf(c, 'Tamar', 'General Counsel');
+    const fraud = staffOf(c, 'Dana', 'Head of Fraud Management');
+    const retail = staffOf(c, 'Avi', 'VP Retail & Digital');
+    return {
+      id: 'MI-2026-047', title: 'Subscriber data exposure: billing migration wave 3 export offered for sale', tenantId: 'retail', severity: 'critical', phase: 'Investigation & notification', declaredMinAgo: 184,
+      summary: 'A sample of 5,000 subscriber records was offered on a closed forum. The fields match the billing migration wave 3 export, and the HexaCustody watermark in the sample traces to an export session opened by a migration contractor account. Cyera then found a second copy of the full export (1.2M records: names, ID numbers, MSISDNs and addresses; no card data, no call records) in a development storage container. Subscriber services are unaffected; the notification clocks are the pressure.',
+      commander: p.ciso.name, bridge: 'Teams bridge "MI-047 WR" (need-to-know) + Signal fallback',
+      timeline: [
+        { t: 0, title: 'Sample of 5,000 records found on a closed forum', body: 'HexaInt dark-web monitoring; the Cyberint feed is throttled, so the listing was cross-checked by an analyst', kind: 'detect' },
+        { t: 6, title: 'War room declared', body: `${p.ciso.name} as commander; ${dpo} and ${gc} paged`, kind: 'decide' },
+        { t: 21, title: 'Custody watermark decoded', body: 'Export session EX-20931: billing migration wave 3, opened by contractor account mig-w3-07', kind: 'detect' },
+        { t: 38, title: 'Second copy found in a development container', body: 'Cyera: full export (1.2M records) in ktg-subscriber-analytics with a shared-access link', kind: 'detect' },
+        { t: 44, title: 'Shared-access link revoked and container locked', body: 'Pre-approved playbook; storage access logs preserved', kind: 'contain' },
+        { t: 70, title: 'Access-log review: 2 downloads from outside Israel', body: 'Both in the last 9 days, from the same proxy network as the forum seller', kind: 'detect' },
+        { t: 95, title: 'Migration systems integrator briefed', body: 'Notice of security incident served under the contract; contractor workstation held for imaging', kind: 'comms' },
+        { t: 130, title: 'Privacy Protection Authority notification approved', body: `Severe security incident in a high-security database; ${dpo} files the initial notice today`, kind: 'decide' },
+        { t: 150, title: 'Fraud scoring raised for the 1.2M affected lines', body: 'SIM changes and number ports need a second approver until further notice', kind: 'contain' },
+        { t: 172, title: 'Session revocation for 4 migration accounts staged', body: 'High-risk action, 1 of 2 approvals', kind: 'decide' },
+      ],
+      tasks: [
+        { id: 'T1', title: 'Preserve storage, Entra ID and custody logs; image the contractor workstation', owner: 'HexaShield DFIR', dueMin: 300, status: 'in_progress', stream: 'Investigation' },
+        { id: 'T2', title: 'Confirm the record count and the fields exposed', owner: bss, dueMin: 240, status: 'in_progress', stream: 'Investigation' },
+        { id: 'T3', title: 'File the initial notice with the Privacy Protection Authority', owner: dpo, dueMin: 360, status: 'in_progress', stream: 'Regulatory' },
+        { id: 'T4', title: 'Report to the Israel National Cyber Directorate', owner: p.ciso.name, dueMin: 480, status: 'done', stream: 'Regulatory' },
+        { id: 'T5', title: 'Inform the Ministry of Communications under the licence', owner: p.grcLead.name, dueMin: 1440, status: 'todo', stream: 'Regulatory' },
+        { id: 'T6', title: 'Listing takedown and seller monitoring', owner: x.analysts[0], dueMin: 480, status: 'in_progress', stream: 'Containment' },
+        { id: 'T7', title: 'Subscriber notice in Hebrew, Arabic, Russian and English', owner: `${gc} + Corporate communications`, dueMin: 1440, status: 'blocked', stream: 'Communications' },
+        { id: 'T8', title: 'Second approver on SIM changes for affected lines', owner: fraud, dueMin: 200, status: 'done', stream: 'Containment' },
+      ],
+      clocks: [
+        { name: 'Privacy Protection Authority', body: 'Severe security incident in a high-security database: notify without delay (PPA guidance: within 72 h)', dueMin: 4320, startMin: 21, status: 'running' },
+        { name: 'Israel National Cyber Directorate', body: 'Report to the national CERT: internal target 24 h', dueMin: 1440, startMin: 6, status: 'submitted', submittedMin: 140 },
+        { name: 'Ministry of Communications', body: 'Licence security obligations: inform the Ministry; internal target 24 h', dueMin: 1440, startMin: 6, status: 'running' },
+        { name: 'Affected subscribers', body: 'If the Authority instructs, or where identity-theft risk is high; wording in preparation', dueMin: null, startMin: 21, status: 'conditional' },
+        { name: 'PCI DSS / card schemes', body: 'Not triggered: no cardholder data in the export', dueMin: null, startMin: 21, status: 'not_applicable' },
+        { name: 'Insurer (Harel via Marsh Israel)', body: 'Policy condition: notify within 72 h', dueMin: 4320, startMin: 6, status: 'submitted', submittedMin: 110 },
+        { name: 'Listing takedown', body: 'Internal target: 4 h per new listing', dueMin: 240, startMin: 0, status: 'running' },
+      ],
+      comms: [
+        { t: 8, channel: 'internal', to: 'Crisis team (14)', subject: 'War room opened: subscriber data exposure', by: p.ciso.name, status: 'sent' },
+        { t: 95, channel: 'partners', to: 'Billing-migration systems integrator', subject: 'Notice of security incident under the services agreement', by: p.grcLead.name, status: 'sent' },
+        { t: 110, channel: 'partners', to: 'Marsh Israel (for Harel)', subject: 'Notice of circumstances under the cyber policy', by: p.grcLead.name, status: 'sent' },
+        { t: 135, channel: 'regulator', to: 'Privacy Protection Authority', subject: 'Initial notification of a severe security incident', by: dpo, status: 'approved' },
+        { t: 140, channel: 'regulator', to: 'Israel National Cyber Directorate', subject: 'Incident report: subscriber data exposure', by: p.ciso.name, status: 'sent' },
+        { t: 160, channel: 'customers', to: '1.2M affected subscribers (SMS and email)', subject: 'Important information about your personal details', by: 'Corporate communications', status: 'draft' },
+        { t: 175, channel: 'press', to: 'Holding statement (reactive only)', subject: '"We are investigating a data security incident and have informed the authorities"', by: 'Corporate communications', status: 'approved' },
+        { t: 178, channel: 'law enforcement', to: 'Israel Police (cyber unit)', subject: 'Complaint: sale of stolen personal data', by: gc, status: 'draft' },
+      ],
+      decisions: [
+        { t: 6, decision: 'Treat as a major incident with regulatory impact', by: p.ciso.name, rationale: 'Subscriber personal data offered for sale; sample validated against custody records' },
+        { t: 44, decision: 'Lock the development container immediately', by: 'Data policy (pre-approved)', rationale: 'Pre-approved playbook for subscriber data reachable from the internet' },
+        { t: 130, decision: 'Notify the Privacy Protection Authority today, before the full count is confirmed', by: dpo, rationale: 'An early initial notice is safer than a late complete one' },
+        { t: 150, decision: 'Second approver on SIM changes for affected lines', by: fraud, rationale: 'Exposed ID numbers raise the risk of SIM-swap fraud' },
+        { t: 172, decision: 'Suspend all billing-migration contractor accounts pending review', by: p.ciso.name, rationale: 'The export session and the container both trace to the migration team' },
+      ],
+      participants: [
+        { name: p.ciso.name, role: 'Incident commander', org: 'Kinneret', joinedMin: 6, on: true },
+        { name: p.socLead.name, role: 'Cyber Defence Centre', org: 'Kinneret', joinedMin: 6, on: true },
+        { name: dpo, role: 'Data Protection Officer', org: 'Kinneret', joinedMin: 10, on: true },
+        { name: p.grcLead.name, role: 'Regulatory liaison', org: 'Kinneret', joinedMin: 14, on: true },
+        { name: bss, role: 'Billing & BSS', org: 'Kinneret Retail & Digital', joinedMin: 25, on: true },
+        { name: gc, role: 'General Counsel', org: 'Kinneret', joinedMin: 30, on: true },
+        { name: fraud, role: 'Fraud management', org: 'Kinneret', joinedMin: 60, on: true },
+        { name: retail, role: 'Business leadership', org: 'Kinneret Retail & Digital', joinedMin: 100, on: false },
+        { name: 'HexaShield DFIR (2)', role: 'Forensics', org: 'HexaShield', joinedMin: 32, on: true },
+      ],
+      services: [
+        { name: bs[0], status: 'operational', recovery: 100, rto: '—', note: 'Not affected; SIM changes on affected lines need a second approver' },
+        { name: bs[1], status: 'operational', recovery: 100, rto: '—', note: 'Not affected' },
+        { name: bs[2], status: 'degraded', recovery: 80, rto: '24 h', note: 'Billing migration wave 4 paused; billing and top-up run on the current platform' },
+        { name: bs[3], status: 'operational', recovery: 100, rto: '—', note: 'Not affected' },
+        { name: bs[4], status: 'operational', recovery: 100, rto: '—', note: 'Not affected' },
+        { name: bs[5], status: 'operational', recovery: 100, rto: '—', note: 'Not affected' },
+      ],
+      ioc: ['Custody watermark EX-20931 (export session)', 'Shared-access link on ktg-subscriber-analytics (revoked)', '2 downloads from 45.86.x.x (proxy network)', 'Closed-forum listing "IL telecom subscribers 1.2M"'],
     };
   },
 };
@@ -1887,6 +2028,7 @@ const PEERS: CustomerMap<{ n: number; label: string; median: number; q1: number;
   pharma: { n: 21, label: 'research-based pharma & biotech', median: 73, q1: 66, q3: 80, p90: 86 },
   sghospital: { n: 14, label: 'APAC private hospital groups', median: 65, q1: 57, q3: 73, p90: 80 },
   studio: { n: 12, label: 'major studios, streamers & resort operators', median: 70, q1: 62, q3: 77, p90: 84 },
+  telco: { n: 18, label: 'mobile and fixed operators in EMEA', median: 71, q1: 63, q3: 78, p90: 85 },
 };
 /** Peer distributions per metric: [median, q1 (worse quartile), q3 (better quartile)]. */
 const BENCH: CustomerMap<{ mfa: number; patch: number; mttr: number[]; mttd: number[]; patchP: number[]; mfaP: number[]; loop: number[]; attack: number[] }> = {
@@ -1900,9 +2042,10 @@ const BENCH: CustomerMap<{ mfa: number; patch: number; mttr: number[]; mttd: num
   pharma: { mfa: 98, patch: 13, mttr: [57, 84, 37], mttd: [9, 17, 6], patchP: [19, 28, 12], mfaP: [95, 90, 98], loop: [53, 43, 64], attack: [65, 56, 75] },
   sghospital: { mfa: 96, patch: 19, mttr: [72, 108, 47], mttd: [13, 24, 8], patchP: [27, 40, 17], mfaP: [90, 83, 96], loop: [43, 33, 54], attack: [54, 44, 65] },
   studio: { mfa: 95, patch: 16, mttr: [62, 92, 40], mttd: [11, 20, 6], patchP: [22, 33, 14], mfaP: [91, 85, 96], loop: [49, 39, 60], attack: [61, 52, 71] },
+  telco: { mfa: 98, patch: 15, mttr: [60, 88, 39], mttd: [10, 19, 6], patchP: [20, 30, 12], mfaP: [93, 87, 97], loop: [50, 40, 61], attack: [62, 53, 72] },
 };
 /** How much custody counts in each sector's peer group (radar median offset for the custody axis). */
-const CUSTODY_PEER_BIAS: CustomerMap<number> = { maritime: -10, finserv: -10, media: 0, healthcare: -10, automotive: -10, insurance: -8, defence: -2, pharma: 0, sghospital: -10, studio: 0 };
+const CUSTODY_PEER_BIAS: CustomerMap<number> = { maritime: -10, finserv: -10, media: 0, healthcare: -10, automotive: -10, insurance: -8, defence: -2, pharma: 0, sghospital: -10, studio: 0, telco: -6 };
 export function peerInfo(c: CustomerProfile) {
   return forCustomer(PEERS, c);
 }
@@ -2056,6 +2199,13 @@ export function shareLinks(c: CustomerProfile, tenantId: string): ShareLink[] {
       ['Global distribution partner (SVOD licensee)', 'customer', ['RI', 'TPN', 'Pen test date']],
       ['DNEG (vendor reciprocity)', 'partner', ['RI', 'TPN']],
     ],
+    telco: [
+      ['Harel via Marsh Israel', 'insurer', ['RI', 'Attestations', 'Pen test date']],
+      ['Ministry of Communications (licence compliance)', 'regulator', ['MoC licence', 'ISO 27011', 'RI']],
+      ['Israel National Cyber Directorate (sector liaison)', 'regulator', ['INCD CDM', 'RI']],
+      ['Tavor Retail Group (managed-services customer)', 'customer', ['RI', 'SOC 2', 'ISO 27001']],
+      ['Levant Subsea Systems (landing-party reciprocity)', 'partner', ['RI', 'ISO 22301']],
+    ],
   };
   const viewers = ['security@', 'risk@', 'procurement@', 'underwriting@', 'supervision@'];
   return forCustomer(seeds, c).map(([recipient, kind, scope], i) => {
@@ -2083,6 +2233,7 @@ const LAST_PEN_TEST: CustomerMap<{ daysAgo: number; scope: string; by: string }>
   pharma: { daysAgo: 26, scope: 'CRO partner portal, Rhenara Connect API, Valais Level 3.5 DMZ', by: 'HexaStrike' },
   sghospital: { daysAgo: 52, scope: 'Patient portal & FHIR API, Citrix gateway, vendor PAM paths', by: 'HexaStrike' },
   studio: { daysAgo: 17, scope: 'Screener & review portals, Starfall+ API, Aspera and park ticketing', by: 'HexaStrike' },
+  telco: { daysAgo: 21, scope: 'Self-care and eSIM APIs, dealer portal, internet perimeter and signalling interconnect review', by: 'HexaStrike' },
 };
 export function lastPenTest(c: CustomerProfile): { daysAgo: number; scope: string; by: string } {
   return forCustomer(LAST_PEN_TEST, c);
@@ -2100,6 +2251,7 @@ const SSO_DEFAULTS: CustomerMap<{ phishingResistant: boolean; sessionH: number; 
   pharma: { phishingResistant: true, sessionH: 10, keyRotatedDaysAgo: 77, keyNextDays: 288 },
   sghospital: { phishingResistant: false, sessionH: 12, keyRotatedDaysAgo: 0, keyNextDays: 0 },
   studio: { phishingResistant: false, sessionH: 10, keyRotatedDaysAgo: 46, keyNextDays: 319 },
+  telco: { phishingResistant: true, sessionH: 10, keyRotatedDaysAgo: 38, keyNextDays: 327 },
 };
 export function ssoDefaults(c: CustomerProfile) {
   return forCustomer(SSO_DEFAULTS, c);

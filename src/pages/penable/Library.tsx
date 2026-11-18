@@ -4,7 +4,7 @@ import { Search, Download, Share2, Stamp, Sparkles } from 'lucide-react';
 import { useApp } from '../../state/AppContext';
 import { Card, KpiStrip, Badge, Btn, Chip, KV, SectionLabel } from '../../components/ui';
 import { Drawer } from '../../components/Overlay';
-import { CONTENT_TYPES, contentLibrary, deals, type ContentItem, type ContentType } from '../../data/modules/partner';
+import { CONTENT_TYPES, PARTNER, contentLibrary, deals, type ContentItem, type ContentType } from '../../data/modules/partner';
 import { PT_TONE } from '../partner/parts';
 
 const PRODUCT_TONE: Record<string, string> = {
@@ -140,7 +140,7 @@ export default function EnablementLibrary() {
           footer={
             <>
               <Btn primary color={PT_TONE} onClick={() => toast(`Downloading “${sel.title}” (navy, ${sel.format.split(' · ')[0]})`)}><Download /> Download</Btn>
-              {sel.cobrand && <Btn onClick={() => toast(`Co-branded copy of “${sel.title}” generated with the Northwind logo and contact details`)}><Stamp /> Co-brand</Btn>}
+              {sel.cobrand && <Btn onClick={() => toast(`Co-branded copy of “${sel.title}” generated with the ${PARTNER.short} logo and contact details`)}><Stamp /> Co-brand</Btn>}
               <Btn ghost onClick={() => toast(`Tracked share link for “${sel.title}” copied: you'll see when the client opens it`)}><Share2 /> Share link</Btn>
             </>
           }

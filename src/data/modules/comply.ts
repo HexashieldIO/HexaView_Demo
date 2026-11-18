@@ -459,6 +459,8 @@ export interface Vendor {
   qa?: QaStatus;
   /** Singapore hospital: where patient data is processed (PDPA s26 transfer limitation). */
   xfer?: XferStatus;
+  /** Telco: GSMA NESAS / 3GPP SCAS assurance position of a network-equipment supplier. */
+  nesas?: NesasStatus;
   /** Original-style supplier score: failed checks out of 12, weighted (higher is worse). */
   gapScore: number;
   gaps: VendorGap[];
@@ -541,15 +543,16 @@ export type TisaxLabel = 'AL3 valid' | 'AL2 valid' | 'Expiring' | 'Expired' | 'N
 export type CmmcStatus = 'L2 C3PAO' | 'L2 self-assessed' | 'POA&M open' | 'No SPRS score' | 'Not required';
 export type QaStatus = 'Signed' | 'Missing' | 'Expired' | 'Not required';
 export type XferStatus = 'Singapore only' | 'Safeguards on file' | 'No safeguards' | 'No patient data';
+export type NesasStatus = 'NESAS audited' | 'SCAS evidence on file' | 'Requested' | 'No evidence' | 'Not required';
 
 /**
  * The sector lens the supplier register is read through: which regulatory
  * flag each supplier carries and which sector panel the TPRM page shows.
  */
-export type VendorLens = 'ot' | 'dora' | 'tpn' | 'baa' | 'tisax' | 'nydfs' | 'cmmc' | 'gxp' | 'pdpa';
+export type VendorLens = 'ot' | 'dora' | 'tpn' | 'baa' | 'tisax' | 'nydfs' | 'cmmc' | 'gxp' | 'pdpa' | 'telco';
 const VENDOR_LENS: CustomerMap<VendorLens> = {
   maritime: 'ot', finserv: 'dora', media: 'tpn', healthcare: 'baa', automotive: 'tisax',
-  insurance: 'nydfs', defence: 'cmmc', pharma: 'gxp', sghospital: 'pdpa', studio: 'tpn',
+  insurance: 'nydfs', defence: 'cmmc', pharma: 'gxp', sghospital: 'pdpa', studio: 'tpn', telco: 'telco',
 };
 export function vendorLens(c: CustomerProfile): VendorLens {
   return forCustomer(VENDOR_LENS, c);
@@ -566,6 +569,7 @@ export const VENDOR_INFO_TYPES: CustomerMap<string[]> = {
   pharma: ['GxP data', 'Clinical data', 'Personal data', 'OT', 'Confidential'],
   sghospital: ['Patient data', 'Medical device', 'Personal data', 'Confidential'],
   studio: ['Pre-release', 'Personal data', 'Payments', 'OT', 'Confidential'],
+  telco: ['Personal data', 'Network elements', 'OT', 'Payments', 'Confidential'],
 };
 
 type TpLike = { name: string; category: string; access: string };
@@ -581,6 +585,7 @@ const VENDOR_DATA: CustomerMap<(tp: TpLike) => string[]> = {
   pharma: (tp) => (/DCS|PCS 7|PLC|remote service/i.test(tp.access) ? ['OT', 'GxP data'] : /study|EDC|eTMF|unblinding|pharmacovigilance|monitoring|trial/i.test(tp.access) ? ['Clinical data', 'Personal data'] : /batch|recipe|cell-line|tech-transfer|QMS|artwork|serialisation|MES|Vault/i.test(tp.access) ? ['GxP data'] : /compound|assay/i.test(tp.access) ? ['Confidential', 'GxP data'] : /CRM user/i.test(tp.access) ? ['Personal data'] : ['Confidential']),
   sghospital: (tp) => (/pump|imaging|modalit|monitor|IntelliVue|MRI|Atellica|Alaris|drug library/i.test(tp.access + tp.category) ? ['Medical device', 'Patient data'] : /NEHR|HL7|results|claims|eligibility|pre-auth|video|patient|EHR|TrakCare|records|HealthShare/i.test(tp.access + tp.category) ? ['Patient data'] : ['Confidential']),
   studio: (tp) => (/ride control|projection|show/i.test(tp.access) ? ['OT'] : /pre-release|cut|stems|plates|dailies|masters|trailer|asset|script|screener|camera|content vault|key art/i.test(tp.access) ? ['Pre-release'] : /subscri|payment|ticketing/i.test(tp.access) ? ['Personal data', 'Payments'] : ['Confidential']),
+  telco: (tp) => (/tower|power|cooling|BMS|landing|cell sites|\bUPS\b|chillers|rectifier/i.test(tp.access + tp.category) ? ['OT'] : /\bRAN\b|packet core|network element|core routers|transport/i.test(tp.access + tp.category) ? ['Network elements'] : /card|top-up/i.test(tp.access + tp.category) ? ['Personal data', 'Payments'] : /subscriber|CDR|CRM|SIM|TAP|billing|BSS|digital channels|gateway|work-order/i.test(tp.access + tp.category) ? ['Personal data'] : ['Confidential']),
 };
 
 export function ratingsSource(c: CustomerProfile): { name: string; connector: boolean; status: 'healthy' | 'degraded' | 'failing' | 'paused'; lastSyncMin: number; stale: boolean } {
@@ -631,7 +636,8 @@ function vendorsGroup(c: CustomerProfile): Vendor[] {
     if (lens === 'cmmc') v.cmmc = data.includes('CUI') ? r.weighted<CmmcStatus>([['L2 C3PAO', 3], ['L2 self-assessed', 3.5], ['POA&M open', 1.6], ['No SPRS score', 0.8]]) : 'Not required';
     if (lens === 'gxp') v.qa = data.includes('GxP data') || data.includes('Clinical data') ? r.weighted<QaStatus>([['Signed', 12], ['Missing', 0.9], ['Expired', 0.8]]) : 'Not required';
     if (lens === 'pdpa') v.xfer = !data.some((d) => /Patient|Personal/.test(d)) ? 'No patient data' : country === 'SG' ? 'Singapore only' : r.weighted<XferStatus>([['Safeguards on file', 7], ['No safeguards', 1.2]]);
-    v.otRemote = data.includes('OT') || data.includes('Medical device');
+    if (lens === 'telco') v.nesas = data.includes('Network elements') ? r.weighted<NesasStatus>([['NESAS audited', 3], ['SCAS evidence on file', 3], ['Requested', 2], ['No evidence', 1.5]]) : 'Not required';
+    v.otRemote = data.includes('OT') || data.includes('Medical device') || data.includes('Network elements');
     return v;
   };
   const classify = forCustomer(VENDOR_DATA, c);
@@ -663,6 +669,7 @@ function vendorsGroup(c: CustomerProfile): Vendor[] {
   if (lens === 'cmmc') out.forEach((v) => { if (/Cumberland/.test(v.name)) v.cmmc = 'No SPRS score'; if (/Valley Anodize/.test(v.name)) v.cmmc = 'POA&M open'; if (/Lockheed|RTX|Northrop|L3Harris|Redstone/.test(v.name)) v.cmmc = 'L2 C3PAO'; });
   if (lens === 'gxp') out.forEach((v) => { if (/Catalent/.test(v.name)) v.qa = 'Missing'; if (/WuXi/.test(v.name)) v.qa = 'Expired'; if (/Lonza|IQVIA|ICON|Medidata|Veeva|Körber/.test(v.name)) v.qa = 'Signed'; });
   if (lens === 'pdpa') out.forEach((v) => { if (/GE HealthCare/.test(v.name)) v.xfer = 'No safeguards'; if (/InterSystems|Philips|Siemens Health/.test(v.name)) v.xfer = 'Safeguards on file'; });
+  if (lens === 'telco') out.forEach((v) => { if (/^(Ericsson|Nokia)$/.test(v.name)) v.nesas = 'NESAS audited'; if (/^Cisco$/.test(v.name)) v.nesas = 'SCAS evidence on file'; });
   // High risk: worst residual (tier × rating × findings) up to the headline count.
   const nHigh = headlines(c).comply.highRiskVendors;
   const score = (v: Vendor) => (4 - v.tier) * 30 + (100 - v.rating) + v.findings * 3 + (v.assessment === 'Overdue' ? 15 : 0);
@@ -700,8 +707,9 @@ function vendorGaps(c: CustomerProfile, v: Vendor, r: ReturnType<typeof rng>): V
   if (lens === 'cmmc' && (v.cmmc === 'POA&M open' || v.cmmc === 'No SPRS score')) add('Cyber security', v.cmmc === 'No SPRS score' ? 'Receives CUI with no NIST 800-171 score in SPRS' : 'Receives CUI with open POA&M items against CMMC Level 2', 'DFARS 7012(m) and 7021 flow down to sub-tiers that hold CUI. Confirm the SPRS score and CMMC status through Exostar before the next TDP release.');
   if (lens === 'gxp' && (v.qa === 'Missing' || v.qa === 'Expired')) add('Oversight & review', v.qa === 'Missing' ? 'GxP data shared without a quality agreement' : 'GxP quality agreement has expired', 'EU GMP Chapter 7 and Annex 11 §3 require a written agreement covering data integrity, audit trails and change notification before GxP data is shared.');
   if (lens === 'pdpa' && v.xfer === 'No safeguards') add('Data privacy', 'Patient data processed overseas without transfer safeguards', 'PDPA s26 requires comparable protection for data leaving Singapore. Put transfer clauses in place or keep processing in Singapore.');
+  if (lens === 'telco' && (v.nesas === 'No evidence' || v.nesas === 'Requested')) add('Cyber security', v.nesas === 'No evidence' ? 'Network equipment supplied without NESAS or SCAS evidence' : 'NESAS / SCAS evidence requested, not yet received', 'Ask for the GSMA NESAS audit summary and the 3GPP SCAS test results for the release in service before the next software load.');
   if (lens === 'dora' && v.lei === false) add('Oversight & review', 'No Legal Entity Identifier on the register', 'DORA RoI RT.05 requires an LEI for every ICT third-party provider.');
-  if (v.otRemote && !v.obligations.rightToAudit) add('Cyber security', 'Remote access to OT without an audit clause', 'Sessions are brokered through PAM; add the right to audit session recordings.');
+  if (v.otRemote && !v.obligations.rightToAudit) add('Cyber security', v.dataAccess.includes('Network elements') ? 'Remote access to network elements without an audit clause' : 'Remote access to OT without an audit clause', 'Sessions are brokered through PAM; add the right to audit session recordings.');
   if (!v.obligations.cyberInsurance && v.tier < 3) add('Business continuity', 'Cyber insurance not evidenced', 'Request the certificate of insurance at renewal.');
   return out.slice(0, 12);
 }
@@ -772,8 +780,11 @@ const OBLIGATIONS: Record<EuAiClass, string[]> = {
 };
 
 function classify(name: string): { cls: EuAiClass; basis: string; source: AiSystemGov['source']; role: AiSystemGov['role'] } {
-  const src: AiSystemGov['source'] = /unsanctioned/i.test(name) ? 'Unsanctioned' : /in-house|Rhenara MolGen/i.test(name) ? 'In-house' : /vendor|Red Fern/i.test(name) ? 'Vendor' : 'SaaS';
+  const src: AiSystemGov['source'] = /unsanctioned/i.test(name) ? 'Unsanctioned' : /in-house|Rhenara MolGen|Self-optimising|churn prediction|SIM-swap/i.test(name) ? 'In-house' : /vendor|Red Fern/i.test(name) ? 'Vendor' : 'SaaS';
   const role: AiSystemGov['role'] = src === 'In-house' ? 'Provider' : 'Deployer';
+  if (/Self-optimising|\bSON\b/i.test(name)) return { cls: 'High', basis: 'Annex III 2: assessed as a safety component in managing critical digital infrastructure; engineers approve parameter changes', source: src, role };
+  if (/churn/i.test(name)) return { cls: 'Minimal', basis: 'Scores subscribers for retention offers, not for access to essential services; privacy-law profiling duties still apply', source: src, role };
+  if (/transcription/i.test(name)) return { cls: 'Minimal', basis: 'Speech-to-text on recorded calls; no Annex III use case, but subscriber personal data leaves approved stores', source: src, role };
   if (/X-ray triage/i.test(name)) return { cls: 'High', basis: 'Annex I: AI in a medical device; registered with HSA as software as a medical device, MOH AI in Healthcare guidelines apply', source: src, role };
   if (/underwriting/i.test(name)) return { cls: 'Minimal', basis: 'Annex III 5(c) covers life and health pricing only; P&C underwriting is outside it, but the NAIC model bulletin on insurers’ use of AI applies', source: src, role };
   if (/estimat/i.test(name)) return { cls: 'Minimal', basis: 'Vehicle damage estimating from photos; an adjuster reviews every estimate before payment', source: src, role };
@@ -795,7 +806,7 @@ function classify(name: string): { cls: EuAiClass; basis: string; source: AiSyst
   if (/generative design/i.test(name)) return { cls: 'Minimal', basis: 'Engineering design assistance; outputs reviewed by engineers', source: src, role };
   if (/credit/i.test(name)) return { cls: 'High', basis: 'Annex III 5(b): creditworthiness of natural persons', source: src, role };
   if (/predictive maintenance/i.test(name)) return { cls: 'High', basis: 'Annex I: safety component of machinery (Reg. 2023/1230)', source: src, role };
-  if (/chatbot|client service/i.test(name)) return { cls: 'Limited', basis: 'Art. 50(1): interacts directly with customers', source: src, role };
+  if (/chatbot|client service|virtual agent/i.test(name)) return { cls: 'Limited', basis: 'Art. 50(1): interacts directly with customers', source: src, role };
   if (/voice|ElevenLabs|dubbing/i.test(name)) return { cls: 'Limited', basis: 'Art. 50(4): synthetic audio of real people (deep fake)', source: src, role };
   if (/Midjourney|Runway|previs/i.test(name)) return { cls: 'Limited', basis: 'Art. 50(2): generated images and video must be marked', source: src, role };
   if (/fraud/i.test(name)) return { cls: 'Minimal', basis: 'Annex III 5(b) carve-out: fraud detection', source: src, role };
@@ -991,6 +1002,13 @@ export function boardRisks(c: CustomerProfile, tenantId: string): BoardRisk[] {
       { sev: 'medium', tenants: ['play', 'corp'], text: `A material incident must be disclosed on Form 8-K within four business days of the materiality decision; the runbook was last exercised in Q2 and the piracy-intelligence feed has failed since Friday.`, cites: [fwCite('sec'), connCite('c-irdeto')] },
       { sev: 'medium', tenants: ['studios', 'play'], text: `${h.comply.highRiskVendors} suppliers are high risk across a 148-vendor content chain, and help-desk impersonation (Scattered Spider, ShinyHunters) remains the likeliest way into Okta.`, cites: [vendorCite('Silverline'), connCite('c-okta')] },
     ],
+    telco: () => [
+      { sev: 'critical', tenants: ['mobile', 'intl'], text: `Signalling abuse is our most direct route to subscriber data: a roaming partner queried location and profiles for 412 subscribers this week, and 12 loops on signalling and SIM-swap controls are documented but not yet proven.`, cites: [incCite('Diameter location and subscriber-profile queries from a roaming partner outside its agreed range', 'mobile', '/soc/ir'), loopCite('CTL-SIG-01', 12, 'GSMA FS.11 / FS.19 · ISO 27011'), connCite('c-sigfw')] },
+      { sev: 'high', tenants: ['retail'], text: `SIM-swap fraud runs through people, not systems: 1,180 dealer and contact-centre accounts can change a SIM without phishing-resistant MFA, and the audit feed that proves each change has been failing since the billing migration.`, cites: [vendorCite('Negev'), connCite('c-bss'), fwCite('ppl')] },
+      { sev: 'high', tenants: ['intl'], text: `International & Wholesale (Resilience Index 66) is the weakest unit: 44 vendor and contractor access paths reach the Haifa cable landing station and cell-site controllers outside brokered sessions, and its monitoring edge is a version behind.`, cites: [tenantCite('intl'), vendorCite('Levant'), connCite('c-claroty')] },
+      { sev: 'medium', tenants: ['mobile', 'fixed', 'business'], text: `A large DDoS on DNS or the mobile core would be felt by every subscriber. Protection engaged in 14 seconds in the last drill, but two customer-facing address ranges were missing from the protection profile.`, cites: [connCite('c-radware'), fwCite('moc')] },
+      { sev: 'medium', tenants: ['corp', 'retail', 'mobile'], text: `${h.comply.highRiskVendors} suppliers are rated high risk, led by the outsourced contact centre and the tower maintenance contractor; network equipment assurance evidence (NESAS / SCAS) is outstanding for the next 5G core software release.`, cites: [vendorCite('Galil'), fwCite('gsma'), connCite('c-panorays')] },
+    ],
   };
   const all = forCustomer(map, c)();
   if (tenantId === 'all') return all;
@@ -1034,7 +1052,7 @@ export function boardSummary(c: CustomerProfile, tenantId: string) {
 }
 
 function riDriverGain(c: CustomerProfile): string {
-  const map: CustomerMap<string> = { maritime: '4.9', finserv: '4.3', media: '5.6', healthcare: '5.4', automotive: '4.9', insurance: '4.6', defence: '5.1', pharma: '5.2', sghospital: '5.2', studio: '5.3' };
+  const map: CustomerMap<string> = { maritime: '4.9', finserv: '4.3', media: '5.6', healthcare: '5.4', automotive: '4.9', insurance: '4.6', defence: '5.1', pharma: '5.2', sghospital: '5.2', studio: '5.3', telco: '5.3' };
   return forCustomer(map, c);
 }
 
@@ -1844,12 +1862,14 @@ AUDIT_DAYS.defence = { 'cmmc-l2': 128, 'nist-171': 72, 'itar-ear': 104, as9100: 
 AUDIT_DAYS.pharma = { gmp: 131, part11: 190, iso27001: 46, nis2: 160, soc2: 74, ctr: 103 };
 AUDIT_DAYS.sghospital = { hia: 165, nehr: 125, ce: 70, ct: 250, pdpa: 105, iso27001: 135, jci: 225 };
 AUDIT_DAYS.studio = { tpn: 45, soc2: 88, iso27001: 110, pci: 128, sec: 105 };
+AUDIT_DAYS.telco = { ppl: 55, incd: 88, moc: 84, iso27001: 62, iso22301: 172, pci: 92, soc2: 38, gsma: 148 };
 
 CSF_OFFSET.insurance = [5, 1, 3, 4, 2, -4];
 CSF_OFFSET.defence = [2, -2, 3, 1, -3, -6];
 CSF_OFFSET.pharma = [3, -1, 1, 3, 1, -5];
 CSF_OFFSET.sghospital = [-1, -3, -2, 2, 0, -7];
 CSF_OFFSET.studio = [1, -3, -4, 3, 1, -2];
+CSF_OFFSET.telco = [3, -1, 1, 4, 2, -3];
 
 RISKS.insurance = [
   ['Ransomware halts Guidewire claims and billing during a catastrophe surge', 'Cyber · availability', 'claims', 4, 5, 2, 4, 'Mitigate', ['CTL-BKP-10', 'CTL-EDR-06']],
@@ -1922,18 +1942,37 @@ RISKS.studio = [
   ['Cyber loss above tower limit', 'Financial', 'corp', 1, 5, 1, 4, 'Transfer', []],
 ];
 
-Object.assign(RISK_TOTAL, { insurance: 272, defence: 186, pharma: 318, sghospital: 214, studio: 336 });
+RISKS.telco = [
+  ['Signalling abuse (SS7 / Diameter) exposes subscriber location and profiles', 'Cyber · signalling', 'mobile', 4, 5, 2, 4, 'Mitigate', ['CTL-SIG-01', 'CTL-SUB-05']],
+  ['SIM-swap fraud through a contact-centre or dealer account', 'Fraud · identity', 'retail', 4, 4, 2, 3, 'Mitigate', ['CTL-SIM-02', 'CTL-IAM-03']],
+  ['Bulk theft of subscriber and call-record data from billing or analytics stores', 'Cyber · data', 'retail', 3, 5, 2, 4, 'Mitigate', ['CTL-SUB-05', 'CTL-EDR-12']],
+  ['Volumetric DDoS on DNS resolvers and the mobile core edge', 'Cyber · availability', 'fixed', 4, 4, 2, 3, 'Mitigate', ['CTL-DDS-07']],
+  ['BGP hijack or route leak diverts customer traffic', 'Network · integrity', 'intl', 3, 4, 2, 3, 'Mitigate', ['CTL-BGP-08']],
+  ['Compromise of the lawful-interception enclave', 'Cyber · legal', 'mobile', 2, 5, 1, 5, 'Mitigate', ['CTL-LI-06', 'CTL-PAM-04']],
+  ['Network equipment supply-chain compromise (software load or vendor access)', 'Supply chain', 'mobile', 2, 5, 2, 4, 'Mitigate', ['CTL-SUP-10', 'CTL-PAM-04']],
+  ['5G exposure and self-care APIs leak subscriber data (broken object-level authorisation)', 'Cyber · exposure', 'retail', 4, 4, 2, 3, 'Mitigate', ['CTL-5GC-09']],
+  ['Loss of power or cooling control at the Haifa cable landing station', 'OT · availability', 'intl', 3, 5, 2, 4, 'Mitigate', ['CTL-OT-11']],
+  ['Contractor remote session changes cell-site generator settings', 'OT · third party', 'mobile', 3, 4, 2, 3, 'Mitigate', ['CTL-OT-11', 'CTL-PAM-04']],
+  ['Ransomware on OSS / BSS halts provisioning and billing', 'Cyber · availability', 'retail', 3, 5, 2, 4, 'Mitigate', ['CTL-BKP-13', 'CTL-EDR-12']],
+  ['Insider in a store or contact centre sells subscriber records', 'Data · insider', 'retail', 3, 4, 2, 3, 'Mitigate', ['CTL-SUB-05']],
+  ['Severe security incident not reported to the regulators in time', 'Regulatory', 'corp', 2, 4, 1, 3, 'Mitigate', []],
+  ['Cyber loss above tower limit', 'Financial', 'corp', 1, 5, 1, 4, 'Transfer', []],
+];
+
+Object.assign(RISK_TOTAL, { insurance: 272, defence: 186, pharma: 318, sghospital: 214, studio: 336, telco: 302 });
 RISK_THREATS.insurance = ['Ransomware', 'Help-desk social engineering', 'MFT mass exfiltration', 'Claims disbursement fraud', 'BPO insider misuse', 'Agent portal account takeover', 'Payment page skimming', 'Cloud misconfiguration', 'Edge appliance intrusion', 'Core platform outage'];
 RISK_THREATS.defence = ['Nation-state espionage', 'CUI spillage', 'ITAR deemed export', 'Ransomware', 'Sub-tier supplier compromise', 'Machine-tool vendor access abuse', 'Phishing of engineers', 'Insider threat', 'Edge appliance intrusion', 'Software supply-chain tampering'];
 RISK_THREATS.pharma = ['Ransomware', 'Industrial espionage', 'GxP data-integrity failure', 'OEM remote access abuse', 'CRO / CMO compromise', 'Unblinding exposure', 'Business email compromise (BEC)', 'Unsanctioned AI use', 'Cold-chain disruption', 'Edge appliance intrusion'];
 RISK_THREATS.sghospital = ['Ransomware', 'Service-desk social engineering', 'Medical device tampering', 'Biomed vendor remote access abuse', 'Workforce snooping on records', 'NEHR interface failure', 'Edge appliance intrusion', 'Overseas transfer of patient data', 'Business email compromise (BEC)', 'Lost or stolen device'];
 RISK_THREATS.studio = ['Pre-release leak', 'Help-desk social engineering', 'Ransomware', 'Vendor content mishandling', 'Review-link mass export', 'Subscriber account takeover', 'Ride control intrusion', 'Payment skimming', 'Unsanctioned AI likeness use', 'Insider copy to personal cloud'];
+RISK_THREATS.telco = ['Signalling abuse', 'SIM-swap fraud', 'Subscriber data theft', 'DDoS on DNS and the mobile core', 'BGP hijack', 'Ransomware', 'Help-desk social engineering', 'Vendor remote-access abuse', 'Insider misuse in stores', 'API abuse', 'Network equipment supply-chain compromise', 'Cloud misconfiguration'];
 RISK_CONSEQ.insurance = ['claims payments delayed after a catastrophe', 'NYDFS and state insurance department enforcement', 'notification to policyholders and regulators', 'fraudulent disbursements', 'loss of agent and broker confidence'];
 RISK_CONSEQ.defence = ['loss of CMMC status and DoD contract eligibility', 'ITAR violation and voluntary disclosure', 'stop-work on a prime programme', 'compromise of national security information', 'False Claims Act liability'];
 RISK_CONSEQ.pharma = ['batch release halted and patient supply at risk', 'trial results invalidated', 'regulatory inspection findings (Swissmedic, FDA)', 'loss of discovery IP', 'GDPR and revDSG penalties'];
 RISK_CONSEQ.sghospital = ['patient harm or delayed care', 'A&E diversion and lost revenue', 'MOH enforcement under the Health Information Act', 'PDPC notification and financial penalty', 'loss of medical-tourism referrals'];
 RISK_CONSEQ.studio = ['pre-release title leaked before premiere', 'loss of licensor and distributor trust', 'subscriber churn on Starfall+', 'park closures and guest-safety incidents', 'SEC disclosure and securities litigation'];
-Object.assign(RISK_LOSS_K, { insurance: 58, defence: 22, pharma: 140, sghospital: 18, studio: 160 });
+RISK_CONSEQ.telco = ['loss of mobile or broadband service for subscribers', 'exposure of subscriber and call-record data', 'regulatory action by the Ministry of Communications or the Privacy Protection Authority', 'fraud losses and subscriber compensation', 'loss of enterprise and wholesale contracts'];
+Object.assign(RISK_LOSS_K, { insurance: 58, defence: 22, pharma: 140, sghospital: 18, studio: 160, telco: 96 });
 
 OVERDUE_TEMPLATES.insurance = [
   ['Evidence', 'NYDFS 500.12 MFA coverage report for agents and brokers (Okta)', 'CTL-IAM-01'], ['Remediation', 'Patch mft.kingsbridgemutual.com (KEV, 14-day window)', 'CTL-MFT-05'],
@@ -1971,6 +2010,15 @@ OVERDUE_TEMPLATES.studio = [
   ['Evidence', 'Immutable backup restore test for IMF masters', 'CTL-BKP-11'], ['Review', 'Payment-page script inventory for tickets.starfallresorts.com', 'CTL-PCI-09'],
 ];
 
+OVERDUE_TEMPLATES.telco = [
+  ['Evidence', 'Signalling firewall rule-set review (SS7, Diameter, GTP) for Q3', 'CTL-SIG-01'], ['Remediation', 'Phishing-resistant MFA for 1,180 dealer and contact-centre accounts', 'CTL-IAM-03'],
+  ['Evidence', 'SIM-change audit sample from the BSS (feed failing since migration wave 3)', 'CTL-SIM-02'], ['Evidence', 'CyberArk recordings for Galil Tower Services site sessions', 'CTL-PAM-04'],
+  ['Review', 'Access recertification: subscriber database and CDR mediation', 'CTL-SUB-05'], ['Policy', 'Severe security incident notification procedure refresh', 'CTL-SUB-05'],
+  ['Evidence', 'Route-origin validation (RPKI) report for all peering edges', 'CTL-BGP-08'], ['Remediation', 'Fix object-level authorisation on the eSIM activation API', 'CTL-5GC-09'],
+  ['Evidence', 'NESAS / SCAS evidence for the 5G core software release', 'CTL-SUP-10'], ['Evidence', 'Veeam immutable restore test: billing and CDR mediation', 'CTL-BKP-13'],
+  ['Review', 'DDoS protection profile coverage for customer-facing prefixes', 'CTL-DDS-07'], ['Evidence', 'Payment-page script inventory for pay.kinneret-telecom.co.il', 'CTL-PCI-14'],
+];
+
 SOA_SPECIAL.insurance = {
   'A.8.25': { applicable: true, by: 'HexaShield override', why: 'Client proposed exclusion for Specialty E&S; overridden because the rating engine and the AgentHub portal are built in-house.' },
   'A.8.30': { applicable: true, by: 'Client', why: 'Cognizant maintains Guidewire configuration and mainframe code under contract.' },
@@ -2000,6 +2048,13 @@ SOA_SPECIAL.studio = {
   'A.7.10': { applicable: true, by: 'Client', why: 'Camera cards, shuttle drives and LTO carry pre-release content (MPA DS-11).' },
   'A.8.31': { applicable: true, by: 'HexaShield override', why: 'Client proposed exclusion for parks; overridden because ticketing test and production share credentials in Orlando.' },
   'A.7.4': { applicable: true, by: 'HexaShield override', why: 'Screening rooms and edit bays in Burbank and London need monitored entry (MPA PS-7.0).' },
+};
+
+SOA_SPECIAL.telco = {
+  'A.7.4': { applicable: true, by: 'HexaShield override', why: 'Client proposed exclusion for unmanned sites; overridden because 2,940 cell sites and the Haifa landing station rely on monitored entry and CCTV.' },
+  'A.7.10': { applicable: true, by: 'HexaShield override', why: 'Client proposed exclusion (cloud-first); overridden because SIM key batches and call-record archives still move on encrypted media.' },
+  'A.8.25': { applicable: true, by: 'Client', why: 'Self-care apps, the eSIM activation service and the 5G exposure APIs are built in-house.' },
+  'A.8.30': { applicable: true, by: 'Client', why: 'Amdocs develops and runs BSS and CRM changes under a managed-service contract.' },
 };
 
 VENDOR_POOL.insurance = {
@@ -2052,22 +2107,40 @@ VENDOR_POOL.studio = {
   a: ['Burbank', 'Lakeside', 'Toluca', 'Magnolia', 'Cahuenga', 'Starlight', 'Meridian', 'Golden Hour', 'Moonrise', 'Brightline', 'Silverscreen', 'Orbit', 'Kingfisher', 'Westside', 'Sunset', 'Echo Park'],
   b: ['Pictures', 'Post', 'Studios', 'Sound', 'Digital', 'Media', 'FX', 'Labs', 'Experiences', 'Shows'],
 };
+VENDOR_POOL.telco = {
+  cats: [
+    ['Tower & site contractor', 'Cell-site access & plant maintenance', ['OT']], ['Network equipment reseller', 'Network element software & support', ['Network elements']], ['Roaming partner / carrier', 'Signalling interconnect & settlement files', ['Personal data']],
+    ['Device distributor', 'Handset orders & subscriber details', ['Personal data']], ['Dealer / franchise store', 'CRM agent desktop & SIM activation', ['Personal data', 'Payments']], ['Collections agency', 'Debtor accounts', ['Personal data']],
+    ['TV content & rights provider', 'OTT platform integration', ['Confidential']], ['Fibre civil works contractor', 'Work orders & premises data', ['Personal data']], ['Generator fuel supplier', 'Fuel delivery schedule & site list', ['Confidential']],
+    ['SaaS (HR & payroll)', 'Employee records', ['Personal data']], ['Consultancy', 'Project workspace', ['Confidential']], ['SMS aggregator', 'Business messaging interconnect', ['Personal data']],
+    ['Data-centre facilities contractor', 'BMS & cooling maintenance', ['OT']], ['Systems integrator (OSS / BSS)', 'Network inventory & provisioning', ['Network elements']], ['Marketing agency', 'Campaign audiences', ['Personal data']],
+    ['Print & mail', 'Subscriber bills', ['Personal data']], ['Legal services', 'Matter files', ['Confidential']], ['Recruitment agency', 'Candidate data', ['Personal data']],
+    ['Cloud SaaS (CRM add-on)', 'Subscriber records', ['Personal data']], ['Facilities & cleaning', 'Office access', ['Confidential']], ['Software vendor', 'Licensed application', ['Confidential']],
+  ],
+  a: ['Sharon', 'Jezreel', 'Arbel', 'Tavor', 'Gilboa', 'Hermon', 'Yarden', 'Kishon', 'Ayalon', 'Lachish', 'Shikma', 'Ramon', 'Tzin', 'Besor', 'Sorek', 'Eshkol', 'Menashe', 'Carmel Coast', 'Hula', 'Arava Ridge', 'Yodfat', 'Gezer', 'Tzippori', 'Achziv', 'Shoham', 'Alon', 'Rimon', 'Dekel', 'Brosh', 'Ella', 'Savyon', 'Narkis', 'Kalanit', 'Harduf'],
+  b: ['Networks', 'Communications', 'Systems', 'Technologies', 'Infrastructure', 'Solutions', 'Services', 'Digital', 'Engineering', 'Labs', 'Group', 'Fibre', 'Towers', 'Cloud', 'Mobile', 'Data', 'Integration', 'Electric', 'Logistics', 'Media'],
+};
 FOURTH.insurance = ['AWS', 'Microsoft Azure', 'Guidewire Cloud', 'Salesforce', 'Twilio', 'Snowflake', 'Okta', 'Akamai'];
 FOURTH.defence = ['Microsoft Azure Government', 'AWS GovCloud', 'Exostar', 'PreVeil', 'Deltek GovCloud', 'Siemens', 'Zscaler Government'];
 FOURTH.pharma = ['Microsoft Azure', 'AWS', 'Veeva Vault', 'Medidata Cloud', 'SAP', 'Box', 'Salesforce', 'Okta'];
 FOURTH.sghospital = ['Microsoft Azure (Singapore)', 'AWS (ap-southeast-1)', 'Synapxe HealthConnect', 'Singtel', 'Twilio', 'Zoom', 'Iron Mountain', 'Salesforce'];
 FOURTH.studio = ['AWS', 'Google Cloud', 'Aspera (IBM)', 'Frame.io', 'Akamai', 'Signiant', 'Box', 'Adyen'];
+FOURTH.telco = ['Microsoft Azure (Israel Central)', 'AWS (il-central-1)', 'Google Cloud', 'Salesforce', 'Twilio', 'Akamai', 'Oracle', 'ServiceNow'];
 COUNTRY_POOL.insurance = ['US', 'US', 'US', 'US', 'IN', 'PH', 'CA', 'GB', 'US', 'US'];
 COUNTRY_POOL.defence = ['US', 'US', 'US', 'US', 'US', 'US', 'US', 'US', 'CA', 'US'];
 COUNTRY_POOL.pharma = ['CH', 'CH', 'DE', 'IE', 'US', 'FR', 'IN', 'NL', 'IT', 'GB'];
 COUNTRY_POOL.sghospital = ['SG', 'SG', 'SG', 'SG', 'MY', 'IN', 'US', 'AU', 'SG', 'DE'];
 COUNTRY_POOL.studio = ['US', 'US', 'US', 'GB', 'CA', 'JP', 'NZ', 'KR', 'ES', 'IN'];
 
+COUNTRY_POOL.telco = ['IL', 'IL', 'IL', 'IL', 'IL', 'IL', 'US', 'CY', 'GR', 'DE'];
+
 PROHIBITED_INTAKE.insurance = 'Claims call-centre emotion analytics on adjuster calls (intake)';
 PROHIBITED_INTAKE.defence = 'Shop-floor operator emotion monitoring on CMM cameras (intake)';
 PROHIBITED_INTAKE.pharma = 'Cleanroom operator emotion detection on aseptic-line cameras (intake)';
 PROHIBITED_INTAKE.sghospital = 'Ward nurse emotion detection on corridor cameras (intake)';
 PROHIBITED_INTAKE.studio = 'Ride-attendant emotion monitoring on queue cameras (intake)';
+
+PROHIBITED_INTAKE.telco = 'Store staff emotion recognition on retail-floor cameras (intake)';
 
 BIA_SEEDS.insurance = [
   ['First notice of loss & claims payments', 'claims', [3, 3, 3, 3], 4, 0.25, 12, 6, 'Guidewire ClaimCenter (single cloud tenant)', ['Guidewire ClaimCenter', 'One Inc disbursements', 'CCC Estimate STP'], ['Guidewire', 'One Inc', 'CCC Intelligent Solutions'], 'Paper FNOL scripts in the contact centre; manual cheque run from BillingCenter backup', [['Claims paid per day', '$14.2M'], ['FNOL calls per day', '6,800'], ['Catastrophe surge', '4x normal']]],
@@ -2119,6 +2192,18 @@ BIA_SEEDS.studio = [
   ['Osaka resort operations', 'parksasia', [3, 3, 2, 2], 4, 0.5, 8, null, null, ['Ride control PLCs', 'Show control', 'Resort POS'], ['Intamin'], 'Local fail-safe; the joint-venture operations centre takes command', [['Daily guests', '41,000']]],
 ];
 
+BIA_SEEDS.telco = [
+  ['Mobile voice & data (5G / 4G core)', 'mobile', [3, 3, 3, 3], 1, 0, 4, 1.5, null, ['5G core (AMF, SMF, UPF)', 'Subscriber database (HSS / UDM)', 'Signalling (STP, DRA)'], ['Ericsson', 'Cisco'], 'Geo-redundant core between Petah Tikva and Haifa; 4G fallback for 5G standalone services', [['Mobile subscribers', '3.1M'], ['Revenue per hour at risk', '₪620k']]],
+  ['Emergency call routing & cell-broadcast alerts', 'mobile', [1, 3, 3, 3], 0.25, 0, 1, 0.2, null, ['IMS voice core', 'Cell broadcast centre', 'Location platform'], ['Ericsson'], 'Active-active across both core sites; manual routing table held at the NOC', [['Availability target', '99.999%']]],
+  ['Fibre broadband & TV / OTT', 'fixed', [3, 3, 2, 3], 2, 0.25, 8, 3, 'Single broadband gateway pair at the Rishon LeZion aggregation site', ['Broadband gateways & OLT aggregation', 'DNS resolvers', 'TV / OTT platform'], ['Nokia', 'Amazon Web Services'], 'Reroute to the second aggregation site; OTT degrades to the cached catalogue', [['Fibre homes', '720k']]],
+  ['Billing, charging & top-up', 'retail', [3, 2, 3, 2], 4, 0.25, 24, 6, null, ['BSS & CRM', 'Online charging system', 'CDR mediation'], ['Amdocs', 'Yarkon Pay'], 'Charging continues from the standby charging system; bill runs deferred for up to 5 days', [['Daily billed revenue', '₪27M'], ['Prepaid top-ups per day', '84,000']]],
+  ['International transit & cable landing', 'intl', [3, 3, 3, 3], 2, 0, 6, null, 'Single landing station at Haifa with one power-feed equipment room', ['Submarine line terminal equipment', 'Power feed equipment', 'BGP edge routers'], ['Levant Subsea Systems', 'Cisco'], 'Restore capacity over the second cable system and terrestrial transit; station plant on generator for 72 h', [['International capacity', '480 Gbps'], ['Wholesale customers', '46']]],
+  ['Roaming & interconnect signalling', 'intl', [2, 2, 3, 2], 4, 0, 12, 5, null, ['STP / DRA', 'Signalling firewall', 'Roaming hub links'], ['Syniverse'], 'Fail over to the second signalling point; steer roamers to preferred partners', [['Roaming partners', '412']]],
+  ['Business connectivity, cloud hosting & managed security', 'business', [3, 3, 3, 3], 2, 0.25, 8, 2, null, ['Tel Aviv & Haifa data centres', 'Data-centre BMS', 'Managed SOC platform'], ['Vertiv', 'Schneider Electric', 'Microsoft Azure'], 'Dual-site hosting; the customer SOC console fails over to Azure Israel Central', [['Enterprise customers', '5,200'], ['SLA credits per hour', '₪310k']]],
+  ['Retail stores & contact centres', 'retail', [2, 2, 2, 3], 8, 1, 48, 10, null, ['Store point of sale', 'CRM agent desktop', 'Cato SASE'], ['Negev Contact Solutions'], 'Stores keep selling offline; SIM changes are held until identity checks are back', [['Stores', '96'], ['Calls per day', '38,000']]],
+  ['Email & collaboration', 'corp', [2, 1, 1, 2], 24, 4, 72, 12, null, ['Microsoft 365', 'Entra ID'], ['Microsoft Azure'], 'Teams via mobile; out-of-band contact list', []],
+];
+
 EXERCISES.insurance = [
   { date: 26, type: 'Tabletop', scope: 'Ransomware during a hurricane landfall week', result: 'Partial', findings: 6, note: 'NYDFS 72-hour notice drafted in 30 h; the catastrophe surge plan relied on the encrypted ClaimCenter tenant.' },
   { date: 88, type: 'Restore test', scope: 'Mainframe policy admin to the recovery LPAR', result: 'Pass', findings: 2, note: 'Restored in 9 h within the 24 h tolerance.' },
@@ -2152,27 +2237,39 @@ EXERCISES.studio = [
   { date: 251, type: 'Ticketing failover', scope: 'StarPass offline gate validation', result: 'Partial', findings: 3, note: '3 gates did not cache passes; queue times reached 50 min.' },
 ];
 
-Object.assign(ASSET_TOTAL, { insurance: 340, defence: 236, pharma: 380, sghospital: 300, studio: 390 });
+EXERCISES.telco = [
+  { date: 18, type: 'Tabletop', scope: 'Signalling abuse leading to subscriber-data access, with regulator notifications', result: 'Pass', findings: 4, note: 'Partner link rate-limited in 22 min; notifications to the Privacy Protection Authority and the Ministry drafted within 5 h.' },
+  { date: 66, type: 'DDoS drill', scope: 'DNS resolvers and mobile core edge (Radware diversion)', result: 'Pass', findings: 2, note: 'Scrubbing engaged in 14 s; 2 customer-facing prefixes were missing from the protection profile.' },
+  { date: 121, type: 'Core failover', scope: '5G core from Petah Tikva to Haifa', result: 'Partial', findings: 3, note: 'Failed over in 1.5 h against a 1 h RTO; subscriber-database replication lag found.' },
+  { date: 177, type: 'Black-building test', scope: 'Haifa cable landing station on generator', result: 'Partial', findings: 4, note: 'Generator carried the load for 8 h; fuel telemetry dropped off the monitoring edge.' },
+  { date: 236, type: 'Restore test', scope: 'Billing and CDR mediation from immutable backup', result: 'Pass', findings: 2, note: 'Restored in 6 h within the 24 h tolerance; one rating table re-keyed by hand.' },
+];
+
+Object.assign(ASSET_TOTAL, { insurance: 340, defence: 236, pharma: 380, sghospital: 300, studio: 390, telco: 372 });
 EQUIPMENT_SUB.insurance = 'Data-centre facilities & print plant';
 EQUIPMENT_SUB.defence = 'Shop-floor OT & test equipment';
 EQUIPMENT_SUB.pharma = 'GMP plant OT / ICS';
 EQUIPMENT_SUB.sghospital = 'Connected medical device';
 EQUIPMENT_SUB.studio = 'Ride, show & park OT';
+EQUIPMENT_SUB.telco = 'Network site & facility plant';
 DOCS.insurance = ['NYDFS 500 cybersecurity policy', 'Annual certification pack (500.17)', 'NAIC #668 information security programme', 'Incident response plan (72-hour notices)', 'Third-party service provider policy', 'ORSA summary report'];
 DOCS.defence = ['System Security Plan v4.2', 'Plan of Action & Milestones', 'Technology control plan (ITAR / EAR)', 'Incident response plan (DIBNet)', 'Customer responsibility matrix (GCC High)', 'Building 3 network diagram'];
 DOCS.pharma = ['Computerised system validation master plan', 'Annex 11 data integrity policy', 'GxP change control SOP', 'Quality agreements file', 'NIS2 incident reporting procedure', 'Batch record contingency SOP'];
 DOCS.sghospital = ['HIA CS/DS Essentials self-assessment', 'TrakCare downtime procedures', 'MOH incident notification procedure (2-hour / 14-day)', 'Medical device security standard (HSA GL-04)', 'PDPA data protection policy', 'NEHR contribution readiness plan'];
 DOCS.studio = ['TPN self-assessment questionnaire', 'Content security policy', 'Vendor delivery specifications', 'Watermarking procedures', '8-K materiality determination runbook', 'Ride & show control security standard'];
+DOCS.telco = ['Licence security & resilience compliance report (Ministry of Communications)', 'Database definitions document (Privacy Protection Regulations)', 'Signalling security policy (SS7, Diameter, GTP)', 'Network continuity plan (ISO 22301)', 'Severe security incident notification procedure', 'Cell-site & landing-station access standard'];
 SOFTWARE.insurance = ['Windows 11 Enterprise image', 'Guidewire Studio', 'z/OS system software', 'Microsoft 365 Apps', 'Actuarial modelling suite'];
 SOFTWARE.defence = ['Windows 11 STIG image (GCC High)', 'Siemens NX', 'MATLAB / Simulink', 'Mastercam', 'NI LabVIEW'];
 SOFTWARE.pharma = ['Windows 11 GxP validated image', 'Werum PAS-X client', 'DeltaV operator station', 'Empower chromatography', 'Microsoft 365 Apps'];
 SOFTWARE.sghospital = ['Windows 11 clinical workstation image', 'TrakCare client', 'Citrix Workspace', 'PACS viewer', 'Microsoft 365 Apps'];
 SOFTWARE.studio = ['macOS edit-bay image', 'Avid Media Composer', 'Houdini', 'Nuke', 'Forensic watermark SDK'];
+SOFTWARE.telco = ['Windows 11 Enterprise image', 'CRM agent desktop client', 'Network element manager client', 'Microsoft 365 Apps', 'Network inventory (OSS) client'];
 EOS_SEEDS.insurance = [['Windows Server 2012 R2 actuarial batch host', 'Infrastructure', -410], ['z/OS 2.4 test LPAR', 'Infrastructure', -260], ['Pitney Bowes inserter controller (Windows 7)', 'IT/Communication & Other Equipment', -720], ['Duck Creek 6.x rating engine', 'Applications & Databases', -120]];
 EOS_SEEDS.defence = [['Windows 7 CMM workstation (Zeiss CONTURA)', 'IT/Communication & Other Equipment', -980], ['Windows XP DNC serial bridge', 'IT/Communication & Other Equipment', -1600], ['Windows Server 2012 R2 licence server', 'Infrastructure', -410], ['NI PXI controller firmware (ATE bench 2)', 'IT/Communication & Other Equipment', -150]];
 EOS_SEEDS.pharma = [['Windows 7 lyophiliser HMI (Cork)', 'IT/Communication & Other Equipment', -1100], ['DeltaV 13.3 operator stations (Valais)', 'IT/Communication & Other Equipment', -420], ['Windows Server 2012 R2 Empower server', 'Infrastructure', -410], ['SIMATIC S7-300 filling-line PLCs', 'IT/Communication & Other Equipment', -240], ['LabWare 7 QC module', 'Applications & Databases', -90]];
 EOS_SEEDS.sghospital = [['Windows 7 lab analyser PCs (Science Park)', 'IT/Communication & Other Equipment', -980], ['BD Alaris PC units, legacy firmware (640)', 'IT/Communication & Other Equipment', -120], ['Windows Server 2012 R2 PACS reporting', 'Infrastructure', -410], ['Nurse call server (Novena)', 'IT/Communication & Other Equipment', -45]];
 EOS_SEEDS.studio = [['Windows 7 colour-grading workstation (Burbank)', 'Hardware', -720], ['Ride HMI on Windows XP Embedded (Orlando)', 'IT/Communication & Other Equipment', -1500], ['Avid Media Composer 2018 edit bays (8)', 'Software', -300], ['Show control server firmware (Osaka)', 'IT/Communication & Other Equipment', -140]];
+EOS_SEEDS.telco = [['Windows Server 2012 R2 CDR mediation host', 'Infrastructure', -410], ['Site controller RTU firmware 3.x (640 northern sites)', 'IT/Communication & Other Equipment', -310], ['Rectifier controller firmware, legacy (1,120 sites)', 'IT/Communication & Other Equipment', -180], ['Landing-station BMS workstation on Windows 7', 'IT/Communication & Other Equipment', -980], ['Legacy 3G HLR front-end', 'Applications & Databases', -140]];
 
 /* Requirement catalogues for the second-wave frameworks (ids from the customer profiles). */
 const FW_EXTRA: Record<string, { groups: GroupSpec[]; seeds: SeedSpec[] }> = {
@@ -2287,6 +2384,31 @@ const FW_EXTRA: Record<string, { groups: GroupSpec[]; seeds: SeedSpec[] }> = {
   sec: {
     groups: [['8-K 1.05', 'Material incident disclosure', ['incident', 'gov'], '1.05-'], ['S-K 106(b)', 'Risk management & strategy', ['gov', 'supplier'], '106b-'], ['S-K 106(c)', 'Governance', ['gov'], '106c-']],
     seeds: [['1.05(a)', 'Disclose material incidents within four business days', 0], ['1.05-2', 'Materiality decision without unreasonable delay', 0], ['106(b)(1)', 'Processes to assess and manage cyber risk', 1], ['106(b)(1)(iii)', 'Third-party service provider risk', 1], ['106(c)(1)', 'Board oversight of cyber risk', 2], ['106(c)(2)', 'Management role and expertise', 2]],
+  },
+  // Telco: refs for the Israeli regimes, ISO 27011 and GSMA assurance are register references (themes), not statutory or standard clause numbers.
+  ppl: {
+    groups: [['DS-GOV', 'Governance: database definitions, officers & risk assessment', ['gov', 'privacy'], 'DS-GOV-'], ['DS-ACC', 'Access control, authentication & personnel', ['access', 'people'], 'DS-ACC-'], ['DS-OPS', 'Logging, monitoring, network security & backup', ['ops', 'network', 'physical'], 'DS-OPS-'], ['DS-EXT', 'Outsourcing, incidents & periodic audit', ['supplier', 'incident', 'gov'], 'DS-EXT-']],
+    seeds: [['DS-GOV-A', 'Database definitions document kept current', 0], ['DS-GOV-B', 'Information security officer appointed', 0], ['DS-GOV-C', 'Privacy protection officer appointed (Amendment 13)', 0], ['DS-GOV-D', 'Risk assessment for high-security databases', 0], ['DS-ACC-A', 'Access permissions by role and need', 1], ['DS-ACC-B', 'Strong authentication for database access', 1], ['DS-OPS-A', 'Access logging and automated monitoring', 2], ['DS-OPS-B', 'Network separation and encryption in transit', 2], ['DS-EXT-A', 'Data-security agreements with outsourced processors', 3], ['DS-EXT-B', 'Severe security incidents reported to the Privacy Protection Authority', 3], ['DS-EXT-C', 'Periodic audit and penetration test (high-security databases)', 3]],
+  },
+  incd: {
+    groups: [['CDM-GOV', 'Governance, risk assessment & policy', ['gov', 'asset'], 'CDM-GOV-'], ['CDM-PRO', 'Protection: access, networks, endpoints & data', ['access', 'network', 'ops', 'privacy'], 'CDM-PRO-'], ['CDM-DET', 'Monitoring & detection', ['ops'], 'CDM-DET-'], ['CDM-RES', 'Response, recovery & continuity', ['incident', 'bc'], 'CDM-RES-'], ['CDM-SUP', 'Supply chain, people, physical & site systems', ['supplier', 'people', 'physical', 'ot'], 'CDM-SUP-']],
+    seeds: [['CDM-GOV-A', 'Management-approved cyber defence policy and risk appetite', 0], ['CDM-GOV-B', 'Risk assessment of critical assets and processes', 0], ['CDM-PRO-A', 'Privileged access management', 1], ['CDM-PRO-B', 'Network separation of critical systems', 1], ['CDM-PRO-C', 'Endpoint and server protection', 1], ['CDM-DET-A', 'Security monitoring and SOC coverage', 2], ['CDM-RES-A', 'Incident response plan exercised', 3], ['CDM-RES-B', 'Reporting to and sharing with the national CERT', 3], ['CDM-SUP-A', 'Supply-chain cyber requirements', 4], ['CDM-SUP-B', 'Industrial control and site systems protected', 4]],
+  },
+  moc: {
+    groups: [['LIC-NET', 'Network security & resilience', ['network', 'ops', 'bc'], 'LIC-NET-'], ['LIC-SUB', 'Subscriber data & lawful obligations', ['privacy', 'access'], 'LIC-SUB-'], ['LIC-GOV', 'Governance, suppliers & reporting', ['gov', 'supplier', 'incident'], 'LIC-GOV-']],
+    seeds: [['LIC-NET-A', 'Cyber protection plan for the licensed networks', 0], ['LIC-NET-B', 'Continuity of essential services (emergency calls, public alerts)', 0], ['LIC-NET-C', 'Signalling and interconnect protection', 0], ['LIC-SUB-A', 'Confidentiality of subscriber and traffic data', 1], ['LIC-SUB-B', 'Lawful-interception systems isolated and access-controlled', 1], ['LIC-GOV-A', 'Named cyber officer and management oversight', 2], ['LIC-GOV-B', 'Security requirements for network equipment suppliers', 2], ['LIC-GOV-C', 'Notification of significant incidents to the Ministry', 2], ['LIC-GOV-D', 'Annual licence compliance report', 2]],
+  },
+  iso27011: {
+    groups: [['TEL-ORG', 'Organisational controls (telecom guidance)', ['gov', 'supplier', 'incident'], 'TEL-ORG-'], ['TEL-NET', 'Network & service security', ['network', 'ops'], 'TEL-NET-'], ['TEL-FAC', 'Telecommunications facilities', ['physical', 'ot'], 'TEL-FAC-'], ['TEL-SUB', 'Subscriber communications & data', ['privacy', 'access'], 'TEL-SUB-']],
+    seeds: [['TEL-ORG-A', 'Security in interconnection and roaming agreements', 0], ['TEL-ORG-B', 'Essential and emergency communications', 0], ['TEL-NET-A', 'Security management of telecommunications networks', 1], ['TEL-NET-B', 'Signalling and control-plane protection', 1], ['TEL-NET-C', 'Response to denial-of-service attacks', 1], ['TEL-FAC-A', 'Security of switching centres and equipment rooms', 2], ['TEL-FAC-B', 'Power, cooling and unattended site security', 2], ['TEL-SUB-A', 'Non-disclosure of communications', 3], ['TEL-SUB-B', 'Protection of call records and location data', 3]],
+  },
+  iso22301: {
+    groups: [['Cl. 4–6', 'Context, leadership & planning', ['gov'], '6.'], ['Cl. 7', 'Support', ['people', 'asset'], '7.'], ['Cl. 8', 'Operation', ['bc', 'supplier', 'incident'], '8.'], ['Cl. 9–10', 'Performance evaluation & improvement', ['gov'], '10.']],
+    seeds: [['5.2', 'Business continuity policy', 0], ['6.2', 'Business continuity objectives', 0], ['7.2', 'Competence', 1], ['8.2.2', 'Business impact analysis', 2], ['8.2.3', 'Risk assessment', 2], ['8.3', 'Business continuity strategies and solutions', 2], ['8.4', 'Business continuity plans and procedures', 2], ['8.5', 'Exercise programme', 2], ['9.2', 'Internal audit', 3], ['9.3', 'Management review', 3]],
+  },
+  gsma: {
+    groups: [['NESAS', 'Network equipment security assurance (vendor process audit)', ['supplier', 'dev'], 'NESAS-'], ['SCAS', '3GPP security assurance specifications (product testing)', ['network', 'ops'], 'SCAS-'], ['SAS-SM', 'eSIM subscription management site security', ['physical', 'access', 'asset'], 'SAS-SM-'], ['Signalling', 'Signalling & interconnect security guidelines', ['network', 'incident'], 'SIG-']],
+    seeds: [['NESAS-A', 'Vendor development and lifecycle audit report on file', 0], ['NESAS-B', 'Vulnerability handling and software integrity commitments', 0], ['SCAS-A', 'SCAS test evidence for 5G core network functions', 1], ['SCAS-B', 'SCAS test evidence for RAN software releases', 1], ['SAS-SM-A', 'eSIM platform (SM-DP+) site certified under SAS-SM', 2], ['SAS-SM-B', 'Key management and dual control for SIM key material', 2], ['FS.11', 'SS7 interconnect monitoring and firewall', 3], ['FS.19', 'Diameter interconnect security', 3], ['FS.20', 'GTP security', 3]],
   },
 };
 Object.assign(FW_CATALOG, FW_EXTRA, { csf: FW_CATALOG.nistcsf });

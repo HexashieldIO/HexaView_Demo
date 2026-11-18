@@ -60,7 +60,7 @@ export type TrQState = 'Needs input' | 'Drafted' | 'Flagged' | 'Approved';
 export const TR_QSTATE_COLOR: Record<TrQState, string> = { 'Needs input': '#f8646f', Drafted: '#4f8cff', Flagged: '#f0a338', Approved: '#2dd4bf' };
 
 export type TrFormatId = 'sig-lite' | 'sig-core' | 'caiq' | 'iso' | 'custom' | 'dora' | 'hipaa' | 'dspt' | 'tisax' | 'tpn' | 'bimco'
-  | 'nydfs-tpsp' | 'reins' | 'cmmc' | 'dfars' | 'gxp' | 'hia' | 'insurer-sg';
+  | 'nydfs-tpsp' | 'reins' | 'cmmc' | 'dfars' | 'gxp' | 'hia' | 'insurer-sg' | 'incd-sc' | 'gsma-ip';
 export interface TrFormat { id: TrFormatId; name: string; short: string; file: 'XLSX' | 'Portal' | 'DOCX' | 'PDF'; range: [number, number]; blurb: string; sector?: CustomerId }
 export const TR_FORMATS: TrFormat[] = [
   { id: 'sig-lite', name: 'SIG Lite (2025)', short: 'SIG Lite', file: 'XLSX', range: [118, 132], blurb: 'Standardised information-gathering questionnaire, lite tier' },
@@ -81,6 +81,8 @@ export const TR_FORMATS: TrFormat[] = [
   { id: 'gxp', name: 'GxP supplier quality and data integrity questionnaire', short: 'GxP / Annex 11', file: 'XLSX', range: [86, 120], blurb: 'Computerised system validation, audit trails and quality agreement terms', sector: 'pharma' },
   { id: 'hia', name: 'HIA cybersecurity and data security assurance questionnaire', short: 'HIA CS/DS', file: 'XLSX', range: [60, 82], blurb: 'MOH essentials across cybersecurity, data security and common practices', sector: 'sghospital' },
   { id: 'insurer-sg', name: 'Insurer panel and partner cyber assurance questionnaire', short: 'Insurer panel', file: 'Portal', range: [40, 58], blurb: 'Panel hospital assurance for insurers and medical-tourism partners', sector: 'sghospital' },
+  { id: 'incd-sc', name: 'INCD supply-chain cyber defence questionnaire', short: 'INCD supply chain', file: 'XLSX', range: [72, 104], blurb: 'Supplier assurance aligned to the INCD Cyber Defense Methodology, used by critical-infrastructure and public-sector buyers', sector: 'telco' },
+  { id: 'gsma-ip', name: 'Roaming and interconnect partner security questionnaire (GSMA baseline)', short: 'GSMA interconnect', file: 'Portal', range: [46, 68], blurb: 'Signalling security (FS.11, FS.19, FS.20), fraud handling and incident contacts for roaming and wholesale partners', sector: 'telco' },
 ];
 export const TR_FORMAT_BY_ID = Object.fromEntries(TR_FORMATS.map((f) => [f.id, f])) as Record<TrFormatId, TrFormat>;
 export function trFormatsFor(c: CustomerProfile): TrFormat[] {
@@ -525,6 +527,11 @@ const REQUESTERS: CustomerMap<ReqSeed[]> = {
 
 const FIRST = ['Amelia', 'Jonas', 'Priya', 'Marco', 'Claire', 'Tomasz', 'Hannah', 'Rui', 'Fiona', 'Daniel', 'Sara', 'Lars', 'Nadia', 'Oliver', 'Ines', 'Kwame', 'Elena', 'Yusuf'];
 const LAST = ['Whitfield', 'Brenner', 'Desai', 'Lombardi', 'Fournier', 'Nowak', 'Achterberg', 'Costa', 'MacLeod', 'Okafor', 'Lindgren', 'Varga', 'Haddad', 'Pryce', 'Sandoval', 'Mensah', 'Rossi', 'Kaya'];
+// Requester contacts for the Israeli telco read as local names (first names and surnames each used across communities); other customers keep the shared pool.
+const IL_FIRST = ['Adam', 'Rami', 'Yasmin', 'Lina', 'Sami', 'Nadia', 'Miriam', 'Noor', 'Sara', 'Elias', 'Nina', 'Hanna', 'Dan', 'Tali'];
+const IL_LAST = ['Halabi', 'Masri', 'Najjar', 'Abadi', 'Tawil', 'Harari', 'Shami', 'Sabag', 'Zaken', 'Hakim', 'Mualem', 'Amar'];
+const firstOf = (c: CustomerProfile) => (c.id === 'telco' ? IL_FIRST : FIRST);
+const lastOf = (c: CustomerProfile) => (c.id === 'telco' ? IL_LAST : LAST);
 const CONTACT_ROLE = ['Vendor Risk Manager', 'Procurement Lead', 'Third-Party Risk Analyst', 'Head of Supplier Assurance', 'Information Security Officer', 'Category Manager'];
 const DEAL_STAGES = ['New business', 'Renewal', 'Expansion', 'Contract variation'];
 
@@ -544,8 +551,8 @@ export function trQuestionnairesBase(c: CustomerProfile): TrQuestionnaire[] {
     const status = statuses[i % statuses.length];
     const received = status === 'Sent' ? r.int(6, 80) : status === 'Received' ? r.int(0, 1) : r.int(1, 6);
     const turnaround = status === 'Sent' ? r.float(0.6, 2.6, 1) : undefined;
-    const fn = r.pick(FIRST);
-    const ln = r.pick(LAST);
+    const fn = r.pick(firstOf(c));
+    const ln = r.pick(lastOf(c));
     return {
       id: `SQ-${2410 + i * 7 + r.int(0, 5)}`, requester: name, requesterKind: kind, contact: `${fn} ${ln} · ${r.pick(CONTACT_ROLE)} · ${fn[0].toLowerCase()}.${ln.toLowerCase()}@${slug(name)}.example`,
       tenantId: c.tenants.some((t) => t.id === tenant) ? tenant : c.tenants[0].id, format, questions: r.int(f.range[0], f.range[1]),
@@ -699,6 +706,7 @@ export function trRequestsBase(c: CustomerProfile): TrRequest[] {
     media: [['Nimbus Kids Studios', 'Prospect (co-production)'], ['Ember Sound Post', 'Vendor onboarding'], ['Quarry Lane Distribution', 'Prospect (distribution)']],
     healthcare: [['Ridgeline Behavioral Health', 'Prospect (affiliation)'], ['Pinecrest Senior Living', 'Prospect (care partner)'], ['Ohio Hospital Risk Pool', 'Insurer']],
     automotive: [['Sudmark Logistik GmbH', 'Prospect (fleet)'], ['Orbiq Mobility BV', 'Prospect (car-sharing)'], ['Hanseatic Fleet Insurance', 'Insurer']],
+    telco: [['Yarden Energy', 'Prospect (private 5G)'], ['Kedem Freight', 'Prospect (managed SOC)'], ['Lavi Shalem Auditors', 'External auditor']],
   };
   const extra = forCustomer(EXTRA, c);
   const orgs: { org: string; kind: string; tenant: string; qnId?: string }[] = [
@@ -713,8 +721,8 @@ export function trRequestsBase(c: CustomerProfile): TrRequest[] {
     const needsSigned = picked.some((d) => d.gate === 'Signed NDA' || d.gate === 'Approval required');
     const status: TrReqStatus = i < 4 ? 'Pending' : r.weighted<TrReqStatus>([['Approved', 6], ['Denied', 1], ['Expired', 1.5]]);
     const nda: TrNda = needsSigned ? (status === 'Pending' && r.chance(0.5) ? 'Pending signature' : 'Signed') : 'Click-through';
-    const fn = r.pick(FIRST);
-    const ln = r.pick(LAST);
+    const fn = r.pick(firstOf(c));
+    const ln = r.pick(lastOf(c));
     out.push({
       id: `AR-${String(3100 + i * 3 + r.int(0, 2))}`, org: o.org, orgKind: o.kind, contact: `${fn} ${ln}`, email: `${fn[0].toLowerCase()}.${ln.toLowerCase()}@${slug(o.org)}.example`,
       docs: picked.map((d) => d.id), reason: r.pick(reasons), nda, status, requestedMinAgo: status === 'Pending' ? r.int(20, 2880) : r.int(2880, 60 * 24 * 40),
@@ -734,15 +742,15 @@ export function trAccessLogBase(c: CustomerProfile): TrAccess[] {
   const r = rng(`tr-acl-${c.id}`);
   const reqs = trRequestsBase(c).filter((q) => q.status === 'Approved' || q.status === 'Expired');
   const pub = trDocuments(c).filter((d) => d.gate === 'Public' || d.gate === 'Click-through NDA');
-  const cities = ['London, GB', 'Frankfurt, DE', 'Amsterdam, NL', 'New York, US', 'Chicago, US', 'Singapore, SG', 'Paris, FR', 'Milan, IT', 'Zurich, CH', 'Columbus, US', 'Los Angeles, US', 'Munich, DE'];
+  const cities = c.id === 'telco' ? ['Tel Aviv, IL', 'Haifa, IL', 'Jerusalem, IL', 'Herzliya, IL', 'Petah Tikva, IL', 'Ramat Gan, IL', 'Limassol, CY', 'Athens, GR', 'Frankfurt, DE', 'London, GB'] : ['London, GB', 'Frankfurt, DE', 'Amsterdam, NL', 'New York, US', 'Chicago, US', 'Singapore, SG', 'Paris, FR', 'Milan, IT', 'Zurich, CH', 'Columbus, US', 'Los Angeles, US', 'Munich, DE'];
   const out: TrAccess[] = [];
   for (let i = 0; i < 46; i++) {
     const useReq = reqs.length && r() < 0.7;
     const rq = useReq ? r.pick(reqs) : null;
     const docId = rq ? r.pick(rq.docs) : r.pick(pub).id;
     const action = r.weighted<TrAccess['action']>([['Viewed', 6], ['Downloaded (watermarked)', 3], ['NDA accepted', rq ? 0.6 : 1.2], ['Access denied', 0.4]]);
-    const fn = r.pick(FIRST);
-    const ln = r.pick(LAST);
+    const fn = r.pick(firstOf(c));
+    const ln = r.pick(lastOf(c));
     out.push({ id: `ACL-${i}`, minAgo: r.int(5, 60 * 24 * 30), who: rq ? rq.contact : `${fn} ${ln}`, org: rq ? rq.org : r.pick(['Prospect (portal visitor)', 'Anonymous · verified email domain', 'Partner portal']), docId, action, from: r.pick(cities), watermark: `WM-${r.hex(6).toUpperCase()}` });
   }
   out.sort((a, b) => a.minAgo - b.minAgo);
@@ -1138,3 +1146,43 @@ REQUESTERS.studio = [
   ['Vista Kids Network', 'Kids channel licensee', 'studios', 'tpn', 3.6],
 ];
 Object.assign(BASELINE, { insurance: 26, defence: 34, pharma: 29, sghospital: 21, studio: 18 });
+
+/* ---------------- Telco (Kinneret Telecom Group); deal values in ILS millions ---------------- */
+Object.assign(SECTOR_LABEL, { telco: 'Telecom security (signalling, 5G & subscriber data)' });
+SECTOR_EV.telco = [
+  { key: 'sec:sig', kind: 'Control', label: 'CTL-SIG-01 · signalling firewall on SS7, Diameter and GTP', detail: () => 'GSMA FS.11, FS.19, FS.20 · roaming-partner anomaly monitoring', to: '/comply/caas?section=frameworks&framework=iso27011' },
+  { key: 'sec:sub', kind: 'Platform', label: 'HexaCustody · subscriber and CDR data', detail: (x) => `${x.h.custody.assetsUnderCustody.toLocaleString('en-GB')} data sets under custody across ${x.h.custody.vendorsInChain} suppliers`, to: '/custody/overview' },
+  { key: 'sec:ot', kind: 'Platform', label: 'HexaOT · network and site infrastructure', detail: (x) => `${x.h.ot.otAssets.toLocaleString('en-GB')} cell-site, data-centre and landing-station assets, ${x.h.ot.purdueCoveragePct}% coverage`, to: '/ot/visibility' },
+];
+SECTOR_TPL.telco = [
+  { key: 'tc-sig', domain: 'Sector', owner: 'ot', ev: (x) => ['sec:sig', ...fwEv(x, 'iso27011', 'gsma')],
+    qs: ['How do you protect SS7, Diameter and GTP interconnects against signalling abuse?', 'Do you monitor roaming partners for location-tracking and interception attempts?'],
+    a: () => 'Signalling firewalls filter SS7, Diameter and GTP traffic on every interconnect in line with GSMA FS.11, FS.19 and FS.20. Roaming-partner behaviour is baselined and alerted in the network SOC; anomalous partners are rate-limited or blocked under an agreed procedure and events are shared through GSMA channels.' },
+  { key: 'tc-sub', domain: 'Sector', owner: 'grc', ev: (x) => ['sec:sub', ...fwEv(x, 'ppl')],
+    qs: ['How is subscriber, location and call detail record data protected, and who can access it?', 'Where is subscriber data stored and processed?'],
+    a: (x) => `Subscriber, location and CDR data is stored and processed in ${x.residency} only and handled as high-security databases under the Privacy Protection Regulations (Data Security), with need-to-know access, MFA and full audit. Bulk exports are tracked by HexaCustody (${x.h.custody.assetsUnderCustody.toLocaleString('en-GB')} data sets in custody) and alerted; ${fwPct(x, 'ppl', 82)}% of requirements are evidenced in HexaComply.` },
+  { key: 'tc-5g', domain: 'Sector', owner: 'ot', ev: (x) => ['ctl:mfa', ...fwEv(x, 'gsma', 'iso27011')],
+    qs: ['How do you assure the security of network equipment and 5G core software?', 'Do you require NESAS or SCAS evidence from equipment vendors?'],
+    a: (x) => `Network equipment vendors provide GSMA NESAS audit and 3GPP SCAS evaluation evidence before deployment, software loads are integrity-verified, and the 5G core is hardened to a baseline aligned with 3GPP TS 33.501. Vendor remote support is brokered through ${x.pam} with MFA, time-bound approval and session recording.` },
+  { key: 'tc-ms', domain: 'Sector', owner: 'soc', ev: (x) => ['soc:ir', ...fwEv(x, 'soc2', 'iso27001')],
+    qs: ['For managed and hosted services, how are customer environments segregated and privileged access controlled?', 'Do you hold a SOC 2 Type II report for the managed services you provide?'],
+    a: (x) => `Business & Cloud managed services are covered by a SOC 2 Type II report (${fwNext(x, 'soc2', 'renewed annually')}), available under NDA. Customer environments are logically segregated, engineer access is brokered through ${x.pam} with approval and session recording, and customers can receive their own security events in near real time.` },
+  { key: 'tc-res', domain: 'Sector', owner: 'grc', ev: (x) => ['pol:bcp', ...fwEv(x, 'iso22301', 'moc')],
+    qs: ['Describe network resilience and DDoS protection for the services you provide to us.', 'What are your obligations to report outages and security incidents?'],
+    a: (x) => `Core network, DNS and customer-facing edges sit behind always-on DDoS protection, with geo-redundant core sites and ISO 22301 certified continuity plans (${fwPct(x, 'iso22301', 84)}% of requirements evidenced). Major outages and security incidents are reported without delay under the Ministry of Communications licence, and affected business customers are notified within the contracted window.` },
+];
+REQUESTERS.telco = [
+  ['Bank Tavor', 'Bank (managed SOC and connectivity)', 'business', 'sig-core', 38],
+  ['Emek Health Services', 'Hospital network (private cloud hosting)', 'business', 'incd-sc', 24],
+  ['Orbis Semiconductors', 'Hi-tech manufacturer (managed security)', 'business', 'sig-core', 16],
+  ['Port of Carmel Logistics', 'Port and logistics operator (private 5G)', 'mobile', 'iso', 14],
+  ['Aegean Carrier Exchange', 'Wholesale transit customer', 'intl', 'gsma-ip', 12],
+  ['Arbel Insurance Group', 'Insurer (data-centre co-location)', 'business', 'sig-lite', 11],
+  ['Sharon Regional Water Authority', 'Water utility (IoT connectivity and SOC)', 'business', 'incd-sc', 9.5],
+  ['Shefa Retail Chain', 'Retail chain (SD-WAN for 210 stores)', 'business', 'custom', 8.8],
+  ['Nilus Mobile', 'Roaming partner (Cyprus)', 'intl', 'gsma-ip', 7.4],
+  ['Municipality of Givat Alon', 'Municipality (smart-city connectivity)', 'fixed', 'incd-sc', 6.2],
+  ['Negev Institute of Technology', 'University (campus network)', 'fixed', 'sig-lite', 4.6],
+  ['Paylo Fintech', 'Fintech (messaging and number-verification APIs)', 'mobile', 'caiq', 3.8],
+];
+Object.assign(BASELINE, { telco: 24 });

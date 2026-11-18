@@ -110,6 +110,11 @@ function flagship(c: CustomerProfile): Finding[] {
       mk({ id: 'PT-SFE-002', title: 'Credential-stuffing resistance missing on Starfall+ sign-in', engType: 'Web app', target: 'login.starfallplus.com', tenantId: 'play', cvss: 8.8, owasp: OWASP[6], cwe: CWE[3], sev: 'high', slaDays: 7, likelihood: 4, impact: 4, firstFixPriority: true, summary: 'The consumer streaming login lacks rate limiting, bot management and breached-credential checks, enabling account-takeover at scale against subscribers.', recommendation: 'Enforce bot management and rate limiting at the edge, add breached-credential screening and step-up authentication on risky sign-ins.' }),
       mk({ id: 'PT-SFE-003', title: 'VFX vendor account reaches content shares without MFA', engType: 'Web app', target: 'aspera.starfallent.com', tenantId: 'post', cvss: 8.1, owasp: OWASP[6], cwe: CWE[3], sev: 'high', slaDays: 11, likelihood: 4, impact: 4, summary: 'A federated external VFX-vendor account could reach content-transfer shares with password-only sign-in, the common entry point for a pre-release leak.', recommendation: 'Require MFA or managed-device certificates and the Island enterprise browser for all vendor accounts, scoped to named projects.' }),
     ],
+    telco: [
+      mk({ id: 'PT-KTG-001', title: 'Broken object-level authorisation on the self-care account API', engType: 'API', target: 'api.kinneret-telecom.co.il', tenantId: 'retail', cvss: 9.2, owasp: OWASP[0], cwe: CWE[0], summary: 'Subscriber identifiers on the self-care account endpoint are not scoped to the signed-in subscriber, so one account token can read the profile of another line, itemised usage and SIM details (tested with test subscribers only).', recommendation: 'Enforce subscriber-to-token binding server-side, add object-level checks and a Salt Security abuse rule; assess notification under the Privacy Protection Regulations if exploited.' }),
+      mk({ id: 'PT-KTG-002', title: 'Dealer portal accepts a SIM change without the identity-verification step', engType: 'Web app', target: 'partners.kinneret-telecom.co.il', tenantId: 'retail', cvss: 9.0, owasp: OWASP[3], cwe: CWE[3], summary: 'The SIM-change workflow on the dealer portal accepts a request that omits the verification step, so a single store account could move a number to a new SIM or eSIM profile (demonstrated on test lines only).', recommendation: 'Enforce the verification step server-side, require fraud scoring and a second approver for high-risk swaps, and alert on swap velocity per account.' }),
+      mk({ id: 'PT-KTG-003', title: '5G exposure API accepts partner tokens beyond their contracted scope', engType: 'API', target: 'ktg-5g-exposure-api (NEF)', tenantId: 'mobile', cvss: 8.4, owasp: OWASP[0], cwe: CWE[3], sev: 'high', slaDays: 9, likelihood: 3, impact: 5, firstFixPriority: true, summary: 'A partner application token on the network exposure function could call location and quality-of-service APIs outside its contracted scope (tested in the pre-production slice).', recommendation: 'Bind tokens to contracted API scopes and subscriber consent, rate-limit per partner and review against 3GPP TS 33.501.' }),
+    ],
   };
   return forCustomer(map, c);
 }
@@ -258,6 +263,9 @@ export function redCampaigns(c: CustomerProfile): RedCampaign[] {
     studio: [
       { id: 'RT-2026-01', name: 'Project Nightreel', objective: 'From a VFX vendor account, reach the pre-release vault, the Starfall+ DRM licence servers and the Orlando ride-control network (observe only, OT safety-gated)', framework: 'Objective-based (MPA CSBP / TPN aligned)', tenantId: 'post', status: 'Debrief', daysAgo: 21, crownJewelReached: false, objectivesMet: 3, objectivesTotal: 6 },
     ],
+    telco: [
+      { id: 'RT-2026-01', name: 'Project Lakeshore', objective: 'From a contact-centre outsourcer account, reach the subscriber database (HSS / UDM), the CDR mediation platform and a cell-site controller network (observe only, network-safety gated; lawful-interception enclave out of scope)', framework: 'Objective-based, intelligence-led (INCD methodology aligned)', tenantId: 'mobile', status: 'Debrief', daysAgo: 23, crownJewelReached: false, objectivesMet: 3, objectivesTotal: 6 },
+    ],
   };
   const chain: CustomerMap<KillChainStep[]> = {
     finserv: [
@@ -328,6 +336,14 @@ export function redCampaigns(c: CustomerProfile): RedCampaign[] {
       { phase: 'Credential access', technique: 'T1552.001', techniqueName: 'Credentials In Files', action: 'Recovered a licence-server credential from a share', outcome: 'detected', ttdMin: 21 },
       { phase: 'Lateral movement', technique: 'T1021.001', techniqueName: 'Remote Desktop Protocol', action: 'Pivoted toward the Orlando ride-control network (observe only)', outcome: 'blocked', ttdMin: 9 },
       { phase: 'Objective', technique: 'T1567.002', techniqueName: 'Exfiltration to Cloud Storage', action: 'Attempted exfiltration of a master file', outcome: 'blocked' },
+    ],
+    telco: [
+      { phase: 'Initial access', technique: 'T1199', techniqueName: 'Trusted Relationship', action: 'Used a contact-centre outsourcer account taken from a stealer log (supplied by HexaInt)', outcome: 'achieved' },
+      { phase: 'Credential access', technique: 'T1621', techniqueName: 'MFA Request Generation', action: 'Push fatigue against a CRM team-lead account', outcome: 'detected', ttdMin: 7 },
+      { phase: 'Discovery', technique: 'T1087.002', techniqueName: 'Domain Account Discovery', action: 'Enumerated OSS and network-element service accounts', outcome: 'detected', ttdMin: 19 },
+      { phase: 'Lateral movement', technique: 'T1021.001', techniqueName: 'Remote Desktop Protocol', action: 'Pivoted toward the NOC jump host in the network management DMZ', outcome: 'achieved' },
+      { phase: 'Collection', technique: 'T1213', techniqueName: 'Data from Information Repositories', action: 'Requested a bulk subscriber read on the provisioning interface (test range only)', outcome: 'blocked', ttdMin: 5 },
+      { phase: 'OT access', technique: 'T0886', techniqueName: 'Remote Services', action: 'Reached a cell-site controller management VLAN (observe only, no write)', outcome: 'detected', ttdMin: 34 },
     ],
   };
   return forCustomer(base, c).map((b) => ({ ...b, daysAgo: b.daysAgo + r.int(0, 3), steps: forCustomer(chain, c) }));
@@ -592,6 +608,14 @@ export function kevExposures(c: CustomerProfile, tenantId = 'all'): KevExposure[
       { host: 'tickets.starfallresorts.com', product: 'HexaShield-tracked ticketing platform (StarPass)', cve: 'CVE-2026-56331', title: 'Authentication bypass on an internet-facing portal', cvss: 9.1, tenantId: 'parks', slaDays: 7 },
       { host: 'osaka.starfallresorts.com', product: 'HexaShield-tracked ticketing platform (StarPass)', cve: 'CVE-2026-56331', title: 'Authentication bypass on an internet-facing portal', cvss: 9.1, tenantId: 'parksasia', slaDays: 9 },
       { host: 'remote.starfallent.com', product: 'HexaShield-tracked remote-access gateway (CorpAccess)', cve: 'CVE-2026-57440', title: 'Unauthenticated remote code execution on a remote-access gateway', cvss: 9.2, tenantId: 'corp', slaDays: 10 },
+    ],
+    telco: [
+      { host: 'edge-hfa.kinneret-telecom.co.il', product: 'Cisco IOS XE (Haifa peering edge, web UI)', cve: 'CVE-2023-20198', title: 'Privilege escalation in the web UI', cvss: 10.0, tenantId: 'intl', slaDays: 2 },
+      { host: 'vpn.kinneret-telecom.co.il', product: 'Check Point Security Gateway (remote access)', cve: 'CVE-2024-24919', title: 'Information disclosure on gateways with remote access enabled', cvss: 8.6, tenantId: 'corp', slaDays: 4 },
+      { host: 'partners.kinneret-telecom.co.il', product: 'Citrix NetScaler Gateway (dealer portal)', cve: 'CVE-2023-4966', title: '"Citrix Bleed" session token disclosure', cvss: 9.4, tenantId: 'retail', slaDays: 5 },
+      { host: 'api.kinneret-telecom.co.il', product: 'F5 BIG-IP (configuration utility)', cve: 'CVE-2023-46747', title: 'Unauthenticated RCE in the configuration utility', cvss: 9.8, tenantId: 'mobile', slaDays: 6 },
+      { host: 'tv.kinneret-telecom.co.il', product: 'Next.js (TV / OTT web app)', cve: 'CVE-2025-29927', title: 'Middleware authorisation bypass', cvss: 9.1, tenantId: 'fixed', slaDays: 7 },
+      { host: 'cloud.kinneret-telecom.co.il', product: 'VMware vCenter Server (hosting management)', cve: 'CVE-2023-34048', title: 'Out-of-bounds write in the DCERPC implementation', cvss: 9.8, tenantId: 'business', slaDays: 8 },
     ],
   };
   void CVES;

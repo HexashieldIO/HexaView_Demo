@@ -46,11 +46,11 @@ export interface ValueAssumptions {
 
 const HOURLY: CustomerMap<number> = {
   maritime: 92, finserv: 84, media: 96, healthcare: 88, automotive: 86,
-  insurance: 88, defence: 97, pharma: 132, sghospital: 94, studio: 104,
+  insurance: 88, defence: 97, pharma: 132, sghospital: 94, studio: 104, telco: 260,
 };
 const MARKET: CustomerMap<number> = {
   maritime: 3, finserv: 1, media: 9, healthcare: 11, automotive: 4,
-  insurance: 2, defence: 9, pharma: 4, sghospital: 12, studio: 8,
+  insurance: 2, defence: 9, pharma: 4, sghospital: 12, studio: 8, telco: 3,
 };
 
 export function defaultAssumptions(c: CustomerProfile): ValueAssumptions {
@@ -70,7 +70,7 @@ export const ASSUMPTION_META: { key: keyof ValueAssumptions; label: string; unit
 /* Annual contract cost (HexaView licence + HexaShield services), customer currency. */
 const CONTRACT: CustomerMap<number> = {
   maritime: 1_840_000, finserv: 3_350_000, media: 1_120_000, healthcare: 2_580_000, automotive: 6_150_000,
-  insurance: 1_560_000, defence: 690_000, pharma: 5_400_000, sghospital: 1_180_000, studio: 7_900_000,
+  insurance: 1_560_000, defence: 690_000, pharma: 5_400_000, sghospital: 1_180_000, studio: 7_900_000, telco: 12_400_000,
 };
 const COST_SPLIT: { label: string; cap: CapKey; w: number }[] = [
   { label: 'HexaView platform licence', cap: 'view', w: 0.22 },
@@ -116,7 +116,7 @@ const K: CustomerMap<SectorK> = {
 /** Share of the CRQ loss reduction credited to HexaCustody: higher where custody is the crown jewel. */
 const CUSTODY_LOSS_SHARE: CustomerMap<number> = {
   maritime: 0.08, finserv: 0.08, media: 0.12, healthcare: 0.08, automotive: 0.08,
-  insurance: 0.08, defence: 0.11, pharma: 0.12, sghospital: 0.09, studio: 0.13,
+  insurance: 0.08, defence: 0.11, pharma: 0.12, sghospital: 0.09, studio: 0.13, telco: 0.1,
 };
 /** What HexaCustody's contained events protected, in the customer's own terms. */
 const CUSTODY_VALUE_LABEL: CustomerMap<string> = {
@@ -130,6 +130,7 @@ const CUSTODY_VALUE_LABEL: CustomerMap<string> = {
   pharma: 'Trial data, dossiers and process IP protected',
   sghospital: 'Patient record and imaging custody enforced',
   studio: 'Pre-release leaks prevented',
+  telco: 'Subscriber, CDR and network data custody enforced',
 };
 
 export interface ValueLine {
@@ -301,6 +302,18 @@ const STORY_VALUE: CustomerMap<number[]> = {
   sghospital: [1_900_000, 1_200_000, 380_000, 210_000, 640_000, 42_700],
   studio: [12_000_000, 4_800_000, 2_600_000, 1_900_000, 620_000, 540_000],
 };
+
+// Telco (ILS): cell-site, data-centre and landing-station downtime is priced against network revenue per hour; custody events are subscriber and CDR exports.
+K.telco = { elReduction: 0.33, incidentsPerOpen: 31, questionnaires: 138, otDowntimeHours: 16, otHourCost: 380_000, custodyEvents: 13, custodyEventValue: 320_000, atoCost: 240_000, exposureDayCost: 1_900 };
+STORIES.telco = [
+  { id: 'st-1', title: 'Roaming-partner signalling abuse contained in 9 min', body: 'Diameter location and profile queries outside the agreed range were correlated between the signalling firewall and Splunk ES; the partner link was rate-limited by approval before subscriber profiles were read in bulk.', cap: 'soc', metric: '9 min to contain', daysAgo: 18, tenantId: 'mobile', to: '/soc/ir', source: 'HexaSOC · Splunk ES · signalling firewall' },
+  { id: 'st-2', title: 'Billing-migration subscriber export pulled back in 5 min', body: 'HexaCustody saw the wave 3 subscriber master export opened outside the approved Azure workspace; access was revoked and the Privacy Protection Authority assessment closed with no notification needed.', cap: 'custody', metric: 'Notification avoided', daysAgo: 33, tenantId: 'retail', to: '/custody/revocation', source: 'HexaCustody · Cyera' },
+  { id: 'st-3', title: 'Out-of-window generator controller change caught at 23 cell sites', body: 'Modbus writes from a contractor jump host were flagged by HexaOT and Armis; settings were verified against the baseline before the next grid outage.', cap: 'ot', metric: 'Site autonomy protected', daysAgo: 44, tenantId: 'mobile', to: '/ot/alerts', source: 'HexaOT · Armis' },
+  { id: 'st-4', title: 'SIM-swap ring identified from fraud-forum chatter', body: 'HexaInt matched offers of Kinneret SIM swaps to 14 swaps from one outsourced contact-centre desktop; the swaps were reversed and the agent session revoked within the hour.', cap: 'int', metric: '14 swaps reversed', daysAgo: 12, tenantId: 'retail', to: '/int/darkweb', source: 'HexaInt · Mobileum · Entra ID' },
+  { id: 'st-5', title: 'Authorisation flaw on the eSIM activation API fixed in 4 days', body: 'HexaStrike finding patched, retested and turned into Salt Security and Sentinel detections before the handset launch campaign.', cap: 'strike', metric: 'Fixed in 4 days', daysAgo: 27, tenantId: 'retail', to: '/strike/pentest', source: 'HexaStrike · Salt Security' },
+  { id: 'st-6', title: 'Ministry of Communications licence report evidence assembled in 6 days', body: 'Network-resilience, signalling-security and incident-reporting controls cited to live evidence, with the ISO 27011 and INCD methodology mappings reused.', cap: 'comply', metric: '4 weeks faster', daysAgo: 68, tenantId: 'all', to: '/comply/caas', source: 'HexaComply · licence compliance pack' },
+];
+STORY_VALUE.telco = [9_400_000, 6_200_000, 3_100_000, 2_300_000, 1_800_000, 640_000];
 
 export function valueModel(c: CustomerProfile, tenantId: string, a: ValueAssumptions): ValueModel {
   const h = headlines(c, tenantId);

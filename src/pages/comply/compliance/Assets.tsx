@@ -18,7 +18,7 @@ import { DatePicker } from '../../../components/DatePicker';
 
 const EQUIPMENT_WORD: CustomerMap<string> = {
   maritime: 'OT', finserv: 'facilities equipment', media: 'broadcast equipment', healthcare: 'medical devices', automotive: 'OT',
-  insurance: 'data-centre facilities', defence: 'shop-floor OT and test equipment', pharma: 'GMP plant OT', sghospital: 'medical devices', studio: 'ride and show OT',
+  insurance: 'data-centre facilities', defence: 'shop-floor OT and test equipment', pharma: 'GMP plant OT', sghospital: 'medical devices', studio: 'ride and show OT', telco: 'network site and facility plant',
 };
 
 const tone = MODULE_BY_ID.comply.tone;

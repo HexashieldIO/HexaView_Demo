@@ -31,6 +31,7 @@ export const COUNTRY_LL: Record<string, [number, number]> = {
   KR: [37.6, 127], JP: [35.7, 139.7], IE: [53.3, -6.3], BE: [50.85, 4.35], MY: [3.1, 101.7], BR: [-23.5, -46.6], IT: [45.5, 9.2], ZA: [-33.9, 18.4],
   PL: [52.2, 21], MX: [19.4, -99.1], CZ: [50.1, 14.4], HU: [47.5, 19.04], SE: [59.3, 18.1], DK: [55.7, 12.6], PH: [14.6, 121], TH: [13.75, 100.5],
   AE: [25.2, 55.3], PT: [38.7, -9.1], CO: [4.7, -74.1], AR: [-34.6, -58.4], TW: [25, 121.5], RO: [44.4, 26.1],
+  IL: [31.8, 34.9], CY: [34.9, 33.2], GR: [38, 23.7],
 };
 
 /* ------------------------------------------------------------------ */
@@ -48,7 +49,7 @@ export interface CustodyScope {
 
 const INTEGRITY: CustomerMap<number> = {
   maritime: 99.1, finserv: 99.7, media: 98.4, healthcare: 98.9, automotive: 99.3,
-  insurance: 99.5, defence: 99.6, pharma: 99.4, sghospital: 98.7, studio: 98.6,
+  insurance: 99.5, defence: 99.6, pharma: 99.4, sghospital: 98.7, studio: 98.6, telco: 99.3,
 };
 
 export function custodyScope(c: CustomerProfile, tenantId: string): CustodyScope {
@@ -237,6 +238,26 @@ const FLOWS: CustomerMap<Triple[]> = {
     ['Nightglass', 'IMF delivery', 'Starfall+ encoding pipeline', 7, true],
     ['Nightglass', 'Licensee delivery', 'International licensees', 5, true],
   ],
+  telco: [
+    ['Roaming settlement & CDR extracts', 'TAP settlement batch', 'Syniverse (clearing house)', 14, true],
+    ['Roaming settlement & CDR extracts', 'Managed SFTP delivery', 'Roaming partners (bilateral)', 8, true],
+    ['Roaming settlement & CDR extracts', 'Download to managed device', 'Revenue assurance team', 6, true],
+    ['Roaming settlement & CDR extracts', 'Personal cloud sync', 'Personal cloud', 0.5, false],
+    ['Billing migration wave 3', 'Migration extract', 'Amdocs (BSS managed service)', 13, true],
+    ['Billing migration wave 3', 'Masked test data set', 'Billing & BSS test team', 7, true],
+    ['Billing migration wave 3', 'Agent desktop export', 'Negev Contact Solutions', 5, true],
+    ['Billing migration wave 3', 'Email attachment', 'Personal email', 0.6, false],
+    ['5G core baselines & software loads', 'Signed software load', 'Ericsson', 8, true],
+    ['5G core baselines & software loads', 'Configuration check-out', 'Mobile core engineering', 9, true],
+    ['5G core baselines & software loads', 'Copy to unmanaged device', 'Unmanaged laptop', 0.4, false],
+    ['SIM & eSIM key material', 'Encrypted key batch (dual control)', 'Thales', 4, true],
+    ['SIM & eSIM key material', 'HSM import', 'eSIM subscription manager (SM-DP+)', 3, true],
+    ['Network designs & site records', 'Watermarked secure share', 'Enterprise customers', 7, true],
+    ['Network designs & site records', 'Work-order app sync', 'Galil Tower Services', 6, true],
+    ['Network designs & site records', 'USB copy', 'Unmanaged USB', 0.4, false],
+    ['Legal & fraud case files', 'Sealed register access (dual control)', 'Legal & regulatory affairs', 2, true],
+    ['Legal & fraud case files', 'Case file share', 'Fraud management & Israel Police liaison', 3, true],
+  ],
 };
 
 export interface CustodyFlow { project: string; action: string; dest: string; count: number; sanctioned: boolean }
@@ -359,6 +380,17 @@ const ANOMALIES: CustomerMap<AnomSeed[]> = {
     { sev: 'low', title: 'Expired grant used by a Company 3 colour session (blocked)', asset: 'Crown of Ash – locked cut v22', actor: 'Company 3 colourist', org: 'Company 3', machine: 'C3-BASELIGHT-05', action: 'Open file', destination: '—', tenantId: 'post', age: 2300, detail: 'Session tried to open the locked cut 90 min after the grant expired; the agent blocked it.', evidence: ['Custody agent policy decision'], recommended: 'None; working as intended.' },
     { sev: 'low', title: 'Script library export from an unusual location', asset: 'The Hollow Coast S3 – scripts 1–4', actor: 'Writers\' room assistant', org: 'Starfall Studios & Production', machine: 'SFE-SCRIPT-VAULT', action: 'Download', destination: 'Managed laptop', tenantId: 'studios', age: 2800, detail: 'Scripts downloaded from the script vault from a hotel network in Toronto; the device is managed and watermarked.', evidence: ['Script vault audit', 'Zscaler location'], recommended: 'Confirm travel with the showrunner\'s office.' },
   ],
+  telco: [
+    { sev: 'critical', title: 'Subscriber master export opened outside the migration team', asset: 'Subscriber master export – billing migration wave 3', actor: 'Unknown Amdocs account', org: 'Amdocs', machine: 'AMD-VDI-MIG-114', action: 'Open file', destination: 'Amdocs (BSS managed service)', tenantId: 'retail', age: 41, detail: 'The wave 3 subscriber master (1.2M records with ID numbers and addresses) was opened by a vendor account that is not on the migration delegation list. The field layout matches the 5,000-record sample HexaInt is validating from a closed forum.', evidence: ['Custody agent open event', 'Entra ID guest sign-in (vendor tenant)', 'Cyera: high-sensitivity data class', 'Watermark WM-7A3C-19E4 bound to this copy'], recommended: 'Revoke the vendor grant, preserve evidence and brief Layla Mansour (Data Protection Officer) for the severe-incident assessment.' },
+    { sev: 'high', title: 'CDR extract synced to a personal cloud from a revenue-assurance laptop', asset: 'CDR extract – roaming settlement batch (TAP, October)', actor: 'Revenue assurance analyst', org: 'Kinneret International & Wholesale', machine: 'KTG-LT-RA-0218', action: 'Personal cloud sync', destination: 'Google Drive (personal account)', tenantId: 'intl', age: 150, detail: '4.6 GB of rated roaming CDRs synced to a personal Google Drive outside working hours; Cato blocked the second half of the upload.', evidence: ['Custody agent file event (sync client write)', 'Cato Networks: unsanctioned instance upload', 'Varonis: abnormal access to the settlement share'], recommended: 'Revoke the user grant, recall the copy and review with the line manager and HR.' },
+    { sev: 'high', title: 'Bulk subscriber look-ups exported from a contact-centre desktop', asset: 'Subscriber master export – billing migration wave 3', actor: 'Contact-centre agent', org: 'Negev Contact Solutions', machine: 'NCS-AGT-0733', action: 'Mass download', destination: 'Negev Contact Solutions', tenantId: 'retail', age: 290, detail: '860 subscriber records exported from the CRM agent desktop in one shift, eleven times the agent baseline; 14 of the accounts were later SIM-swapped.', evidence: ['Custody agent volume baseline (agents)', 'Mobileum fraud alert: SIM-swap cluster', 'CRM audit feed (failing since wave 3: gap noted)'], recommended: 'Suspend the agent grant and pass the list to Dana Vaknin (Fraud Management).' },
+    { sev: 'high', title: '5G core configuration baseline copied to a vendor laptop without an agent', asset: '5G core configuration baseline v14', actor: 'Ericsson field engineer', org: 'Ericsson', machine: 'Vendor laptop (no agent)', action: 'Copy outside custody', destination: 'Unmanaged device', tenantId: 'mobile', age: 460, detail: 'The v14 baseline was copied during a CyberArk-brokered support session to a laptop that has never enrolled; the session recording shows the transfer.', evidence: ['CyberArk session recording', 'Custody agent: recipient not enrolled', 'Hash match to the released baseline'], recommended: 'Ask the vendor to attest deletion; issue future baselines through the watermarked share only.' },
+    { sev: 'medium', title: 'Enterprise customer network diagrams forwarded to a personal address', asset: 'Enterprise customer network diagrams – Business & Cloud', actor: 'Solutions architect', org: 'Kinneret Business & Cloud', machine: 'KTG-LT-BC-0091', action: 'Forward to personal email', destination: 'Personal email', tenantId: 'business', age: 820, detail: 'Network designs for two managed-security customers were forwarded to a personal address; the custody policy quarantined the attachment.', evidence: ['Check Point Harmony Email outbound log', 'Custody agent mail event'], recommended: 'Line manager review; confirm the copy was never opened outside the estate.' },
+    { sev: 'medium', title: 'Cell-site access register copied to USB by a field contractor', asset: 'Cell-site access & lease register', actor: 'Field technician (contract)', org: 'Galil Tower Services', machine: 'GTS-FIELD-TAB-22', action: 'USB copy', destination: 'Unmanaged USB', tenantId: 'mobile', age: 1250, detail: 'Access codes and landlord contacts for 310 northern sites copied to a USB stick; the agent recorded the write and bound the watermark.', evidence: ['Custody agent USB event', 'Armis: removable media on a field tablet'], recommended: 'Recover the stick and rotate the affected site access codes.' },
+    { sev: 'medium', title: 'SIM key batch hash checked twice before HSM import', asset: 'SIM / eSIM key batch K-2291 (Ki / OPc)', actor: 'Key custodian (dual control)', org: 'Kinneret Mobile', machine: 'KTG-SMDP-01', action: 'Integrity check before import', destination: 'eSIM subscription manager (SM-DP+)', tenantId: 'mobile', age: 1700, detail: 'The first integrity check of batch K-2291 failed on a truncated transfer; the import was held automatically and the batch re-sent by the supplier.', evidence: ['Supplier delivery manifest', 'Hash computed before HSM import', 'Import hold recorded'], recommended: 'None further; second check passed under dual control.' },
+    { sev: 'low', title: 'Custody agent silent at the Limassol PoP for 21 h', asset: 'CDR extract – roaming settlement batch (TAP, October)', actor: 'Agent heartbeat', org: 'Levant Subsea Systems', machine: 'LSS-LIM-GW', action: 'Heartbeat gap', destination: '—', tenantId: 'intl', age: 1260, detail: 'No heartbeat from the co-location gateway that relays settlement files; copies cannot be verified while it is silent.', evidence: ['Agent heartbeat log', 'Landing-station edge degraded'], recommended: 'Restore the agent before the next settlement batch.' },
+    { sev: 'low', title: 'Sealed register access attempted with a single approver (blocked)', asset: 'Lawful-interception warrant register (sealed)', actor: 'Legal operations officer', org: 'Kinneret Group Corporate', machine: 'KTG-LEGAL-WS03', action: 'Open file', destination: '—', tenantId: 'corp', age: 2500, detail: 'An access request to the sealed register was made with one approver; dual control refused the key.', evidence: ['Custody agent policy decision'], recommended: 'None; working as intended.' },
+  ],
 };
 
 export function custodyAnomalies(c: CustomerProfile, tenantId: string): CustodyAnomaly[] {
@@ -411,6 +443,7 @@ const ACCEL: CustomerMap<(r: Rng) => AccelStats> = {
   pharma: (r) => ({ throughputGbps: r.float(1.4, 2.6, 1), acceleratedPct: r.int(64, 78), largest: `${r.int(1, 4)}.${r.int(1, 9)} TB`, median: `${r.int(2, 8)} min`, saved: `${r.int(420, 760)} h`, note: 'SDTM/ADaM datasets, eTMF exports and tech-transfer packs move accelerated to CROs and CDMOs; eCTD sequences are hash-checked against the QA sign-off manifest before any gateway submission (Part 11 / Annex 11)' }),
   sghospital: (r) => ({ throughputGbps: r.float(0.6, 1.4, 1), acceleratedPct: r.int(48, 62), largest: `${r.int(80, 640)} GB`, median: `${r.int(1, 5)} min`, saved: `${r.int(90, 180)} h`, note: 'NEHR batches go to Synapxe over HealthConnect and DICOM studies to reading partners; patient data stays in the Singapore data planes and every outbound copy is hashed and watermarked per recipient (HIA data security)' }),
   studio: (r) => ({ throughputGbps: r.float(4.6, 6.8, 1), acceleratedPct: r.int(86, 94), largest: `${r.float(4.2, 7.9, 1)} TB`, median: `${r.int(5, 12)} min`, saved: `${r.int(2100, 3200)} h`, note: 'Aspera and Signiant move plates, mixes and IMF masters to VFX, dubbing and delivery vendors with per-recipient NexGuard watermarking; screeners stream session-watermarked through Indee' }),
+  telco: (r) => ({ throughputGbps: r.float(0.9, 1.8, 1), acceleratedPct: r.int(52, 66), largest: `${r.int(120, 480)} GB`, median: `${r.int(40, 90)} s`, saved: `${r.int(260, 420)} h`, note: 'Settlement batches go to the clearing house and migration extracts to the BSS vendor as accelerated, per-recipient watermarked packages; subscriber and CDR data stays in the Israel data planes and SIM key batches move only under dual control' }),
 };
 
 export function accelStats(c: CustomerProfile, tenantId: string): AccelStats {
@@ -542,6 +575,15 @@ const STEPS: CustomerMap<Step[]> = {
     ['Iyuno', 'Localisation coordinator', 'IYU-XFER-02', 'Signiant transfer · subtitle master', false],
     ['Deluxe', 'Delivery service', 'DLX-XFER-07', 'Accelerated transfer · IMF mastering', false],
   ],
+  telco: [
+    ['Kinneret Retail & Digital', 'Lior Avraham', 'KTG-BILL-MED01', 'Check-in to custody vault (source extract)', false],
+    ['Kinneret Retail & Digital', 'Billing data engineer', 'KTG-BSS-CRM-PRD', 'Identifiers masked and re-hashed (derivative)', true],
+    ['Kinneret Group Corporate', 'Layla Mansour', 'KTG-LT-DPO01', 'Release approved (Data Protection Officer)', false],
+    ['Amdocs', 'Migration engineer', 'AMD-VDI-MIG-031', 'Watermarked secure share · received', false],
+    ['Kinneret International & Wholesale', 'Revenue assurance analyst', 'KTG-LT-RA-0204', 'Settlement batch compiled (derivative)', true],
+    ['Syniverse', 'Clearing service', 'SYN-TAP-GW', 'TAP settlement batch · received', false],
+    ['Kinneret Mobile', 'Karim Saba', 'KTG-OSS-NMS01', 'Integrity check against the released baseline', false],
+  ],
 };
 
 const CLASS: CustomerMap<string[]> = {
@@ -555,6 +597,7 @@ const CLASS: CustomerMap<string[]> = {
   pharma: ['GxP record · Part 11', 'Blinded / unblinded trial data', 'Strictly confidential (process IP)', 'Market-sensitive (embargo)'],
   sghospital: ['Patient Confidential (HIA)', 'Pseudonymised research data', 'Restricted (board & regulator)'],
   studio: ['Pre-release · Highly restricted', 'Pre-release · Restricted', 'Embargoed marketing', 'Awards screener (FYC)'],
+  telco: ['Subscriber data · High security (PPL)', 'Network configuration · Restricted', 'Key material · Dual control', 'Sealed (legal order)'],
 };
 const PROJECT_OF: CustomerMap<(name: string) => string> = {
   healthcare: (n) => (n.includes('Genomics') ? 'Genomics cohort GX-2026' : n.includes('Oncology') || n.includes('IRB') ? 'Oncology trial MR-ONC-14' : n.includes('Imaging') ? 'Imaging studies (second opinion)' : n.includes('Clarity') || n.includes('Payer') ? 'Clinical exports (Epic Clarity)' : 'Board & OCR evidence packs'),
@@ -567,6 +610,7 @@ const PROJECT_OF: CustomerMap<(name: string) => string> = {
   pharma: (n) => (n.includes('RHN-4471') ? 'Trial RHN-4471 (Phase III)' : n.includes('eTMF') ? 'Study RHN-3810 eTMF' : n.includes('eCTD') || n.includes('MAA') ? 'Regulatory submissions (eCTD)' : n.includes('tech-transfer') ? 'Process IP & tech transfer' : 'Publications & business development'),
   sghospital: (n) => (n.includes('NEHR') || n.includes('HIA') ? 'NEHR & HIA submissions' : n.includes('Insurer') ? 'Insurer claims exports' : n.includes('Imaging') ? 'Imaging studies (second opinion)' : n.includes('dataset') ? 'Research datasets' : 'Board & PDPC evidence packs'),
   studio: (n) => (n.includes('Crown of Ash') ? 'Crown of Ash' : n.includes('Hollow Coast') ? 'The Hollow Coast S3' : n.includes('Lodestar') ? 'Lodestar' : n.includes('Skyward') ? 'Skyward Kids 2' : 'Nightglass'),
+  telco: (n) => (n.includes('CDR') ? 'Roaming settlement & CDR extracts' : n.includes('billing migration') ? 'Billing migration wave 3' : n.includes('5G core') ? '5G core baselines & software loads' : n.includes('SIM') && n.includes('key') ? 'SIM & eSIM key material' : n.includes('diagrams') || n.includes('Cell-site') ? 'Network designs & site records' : 'Legal & fraud case files'),
 };
 
 const HASH_FLAG: CustomerMap<string> = {
@@ -580,6 +624,7 @@ const HASH_FLAG: CustomerMap<string> = {
   pharma: 'Hash does not match the QA-signed eCTD manifest: gateway submission held',
   sghospital: 'Hash does not match the released extract: transfer held',
   studio: 'Hash does not match the delivered master: delivery held',
+  telco: 'Hash does not match the supplier manifest: import held',
 };
 const SIZE: CustomerMap<(r: Rng) => string> = {
   media: (r) => `${r.float(0.4, 4.2, 1)} ${r.chance(0.5) ? 'TB' : 'GB'}`,
@@ -592,6 +637,7 @@ const SIZE: CustomerMap<(r: Rng) => string> = {
   pharma: (r) => `${r.float(0.4, 38, 1)} GB`,
   sghospital: (r) => `${r.float(0.2, 18, 1)} GB`,
   studio: (r) => `${r.float(0.3, 6.8, 1)} ${r.chance(0.55) ? 'TB' : 'GB'}`,
+  telco: (r) => `${r.float(0.2, 48, 1)} GB`,
 };
 
 export function custodyAssets(c: CustomerProfile, tenantId: string): CustodyAsset[] {
@@ -679,6 +725,7 @@ const REASONS: CustomerMap<string[]> = {
   pharma: ['Database lock reached', 'CRO contract ended', 'Unblinding risk', 'Tech transfer complete', 'Unsanctioned copy detected', 'Leaver (resignation)', 'Data-room access window closed'],
   sghospital: ['Second opinion delivered', 'Patient consent withdrawn', 'Study closed', 'Insurer claim settled', 'Unsanctioned copy detected', 'Device lost or stolen'],
   studio: ['Unsanctioned copy detected', 'Vendor delivery complete', 'Freelancer contract ended', 'Awards voting closed', 'NexGuard leak trace', 'Review window closed', 'TPN assessment lapsed', 'Device lost or stolen'],
+  telco: ['Migration wave closed', 'Settlement cycle complete', 'Vendor support session ended', 'Contact-centre agent offboarded', 'Unsanctioned copy detected', 'Fraud investigation hold', 'Leaver', 'Device lost or stolen'],
 };
 
 const SESSION_CITIES: CustomerMap<string[]> = {
@@ -692,6 +739,7 @@ const SESSION_CITIES: CustomerMap<string[]> = {
   pharma: ['Basel', 'Dublin', 'Cambridge, MA', 'Sierre', 'Cork', 'Incheon', 'Durham, NC'],
   sghospital: ['Singapore', 'Singapore', 'Sydney', 'Kuala Lumpur'],
   studio: ['Burbank', 'London', 'Vancouver', 'San Francisco', 'Wellington', 'Madrid', 'Seoul'],
+  telco: ['Petah Tikva', 'Tel Aviv', 'Haifa', 'Netanya', 'Rishon LeZion', 'Limassol', 'Athens'],
 };
 
 function vendorNames(c: CustomerProfile): string[] {
@@ -853,6 +901,15 @@ SECTOR_PARTS.pharma = {
   cats: [['Clinical Sites', 'Clinical research site network', 'Trial datasets'], ['Bioanalytics', 'Central & bioanalytical lab', 'Sample results'], ['Biometrics', 'Biostatistics & programming CRO', 'Analysis datasets (SDTM/ADaM)'], ['Regulatory', 'Regulatory publishing & eCTD', 'Submission sequences'], ['Medical Writing', 'Medical writing', 'CSR drafts'], ['Translations', 'Regulatory translation', 'Labelling & SmPC'], ['Pharma Services', 'Contract manufacturing (CMO)', 'Batch records & process IP'], ['Analytical', 'Analytical testing lab', 'Methods & CoAs'], ['Imaging Core', 'Imaging core lab', 'Trial imaging'], ['Safety Services', 'Pharmacovigilance BPO', 'ICSRs & safety narratives']],
   countries: ['CH', 'CH', 'DE', 'IE', 'US', 'US', 'GB', 'IN', 'PL', 'ES', 'FR', 'BE', 'NL', 'KR', 'SG'],
 };
+SECTOR_PARTS.telco = {
+  a: ['Gilboa', 'Tavor', 'Arbel', 'Yarden', 'Sharon', 'Hermon', 'Ramon', 'Shikma', 'Alon', 'Dekel', 'Lachish', 'Eshkol', 'Hula', 'Zohar', 'Oren', 'Meron'],
+  cats: [
+    ['Networks', 'Roaming partner (bilateral)', 'TAP settlement files'], ['Field Services', 'Field installation contractor', 'Work orders & site records'], ['Recovery Services', 'Debt collection agency', 'Billing & arrears extracts'],
+    ['Analytics', 'Data analytics vendor', 'Masked subscriber datasets'], ['Integration', 'Systems integrator', 'Network configuration'], ['Dealers', 'Authorised dealer group', 'Subscriber onboarding records'],
+    ['Site Leasing', 'Tower & site landlord', 'Site access & lease records'], ['Carrier Services', 'Wholesale carrier', 'Interconnect CDRs'], ['Device Logistics', 'Handset & SIM logistics', 'SIM inventory files'],
+  ] as [string, string, string][],
+  countries: ['IL', 'IL', 'IL', 'IL', 'IL', 'IL', 'CY', 'GR', 'DE', 'GB', 'US', 'IN'],
+};
 SECTOR_PARTS.studio = {
   a: ['Bluefin', 'Cobalt', 'Halftone', 'Paper Moon', 'Kinetic', 'Lantern', 'Granite', 'Saltwater', 'Ironbark', 'Polaris', 'Mosaic', 'Foxglove', 'Tidewater', 'Obsidian', 'Amberline', 'Cedar', 'Hollow Pine', 'Quill', 'Vantage', 'Red Kite', 'Wildframe', 'Starling', 'Bright Harbour', 'Echo Park', 'Copperhead', 'Sable', 'Marquee', 'Firelight'],
   cats: [
@@ -898,6 +955,11 @@ const CHAIN_BASE: CustomerMap<(c: CustomerProfile) => ThirdParty[]> = {
       lion, phil, iron].filter((t): t is ThirdParty => !!t);
   },
   studio: (c) => pickParties(c, [], ['Industrial Light', 'Weta', 'DNEG', 'Northlight', 'Company 3', 'Iyuno', 'Bluebird', 'Indee', 'Silverline', 'Deluxe', 'Amazon Web Services']),
+  telco: (c) => pickParties(c, [
+    { name: 'Shaked Baram & Co.', category: 'External counsel (regulatory & privacy)', tier: 1, access: 'Sealed legal register, fraud case files', rating: 80, country: 'IL' },
+    { name: 'Tavor Collections', category: 'Debt collection agency', tier: 2, access: 'Billing and arrears extracts', rating: 62, country: 'IL' },
+    { name: 'Ayalon Print & Mail', category: 'Bill printing & mailing', tier: 2, access: 'Monthly invoice files', rating: 67, country: 'IL' },
+  ], ['Amdocs', 'Syniverse', 'Thales', 'Ericsson', 'Nokia', 'Negev Contact', 'Galil Tower', 'Levant Subsea', 'Carmel Fibre', 'Yarkon Pay', 'Cisco', 'Microsoft Azure', 'Amazon Web Services', 'Vertiv', 'Schneider']),
 };
 
 const VOLUME: CustomerMap<(r: Rng, t: ThirdParty) => number> = {
@@ -911,6 +973,7 @@ const VOLUME: CustomerMap<(r: Rng, t: ThirdParty) => number> = {
   pharma: (r, t) => r.int(20, t.tier === 1 ? 6400 : 900),
   sghospital: (r, t) => r.int(3, t.tier === 1 ? 1600 : 200),
   studio: (r, t) => r.int(120, t.tier === 1 ? 58000 : 12000),
+  telco: (r, t) => r.int(4, t.tier === 1 ? 2400 : 320),
 };
 const ASSURANCE: CustomerMap<(r: Rng, t: ThirdParty) => string> = {
   media: () => 'TPN',
@@ -923,6 +986,7 @@ const ASSURANCE: CustomerMap<(r: Rng, t: ThirdParty) => string> = {
   pharma: (r, t) => r.weighted<string>([['GxP vendor audit (QA)', t.tier === 1 ? 5 : 2], ['Quality agreement + audit', 3], ['ISO 27001', 2], ['SOC 2 Type II', 1.5], ['Questionnaire only', t.tier === 3 ? 2 : 0.4]]),
   sghospital: (r) => r.pick(['CSA Cyber Trust mark', 'ISO 27001', 'HIA data-security attestation', 'CSA Cyber Essentials mark', 'PDPA DPA + questionnaire']),
   studio: () => 'TPN',
+  telco: (r, t) => r.weighted<string>([['ISO 27001', 4], ['ISO 27001 + SOC 2', t.tier === 1 ? 4 : 1], ['Data-security agreement (PPL outsourcing)', 3], ['GSMA SAS accredited site', /SIM|eSIM/.test(t.category) ? 9 : 0.2], ['Questionnaire only', t.tier === 1 ? 0.5 : 2]]),
 };
 
 export function vendorChain(c: CustomerProfile): ChainVendor[] {
@@ -1002,6 +1066,7 @@ const VAULT: CustomerMap<string> = {
   pharma: 'GxP custody vault · Part 11 master',
   sghospital: 'Custody vault · TrakCare & PACS extracts',
   studio: 'Pre-release vault · S3 Object Lock',
+  telco: 'Custody vault · Azure Israel Central (immutable)',
 };
 const ARCHIVE: CustomerMap<string> = {
   maritime: 'Cold archive · class evidence',
@@ -1014,6 +1079,7 @@ const ARCHIVE: CustomerMap<string> = {
   pharma: 'GxP archive (25-year trial master file retention)',
   sghospital: 'Medical records archive (HIA retention)',
   studio: 'LTO archive · studio vault (Burbank)',
+  telco: 'Records archive (billing and legal retention)',
 };
 
 function kindOf(action: string): LKind {
@@ -1097,6 +1163,7 @@ const VECTOR_TILT: CustomerMap<number[]> = {
   pharma: [1.1, 1.3, 1.1, 0.9, 0.7, 1.0],
   sghospital: [1.5, 1.1, 1.0, 0.6, 0.5, 1.2],
   studio: [1.0, 1.3, 1.1, 1.3, 1.2, 1.1],
+  telco: [1.2, 1.2, 1.1, 1.4, 0.7, 0.9],
 };
 
 export function egressVectors(c: CustomerProfile, tenantId: string, days: number): EgressVector[] {
@@ -1123,6 +1190,7 @@ const GROUPS: CustomerMap<string[]> = {
   pharma: ['Clinical operations', 'Regulatory affairs', 'Valais & Cork manufacturing', 'Research', 'CRO partners', 'CDMO partners'],
   sghospital: ['Radiology & imaging', 'Medical records', 'Billing & claims', 'Clinical research', 'Partners (insurers & labs)'],
   studio: ['Editorial', 'Post & VFX', 'Marketing & awards', 'Starfall+ delivery', 'VFX vendors', 'Localisation vendors', 'Contractors'],
+  telco: ['Billing & BSS', 'Revenue assurance & roaming', 'Mobile core engineering', 'Fraud & legal', 'Contact centres', 'BSS & network vendors', 'Field contractors'],
 };
 export const AGENT_CURRENT = '4.2.1';
 
@@ -1193,4 +1261,5 @@ export const CUSTODY_NOTE: CustomerMap<string | null> = {
   pharma: 'Every hand-off of a GxP record is hashed, signed and time-stamped, so the custody chain doubles as the Part 11 / Annex 11 audit trail for trial data, eCTD sequences and batch records.',
   sghospital: 'Patient records never leave the Singapore data planes: custody events carry hashes and watermarks, not content, as the HIA data-security requirements expect.',
   studio: 'Every copy of pre-release content carries a per-recipient NexGuard watermark, so a leaked frame traces back to the vendor, user and session within minutes (TPN / MPA content-security evidence).',
+  telco: 'Subscriber and CDR data never leaves the Israel data planes: custody events carry hashes and watermarks, not content, which gives the access and transfer record the Privacy Protection (Data Security) Regulations expect for high-security databases.',
 };

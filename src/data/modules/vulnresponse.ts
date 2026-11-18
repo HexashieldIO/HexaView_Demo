@@ -283,6 +283,20 @@ const HEADLINE: CustomerMap<AdvSeed> = {
     },
     supplierRe: /VFX|Colour|Locali|Dubbing|Screener|Trailer|Mastering|Projection|Christie/i, supplierN: 5, outreach: 8,
   },
+  telco: {
+    cve: 'CVE-2026-44172', vendor: 'Merrow Systems', product: 'Merrow SiteLink Out-of-Band Gateway', family: 'Out-of-band management gateway',
+    weakness: 'Authentication bypass in the web management service', cvss: 9.9, kev: true, exploited: true, minAgo: 351,
+    summary: 'A flaw in the gateway’s web management service lets an unauthenticated attacker who can reach it take control of the appliance and, through it, the console ports of the routers, power systems and site controllers behind it. GSMA T-ISAC and the national CERT report exploitation against communications providers. Fixed firmware is available.',
+    verdict: 'Affected', phase: 'Active response', counts: { core: 5, tooling: 0, ot: 12 },
+    versions: '7.0 to 7.4.1', fixedIn: '7.4.2',
+    mitigation: 'Restrict the management service to the NOC jump host, force contractor and vendor sessions through the CyberArk broker and disable the gateway’s cloud relay until patched.',
+    remediation: ['Confirm the firmware build on each gateway (Tenable credentialed scan for central nodes; Armis and HexaOT passive fingerprint for site units).', 'Upgrade the central management nodes to 7.4.2 under an emergency change in ServiceNow; tell the NOC shift lead before each restart.', 'For gateways at hub cell sites, fibre exchanges and the Haifa landing station, field engineers apply the firmware in the next network maintenance window; until then restrict them by management ACL.', 'Rotate gateway admin and contractor accounts in CyberArk and review console sessions since disclosure with HexaSOC.', 'Request a HexaStrike validation check and attach the rescan as evidence; if subscriber data or network configuration was reachable, start the Privacy Protection Authority and Ministry of Communications assessments.'],
+    stems: {
+      core: { kind: 'Gateway management node', code: 'OOB-MGR', sites: ['Petah Tikva core site', 'Tel Aviv data centre', 'Haifa data centre'], tenants: ['mobile', 'fixed', 'business', 'intl'], internet: 0.3, versions: ['7.2.0', '7.3.1', '7.4.1'], siteByTenant: { mobile: ['Petah Tikva core site'], fixed: ['Rishon LeZion aggregation site'], business: ['Tel Aviv data centre', 'Haifa data centre'], intl: ['Haifa cable landing station'] } },
+      ot: { kind: 'Out-of-band gateway (site unit)', code: 'OOB', sites: ['Hub cell site', 'Regional aggregation site'], tenants: ['mobile', 'fixed', 'intl'], internet: 0.05, versions: ['7.1.2', '7.3.1'], siteByTenant: { mobile: ['Hub cell site (north)', 'Hub cell site (centre)', 'Hub cell site (south)'], fixed: ['Fibre exchange'], intl: ['Landing-station plant room'] } },
+    },
+    supplierRe: /Tower|FTTH|Subsea/i, supplierN: 3, outreach: 7,
+  },
 };
 
 /** Host-name prefix per tenant, from each customer's own naming (template customers keep tenant-id codes). */
@@ -293,12 +307,13 @@ const HOST_CODE: CustomerMap<Record<string, string>> = {
   pharma: { corporate: 'BSL', rnd: 'RND', clinops: 'DUB', valais: 'VLS', cork: 'CRK', commercial: 'RHN-US' },
   sghospital: { obh: 'OBH', specialist: 'SPC', daysurg: 'DSC', labimg: 'LAB', corp: 'OBH-CORP' },
   studio: { studios: 'SFE', post: 'POST', play: 'PLUS', parks: 'PARKS', parksasia: 'PARKS-OSA', corp: 'SFE-NY' },
+  telco: { mobile: 'KTG-MOB', fixed: 'KTG-FIX', business: 'KTG-BIZ', intl: 'KTG-INT', retail: 'KTG-RET', corp: 'KTG' },
 };
 
 /** Keep one internet-facing asset open on the headline advisory (only where the headline story is internet-facing). */
 const KEEP_OPEN: CustomerMap<boolean> = {
   maritime: false, finserv: true, media: true, healthcare: false, automotive: false,
-  insurance: true, defence: true, pharma: false, sghospital: false, studio: true,
+  insurance: true, defence: true, pharma: false, sghospital: false, studio: true, telco: true,
 };
 
 /** Who applies fixes to OT assets (HexaView is read-only on OT). */
@@ -310,6 +325,7 @@ const OT_NOTE: CustomerMap<string> = {
   pharma: 'Validated GMP system, read-only by policy: HexaView tracks status; site automation engineers apply the fix under GxP change control.',
   sghospital: 'Clinical device, read-only by policy: HexaView tracks status; Biomedical Engineering applies the OEM-validated fix.',
   studio: 'Ride and show systems are read-only by policy: HexaView tracks status; ride and show control engineers applythe fix outside park hours.',
+  telco: 'Network site infrastructure is read-only by policy: HexaView tracks status; field or vendor engineers apply the fix in a network maintenance window.',
 };
 
 /** One-line "who fixes it" for the OT asset drawer. */
@@ -321,6 +337,7 @@ const OT_FIXER: CustomerMap<string> = {
   pharma: 'Site automation engineers apply the fix under GxP change control at a campaign changeover.',
   sghospital: 'Biomedical Engineering applies the OEM-validated fix (HSA GL-04) in a clinical downtime window.',
   studio: 'Ride and show control engineers apply the fix outside park hours, through the ride safety change process.',
+  telco: 'Field or vendor engineers apply the fix in a network maintenance window, through the network change process.',
 };
 export function vrOtFixer(c: CustomerProfile): string {
   return forCustomer(OT_FIXER, c);
@@ -397,6 +414,13 @@ const RECENT: CustomerMap<AdvSeed[]> = {
     { cve: 'CVE-2026-39264', vendor: 'Tamberlane', product: 'Tamberlane LogPipe collector', family: 'SIEM log collector (security tooling)', weakness: 'Remote code execution in the syslog listener', cvss: 9.8, kev: true, exploited: true, minAgo: 22 * D + 210, verdict: 'Affected', phase: 'Closed', counts: { tooling: 4 }, summary: 'Four collectors forwarding Soho content-network and resort firewall logs into Google SecOps and Splunk ran a vulnerable listener. All were upgraded within 22 hours; TPN and PCI logging evidence was refreshed.' },
     { cve: 'CVE-2026-38712', vendor: 'Ferrier Commerce', product: 'Ferrier CheckoutKit', family: 'Payment page script library', weakness: 'Script injection on hosted checkout pages', cvss: 9.0, kev: false, exploited: true, minAgo: 34 * D + 500, verdict: 'Not affected', phase: 'Closed', counts: {}, summary: 'Checkout pages built on the library can be injected with card-skimming script. Starfall+ and park retail checkouts use Adyen hosted fields, and Adyen confirmed the library is not in use; the PCI DSS 6.4.3 script inventory was updated.' },
   ],
+  telco: [
+    { cve: 'CVE-2026-41492', vendor: 'Asterline Software', product: 'Asterline CDR Mediation Engine', family: 'CDR mediation', weakness: 'Authorisation bypass in the collection API', cvss: 9.2, kev: false, exploited: false, minAgo: 4 * D + 210, verdict: 'Affected', phase: 'Monitoring', counts: { core: 3 }, summary: 'A missing authorisation check lets an authenticated collector account read call detail records from other collection streams. Two mediation nodes are patched; the third is shielded by a Check Point rule until the month-end billing run completes.' },
+    { cve: 'CVE-2026-40763', vendor: 'Ridgeway Wireless', product: 'Ridgeway SmallCell Gateway', family: 'Small-cell security gateway', weakness: 'Hard-coded service credential', cvss: 9.1, kev: false, exploited: false, minAgo: 12 * D + 150, verdict: 'Not affected', phase: 'Closed', counts: {}, summary: 'Older small-cell gateways ship a fixed service password. Kinneret’s enterprise small cells terminate on a different gateway family; confirmed by Tenable and the RAN vendor.' },
+    { cve: 'CVE-2026-42689', vendor: 'Vessant Climate', product: 'Vessant CoolSite Shelter Cooling Manager', family: 'Shelter cooling management', weakness: 'Missing authentication on the set-point API', cvss: 9.5, kev: false, exploited: false, minAgo: 575, verdict: 'Investigating', phase: 'Active response', counts: {}, candidates: 3, summary: 'The cooling manager accepts set-point changes without authentication. Three hub-site units in the Northern region expose a similar interface; Armis is fingerprinting them passively (read-only by policy) and network site engineering is checking with the maintenance contractor.' },
+    { cve: 'CVE-2026-39336', vendor: 'Harcastle', product: 'Harcastle LogBridge collector', family: 'SIEM log collector (security tooling)', weakness: 'Remote code execution in the syslog listener', cvss: 9.8, kev: true, exploited: true, minAgo: 23 * D + 180, verdict: 'Affected', phase: 'Closed', counts: { tooling: 4 }, summary: 'Four collectors forwarding core-site and signalling-firewall logs into Splunk and Sentinel ran a vulnerable listener. All were upgraded within 24 hours; ISO 27001 and PCI DSS logging evidence was refreshed.' },
+    { cve: 'CVE-2026-38841', vendor: 'Tolworth Mobile', product: 'Tolworth eSIM Activation Proxy', family: 'eSIM activation proxy', weakness: 'Insecure direct object reference on activation codes', cvss: 9.0, kev: false, exploited: false, minAgo: 36 * D + 260, verdict: 'Not affected', phase: 'Closed', counts: {}, summary: 'Activation codes can be enumerated to download another subscriber’s eSIM profile. Kinneret activates eSIMs through its subscription manager directly; the platform supplier confirmed the proxy is not in its stack.' },
+  ],
 };
 
 /** Default stems for recent advisories, per sector and source. */
@@ -432,6 +456,11 @@ const DEFAULT_STEMS: CustomerMap<Partial<Record<VrAssetSource, Omit<Stem, 'kind'
     tooling: { code: 'LOG', sites: ['Soho machine room'], tenants: ['post', 'play', 'parks', 'parksasia'], internet: 0, versions: ['4.2.0'], siteByTenant: { post: ['Soho machine room'], play: ['AWS us-east-1'], parks: ['Orlando resort data centre'], parksasia: ['Osaka resort operations centre'] } },
     ot: { code: 'SHOW', sites: ['Show control room'], tenants: ['parks', 'parksasia'], internet: 0, versions: ['2.9.0'] },
   },
+  telco: {
+    core: { code: 'MED', sites: ['Petah Tikva core site'], tenants: ['retail', 'mobile'], internet: 0, versions: ['8.2.1'], siteByTenant: { retail: ['Azure Israel Central', 'Tel Aviv data centre'], mobile: ['Petah Tikva core site'] } },
+    tooling: { code: 'LOG', sites: ['Petah Tikva core site'], tenants: ['mobile', 'retail', 'business', 'intl'], internet: 0, versions: ['4.2.0'], siteByTenant: { mobile: ['Petah Tikva core site'], retail: ['Azure Israel Central'], business: ['Tel Aviv data centre'], intl: ['Haifa cable landing station'] } },
+    ot: { code: 'SITE', sites: ['Hub cell site'], tenants: ['mobile', 'fixed'], internet: 0, versions: ['3.4.0'] },
+  },
 };
 
 const VESSELS = ['Halcyon Aurora', 'Halcyon Borealis', 'Halcyon Meridian', 'Halcyon Tide', 'Halcyon Solent', 'Halcyon Kestrel', 'Halcyon Fjord'];
@@ -462,7 +491,7 @@ function otTool(c: CustomerProfile, tenantId: string): string {
 }
 function owners(c: CustomerProfile, src: VrAssetSource): string[] {
   const p = c.people;
-  const staff = p.staff.filter((s) => (src === 'ot' ? /Engineer|Maintenance|Plant|Biomed|Broadcast|Terminal|Fleet|Chief/i : /IT|Infrastructure|Platform|Service|Engineer|Network|Cloud|Desk/i).test(s.role)).map((s) => s.name);
+  const staff = p.staff.filter((s) => (src === 'ot' ? /Engineer|Maintenance|Plant|Biomed|Broadcast|Terminal|Fleet|Chief(?! Financial)/i : /IT|Infrastructure|Platform|Service|Engineer|Network|Cloud|Desk/i).test(s.role)).map((s) => s.name);
   if (src === 'ot') return [...(p.otLead ? [p.otLead.name] : []), ...staff].slice(0, 4).concat(p.admin.name).slice(0, 4);
   if (src === 'tooling') return [p.socLead.name, p.admin.name];
   return [p.admin.name, ...staff].slice(0, 4);

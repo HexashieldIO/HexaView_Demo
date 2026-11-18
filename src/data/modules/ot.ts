@@ -44,7 +44,8 @@ export const LEVEL_HEX: Record<PurdueLevel, string> = { L4: '#8a9bc0', 'L3.5': '
 export type SiteKind =
   | 'terminal' | 'vessel' | 'dc' | 'atm' | 'office' | 'broadcast' | 'stage' | 'post' | 'hospital' | 'imaging' | 'lab' | 'plant' | 'cellplant'
   | 'printplant' | 'shop' | 'range' | 'api' | 'biologics' | 'aseptic' | 'fillfinish' | 'packaging' | 'specialist' | 'daysurg' | 'labimg'
-  | 'park' | 'waterpark' | 'resort' | 'liveevents';
+  | 'park' | 'waterpark' | 'resort' | 'liveevents'
+  | 'cellsite' | 'exchange' | 'coresite' | 'landing';
 export interface OtSite {
   id: string;
   name: string;
@@ -138,6 +139,15 @@ const SITES: CustomerMap<OtSite[]> = {
     { id: 'orl-live', name: 'Orlando night-time spectacular', kind: 'liveevents', kindLabel: 'Lagoon show · ST 2110, media servers, pyrotechnics', tenantId: 'parks', city: 'Orlando', country: 'US', lat: 28.472, lon: -81.468, weight: 9, source: 'HexaOT sensors', sourceConnector: 'c-hexaot', prefix: 'ORE' },
     { id: 'osa-park', name: 'Starfall Park Osaka', kind: 'park', kindLabel: 'Coasters, dark rides, water ride, parade', tenantId: 'parksasia', city: 'Osaka', country: 'JP', lat: 34.67, lon: 135.43, weight: 22, source: 'Claroty xDome', sourceConnector: 'c-claroty', prefix: 'OSP' },
     { id: 'osa-resort', name: 'Osaka resort hotels & CityWalk', kind: 'resort', kindLabel: 'Hotels, retail walk, StarPass gates, BMS', tenantId: 'parksasia', city: 'Osaka', country: 'JP', lat: 34.665, lon: 135.435, weight: 10, source: 'Armis Centrix', sourceConnector: 'c-armis', prefix: 'OSH' },
+  ],
+  // Kinneret: network and site infrastructure is the OT (cell sites, fibre exchanges, core site, data centres, cable landing station).
+  telco: [
+    { id: 'cells-north', name: 'Northern cell-site region', kind: 'cellsite', kindLabel: '880 cell sites · DC power, generators, cooling, site controllers', tenantId: 'mobile', city: 'Haifa district', country: 'IL', lat: 32.92, lon: 35.3, weight: 22, source: 'Armis Centrix', sourceConnector: 'c-armis', prefix: 'CSN' },
+    { id: 'cells-south', name: 'Central & southern cell-site region', kind: 'cellsite', kindLabel: '2,060 cell sites · DC power, generators, cooling, site controllers', tenantId: 'mobile', city: 'Tel Aviv to the Negev', country: 'IL', lat: 31.6, lon: 34.85, weight: 46, source: 'Armis Centrix', sourceConnector: 'c-armis', prefix: 'CSS' },
+    { id: 'core', name: 'Petah Tikva core site', kind: 'coresite', kindLabel: 'Mobile core and aggregation halls · power, cooling, fire, access', tenantId: 'mobile', city: 'Petah Tikva', country: 'IL', lat: 32.09, lon: 34.89, weight: 5, source: 'HexaOT sensors', sourceConnector: 'c-hexaot', prefix: 'PTK' },
+    { id: 'fibre', name: 'Fibre exchanges & street cabinets', kind: 'exchange', kindLabel: '38 exchanges · 1,900 powered street cabinets', tenantId: 'fixed', city: 'Rishon LeZion', country: 'IL', lat: 31.97, lon: 34.8, weight: 14, source: 'Armis Centrix', sourceConnector: 'c-armis', prefix: 'FBR' },
+    { id: 'dc', name: 'Tel Aviv & Haifa data centres', kind: 'dc', kindLabel: 'Two hosting data centres · BMS, chillers, UPS, generators', tenantId: 'business', city: 'Tel Aviv', country: 'IL', lat: 32.07, lon: 34.79, weight: 9, source: 'Claroty xDome', sourceConnector: 'c-claroty', prefix: 'TDC' },
+    { id: 'cls', name: 'Haifa cable landing station', kind: 'landing', kindLabel: 'Subsea cable landing · power feed, cooling, generators (relays Limassol and Athens PoPs)', tenantId: 'intl', city: 'Haifa', country: 'IL', lat: 32.82, lon: 34.99, weight: 4, source: 'Claroty xDome', sourceConnector: 'c-claroty', prefix: 'CLS' },
   ],
 };
 
@@ -397,6 +407,36 @@ const TYPES: CustomerMap<AssetType[]> = {
     { name: 'Ride sensors & safety I/O', level: 'L0', kinds: ['park', 'waterpark'], share: 22, vendor: 'Siemens', model: 'ET 200SP F', abbr: 'IO', fw: ['4.1', '4.2', '4.5'], protocols: ['PROFINET / PROFIsafe'], zone: 'Ride control', consequence: 4, consequenceText: 'Proximity, restraint and block sensors' },
     { name: 'Projection & LED fixtures', level: 'L0', kinds: ['park', 'liveevents'], share: 8, vendor: 'Christie Digital', model: 'Griffyn 4K35-RGB', abbr: 'FIX', fw: ['1.4', '1.6', '2.0'], protocols: ['Art-Net / sACN'], zone: 'Show control & media', consequence: 2, consequenceText: 'Show image on screens and facades' },
     { name: 'Hotel room & IoT controls', level: 'L0', kinds: ['resort'], share: 14, vendor: 'Honeywell', model: 'INNCOM e7 room controller', abbr: 'IOT', fw: ['3.6', '3.8', '4.0'], protocols: ['BACnet/IP'], zone: 'Building & life safety', consequence: 1, consequenceText: 'Room comfort and occupancy' },
+  ],
+  telco: [
+    { name: 'Site alarm & fault management server (OSS)', level: 'L4', kinds: ['coresite'], share: 0.6, vendor: 'Nokia', model: 'NetAct fault management node', abbr: 'OSS', fw: ['20', '22', '24'], protocols: ['SNMP'], zone: 'Corporate & network operations IT', consequence: 3, consequenceText: 'Site alarms stop reaching the NOC' },
+    { name: 'DCIM server', level: 'L4', kinds: ['dc', 'landing'], share: 0.4, vendor: 'Schneider Electric', model: 'EcoStruxure IT Expert', abbr: 'DCIM', fw: ['2.4', '2.6', '2.8'], protocols: ['SNMP'], zone: 'Corporate & network operations IT', consequence: 2, consequenceText: 'Capacity and alarm visibility for the halls' },
+    { name: 'Site management jump host', level: 'L3.5', kinds: ['cellsite', 'exchange', 'coresite', 'dc', 'landing'], share: 0.3, vendor: 'Microsoft', model: 'Windows Server 2022', abbr: 'JMP', fw: ['21H2', '22H2', '23H2'], protocols: ['RDP'], zone: 'Site management DMZ', consequence: 4, consequenceText: 'Brokered path into site power, cooling and access control' },
+    { name: 'Passive sensor / collector', level: 'L3.5', kinds: ['cellsite', 'exchange', 'coresite', 'dc', 'landing'], share: 0.2, vendor: 'HexaShield', model: 'Edge 1.9', abbr: 'EDG', fw: ['1.8.7', '1.9.1', '1.9.2'], protocols: [], zone: 'Site management DMZ', consequence: 1, consequenceText: 'Loss of visibility only (passive)' },
+    { name: 'Power & environment monitoring head-end', level: 'L3', kinds: ['coresite', 'exchange'], share: 0.3, vendor: 'Delta Electronics', model: 'InfraSuite Device Master', abbr: 'PEM', fw: ['1.0.5', '1.0.7', '1.0.9'], protocols: ['SNMP', 'Modbus/TCP'], zone: 'Site power', consequence: 4, consequenceText: 'Supervision of rectifiers, batteries and generators across unmanned sites' },
+    { name: 'BMS server', level: 'L3', kinds: ['coresite', 'dc', 'landing'], share: 0.3, vendor: 'Siemens', model: 'Desigo CC', abbr: 'BMS', fw: ['5.1', '6.0', '7.0'], protocols: ['BACnet/IP', 'Modbus/TCP'], zone: 'Building management', consequence: 4, consequenceText: 'Supervision of cooling, power and fire systems in the halls' },
+    { name: 'Access control & video server', level: 'L3', kinds: ['coresite', 'dc', 'landing', 'exchange'], share: 0.3, vendor: 'Genetec', model: 'Security Center', abbr: 'ACS', fw: ['5.10', '5.11', '5.12'], protocols: ['HTTPS'], zone: 'Physical security', consequence: 3, consequenceText: 'Door control and video evidence for unmanned sites' },
+    { name: 'Tower site controller (RTU)', level: 'L2', kinds: ['cellsite'], share: 14, vendor: 'Moxa', model: 'ioLogik E1200 site RTU', abbr: 'RTU', fw: ['3.1', '3.3', '3.4'], protocols: ['Modbus/TCP', 'SNMP', 'MQTT'], zone: 'Site control & cooling', consequence: 4, consequenceText: 'Remote view and control of power, cooling and door alarms at an unmanned site' },
+    { name: 'Street cabinet controller', level: 'L2', kinds: ['exchange'], share: 20, vendor: 'Rittal', model: 'CMC III processing unit', abbr: 'CAB', fw: ['3.15', '3.17', '3.19'], protocols: ['SNMP', 'Modbus/TCP'], zone: 'Site control & cooling', consequence: 3, consequenceText: 'Power, temperature and door alarms for a fibre access node' },
+    { name: 'BMS controller', level: 'L2', kinds: ['coresite', 'dc', 'landing'], share: 5, vendor: 'Siemens', model: 'Desigo PXC4', abbr: 'PXC', fw: ['01.20', '01.21', '02.00'], protocols: ['BACnet/IP'], zone: 'Building management', consequence: 4, consequenceText: 'Cooling set-points and hall alarms' },
+    { name: 'Power monitoring gateway', level: 'L2', kinds: ['coresite', 'dc', 'landing'], share: 2.5, vendor: 'Schneider Electric', model: 'PowerLogic Link150', abbr: 'PMG', fw: ['4.2', '4.8', '5.1'], protocols: ['Modbus/TCP', 'SNMP'], zone: 'Site power', consequence: 3, consequenceText: 'Power quality visibility' },
+    { name: 'Site door controller & CCTV', level: 'L2', kinds: ['cellsite', 'exchange'], share: 6, vendor: 'Axis', model: 'A1601 network door controller', abbr: 'DOOR', fw: ['10.12', '11.8', '11.11'], protocols: ['HTTPS', 'HTTP'], zone: 'Physical security', consequence: 3, consequenceText: 'Entry to unmanned sites and tamper alarms' },
+    { name: 'Rectifier & DC power controller', level: 'L1', kinds: ['cellsite', 'exchange', 'coresite'], share: 16, vendor: 'Eltek', model: 'Smartpack2 controller', abbr: 'RCT', fw: ['2.0', '2.3', '2.5'], protocols: ['SNMP', 'Modbus/TCP'], zone: 'Site power', consequence: 5, consequenceText: 'DC power to radio and transmission equipment' },
+    { name: 'Standby generator controller', level: 'L1', kinds: ['cellsite', 'exchange'], share: 8, vendor: 'Deep Sea Electronics', model: 'DSE7320 MKII', abbr: 'GEN', fw: ['1.4', '2.0', '2.2'], protocols: ['Modbus RTU over IP'], zone: 'Site power', consequence: 5, consequenceText: 'Backup power when the grid fails' },
+    { name: 'Generator paralleling controller', level: 'L1', kinds: ['coresite', 'dc', 'landing'], share: 0.8, vendor: 'Cummins', model: 'PowerCommand 3.3', abbr: 'GPC', fw: ['2.5', '2.7', '3.0'], protocols: ['Modbus/TCP'], zone: 'Site power', consequence: 5, consequenceText: 'Backup power to the halls and the cable power feed' },
+    { name: 'Shelter HVAC & free-cooling controller', level: 'L1', kinds: ['cellsite', 'exchange'], share: 9, vendor: 'Carel', model: 'pCO5+ shelter controller', abbr: 'HVC', fw: ['1.8', '2.1', '2.4'], protocols: ['Modbus RTU over IP', 'BACnet/IP'], zone: 'Site control & cooling', consequence: 4, consequenceText: 'Shelter temperature; equipment shuts down on overheat' },
+    { name: 'UPS & static transfer switch', level: 'L1', kinds: ['coresite', 'dc', 'landing'], share: 3, vendor: 'Vertiv', model: 'Liebert EXL S1', abbr: 'UPS', fw: ['1.2', '1.4', '1.6'], protocols: ['SNMP', 'Modbus/TCP'], zone: 'Site power', consequence: 5, consequenceText: 'Power to the halls through a grid event' },
+    { name: 'Rack UPS (network management card)', level: 'L1', kinds: ['exchange', 'coresite', 'dc', 'landing'], share: 2, vendor: 'APC by Schneider Electric', model: 'Smart-UPS SRT with network card', abbr: 'RUPS', fw: ['1.4', '2.2', '3.0'], protocols: ['SNMP', 'HTTPS'], zone: 'Site power', consequence: 3, consequenceText: 'Power to access switches and management equipment' },
+    { name: 'Chiller plant PLC', level: 'L1', kinds: ['dc', 'landing'], share: 1.5, vendor: 'Schneider Electric', model: 'Modicon M580', abbr: 'CHL', fw: ['3.10', '3.20', '4.10'], protocols: ['Modbus/TCP'], zone: 'Building management', consequence: 5, consequenceText: 'Chilled water to the data halls' },
+    { name: 'Precision cooling unit', level: 'L1', kinds: ['coresite', 'dc', 'landing'], share: 4, vendor: 'Vertiv', model: 'Liebert PDX with iCOM', abbr: 'CRAH', fw: ['2.5', '2.7', '3.0'], protocols: ['BACnet/IP', 'SNMP'], zone: 'Building management', consequence: 4, consequenceText: 'Hall supply-air temperature' },
+    { name: 'Fuel transfer & day-tank PLC', level: 'L1', kinds: ['coresite', 'dc', 'landing'], share: 0.6, vendor: 'Unitronics', model: 'Vision V570', abbr: 'DTK', fw: ['9.8.9', '9.9.0', '9.9.1'], protocols: ['Modbus/TCP'], zone: 'Site power', consequence: 4, consequenceText: 'Fuel supply to the standby generators' },
+    { name: 'MV switchgear RTU', level: 'L1', kinds: ['coresite', 'dc', 'landing'], share: 0.8, vendor: 'Siemens', model: 'SICAM A8000 CP-8050', abbr: 'MVS', fw: ['4.70', '5.10', '5.30'], protocols: ['DNP3'], zone: 'Site power', consequence: 5, consequenceText: 'Grid intake and transfer to generators' },
+    { name: 'Fire suppression panel', level: 'L1', kinds: ['coresite', 'dc', 'landing', 'exchange'], share: 1, vendor: 'Honeywell', model: 'Notifier NFS2-3030', abbr: 'FIRE', fw: ['20.0', '21.0', '22.1'], protocols: ['BACnet/IP'], zone: 'Fire & life safety', consequence: 5, consequenceText: 'Gas release and hall evacuation' },
+    { name: 'Power feed equipment monitor', level: 'L1', kinds: ['landing'], share: 0.6, vendor: 'Cable system supplier', model: 'PFE supervisory unit', abbr: 'PFE', fw: ['R4.1', 'R4.3', 'R5.0'], protocols: ['SNMP'], zone: 'Landing-station plant', consequence: 5, consequenceText: 'High-voltage feed that powers the subsea cable repeaters' },
+    { name: 'Battery string monitor', level: 'L0', kinds: ['cellsite', 'exchange', 'coresite', 'dc', 'landing'], share: 18, vendor: 'Vertiv', model: 'Alber battery monitor', abbr: 'BAT', fw: ['3.2', '3.4', '3.6'], protocols: ['Modbus RTU over IP'], zone: 'Site power', consequence: 3, consequenceText: 'Battery autonomy during a grid outage' },
+    { name: 'Fuel tank telemetry unit', level: 'L0', kinds: ['cellsite', 'coresite', 'dc', 'landing'], share: 4, vendor: 'Veeder-Root', model: 'TLS4 tank gauge', abbr: 'FUEL', fw: ['8.A', '9.B', '10.A'], protocols: ['MQTT'], zone: 'Site power', consequence: 3, consequenceText: 'Generator runtime; a wrong level leaves a site dark in a long outage' },
+    { name: 'Shelter environmental & door sensors', level: 'L0', kinds: ['cellsite', 'exchange'], share: 22, vendor: 'AKCP', model: 'sensorProbe2+', abbr: 'ENV', fw: ['1.0', '1.2', '1.4'], protocols: ['SNMP', 'MQTT'], zone: 'Site control & cooling', consequence: 2, consequenceText: 'Temperature, humidity, smoke and door state at the site' },
+    { name: 'Hall sensors & rack PDUs', level: 'L0', kinds: ['coresite', 'dc', 'landing'], share: 20, vendor: 'Raritan', model: 'PX3 intelligent PDU', abbr: 'PDU', fw: ['3.6', '4.0', '4.2'], protocols: ['SNMP'], zone: 'Building management', consequence: 2, consequenceText: 'Rack power and hall environment readings' },
   ],
 };
 
@@ -679,6 +719,21 @@ const VULN_MAP: CustomerMap<VulnMap[]> = {
     { cve: 'CVE-2019-12256', type: 'Fire alarm panel', reach: 0, patch: 'Unpatchable by design (safety case)', path: 'Isolated fire network; monitored by the resort fire command centre', controls: ['Physically isolated loop'] },
     { cve: 'CVE-2023-48795', type: 'Pyrotechnic firing system', reach: 0, patch: 'Unpatchable by design (safety case)', path: 'Isolated firing network; armed only by key at the show', controls: ['Physical arming key', 'Two-person firing rule'] },
   ],
+  telco: [
+    { cve: 'CVE-2019-12256', type: 'Tower site controller (RTU)', reach: 3, patch: 'No vendor fix', path: 'Contractor jump host (Galil Tower Services) → regional backhaul → tower site controllers', controls: ['CyberArk-brokered contractor sessions (partial)', 'RTU management ACLs'] },
+    { cve: 'CVE-2020-11896', type: 'Rectifier & DC power controller', reach: 2, patch: 'Patch needs outage window', path: 'Regional management VLAN → rectifier controllers (SNMP and web interface)', controls: ['Management VLAN ACLs', 'Web interface disabled on 2,140 of 2,940 cell sites'] },
+    { cve: 'CVE-2020-11896', type: 'Street cabinet controller', reach: 2, patch: 'No vendor fix', path: 'Access-network management VLAN → cabinet controllers', controls: ['Cabinet management VLAN ACLs'] },
+    { cve: 'CVE-2023-1133', type: 'Power & environment monitoring head-end', reach: 2, patch: 'Vendor patch available', path: 'Corporate & network operations IT → monitoring head-end', controls: ['SentinelOne on the head-end server'] },
+    { cve: 'CVE-2021-44228', type: 'Site alarm & fault management server (OSS)', reach: 2, patch: 'Vendor patch available', path: 'Network operations IT → OSS north-bound interface', controls: ['Outbound directory lookups blocked', 'Check Point IPS virtual patch'] },
+    { cve: 'CVE-2024-38063', type: 'Site management jump host', reach: 2, patch: 'Vendor patch available', path: 'Corporate IT → site management DMZ (IPv6 enabled)', controls: ['IPv6 disabled on 9 of 14 hosts'] },
+    { cve: 'CVE-2021-22779', type: 'Chiller plant PLC', reach: 2, patch: 'Vendor patch available', path: 'Corporate IT → BMS server → chiller plant controllers', controls: ['BMS jump host with MFA', 'Application password set on the controllers'] },
+    { cve: 'CVE-2022-22806', type: 'Rack UPS (network management card)', reach: 2, patch: 'Vendor patch available', path: 'Corporate IT → site management DMZ → UPS network cards', controls: ['Management VLAN ACLs', 'Cloud registration disabled'] },
+    { cve: 'CVE-2023-6448', type: 'Fuel transfer & day-tank PLC', reach: 1, patch: 'Vendor patch available', path: 'Building management → fuel system PLC (Modbus/TCP)', controls: ['Default password changed on 5 of 6 controllers', 'Programming port blocked at the conduit firewall'] },
+    { cve: 'CVE-2023-28489', type: 'MV switchgear RTU', reach: 1, patch: 'Patch needs outage window', path: 'Site power network → grid-intake conduit (DNP3)', controls: ['Conduit firewall with protocol allow-list', 'Switching restricted to the local panel'] },
+    { cve: 'CVE-2024-6387', type: 'BMS server', reach: 2, patch: 'Vendor patch available', path: 'Corporate IT → site management DMZ → BMS server (SSH)', controls: ['SSH limited to the site jump host'] },
+    { cve: 'CVE-2019-12256', type: 'Fire suppression panel', reach: 0, patch: 'Unpatchable by design (safety case)', path: 'Isolated fire network; monitored by the alarm receiving centre', controls: ['Physically isolated loop'] },
+    { cve: 'CVE-2023-48795', type: 'Power feed equipment monitor', reach: 0, patch: 'Unpatchable by design (safety case)', path: 'Isolated plant network; cable system supplier attends on site', controls: ['No routed path from IT', 'Two-person rule for any power feed change'] },
+  ],
 };
 
 function ip(r: ReturnType<typeof rng>, level: PurdueLevel, siteIdx: number): string {
@@ -910,6 +965,21 @@ const FLOWS: CustomerMap<ZoneFlow[]> = {
     { from: 'Staff & guest Wi-Fi', to: 'Guest entry', value: 6, unexpected: true, note: 'StarPass gate controllers at the Osaka hotels answering on the guest Wi-Fi', kinds: ['resort'] },
     { from: 'Engineering laptop (transient)', to: 'Water rides', value: 4, unexpected: true, note: 'Contractor laptop on the pump-house network at Starfall Lagoon after the filtration upgrade', kinds: ['waterpark'] },
   ],
+  telco: [
+    { from: 'Corporate & network operations IT', to: 'Site management DMZ (L3.5)', value: 420, kinds: ['cellsite', 'exchange', 'coresite', 'dc', 'landing'] },
+    { from: 'Vendor remote access', to: 'Site management DMZ (L3.5)', value: 90, kinds: ['cellsite', 'exchange', 'coresite', 'dc', 'landing'] },
+    { from: 'Site management DMZ (L3.5)', to: 'Site power', value: 260, kinds: ['cellsite', 'exchange', 'coresite', 'dc', 'landing'] },
+    { from: 'Site management DMZ (L3.5)', to: 'Site control & cooling', value: 210, kinds: ['cellsite', 'exchange'] },
+    { from: 'Site management DMZ (L3.5)', to: 'Building management', value: 120, kinds: ['coresite', 'dc', 'landing'] },
+    { from: 'Site management DMZ (L3.5)', to: 'Landing-station plant', value: 14, kinds: ['landing'] },
+    { from: 'Facilities IT', to: 'Physical security', value: 80, kinds: ['cellsite', 'exchange', 'coresite', 'dc', 'landing'] },
+    { from: 'Facilities IT', to: 'Fire & life safety', value: 12, kinds: ['coresite', 'dc', 'landing', 'exchange'] },
+    { from: 'Vendor remote access', to: 'Site control & cooling', value: 11, unexpected: true, note: 'A Galil Tower Services laptop reached tower site controllers in the Northern region over a 4G router left in a shelter, bypassing the CyberArk broker', kinds: ['cellsite'] },
+    { from: 'Corporate & network operations IT', to: 'Site power', value: 13, unexpected: true, note: 'An OSS reporting server at Petah Tikva polling rectifier controllers directly with a shared SNMP community, bypassing the site management DMZ', kinds: ['coresite'] },
+    { from: 'Vendor remote access', to: 'Landing-station plant', value: 4, unexpected: true, note: 'Cable system supplier session to the power feed monitor at the Haifa landing station outside the booked maintenance window', kinds: ['landing'] },
+    { from: 'Engineering laptop (transient)', to: 'Building management', value: 5, unexpected: true, note: 'Cooling contractor laptop on the BMS network at the Tel Aviv data centre after the chiller upgrade', kinds: ['dc'] },
+    { from: 'Technician Wi-Fi', to: 'Physical security', value: 6, unexpected: true, note: 'Door controllers at Fibre exchanges answering on the technician Wi-Fi', kinds: ['exchange'] },
+  ],
 };
 
 export function zoneFlows(c: CustomerProfile, tenantId: string): ZoneFlow[] {
@@ -1007,6 +1077,16 @@ const ALERT_SEEDS: CustomerMap<{ sev: Severity; title: string; kind: SiteKind; a
     { sev: 'high', title: 'Pump drive speed reference changed outside a work order', kind: 'waterpark', asset: 'VFD', technique: 'T0836', detail: 'A Modbus write raised the speed reference on a flume pump drive at Starfall Lagoon; no work order and the ride was open.' },
     { sev: 'medium', title: 'Unknown device on the live events ST 2110 network', kind: 'liveevents', asset: 'RTR', technique: 'T0846', detail: 'mDNS and NMOS discovery from an unregistered device on the night-time show network during rehearsal.' },
     { sev: 'medium', title: 'StarPass gate controller accepting the factory login', kind: 'resort', asset: 'GATE', technique: 'T0859', detail: 'A hotel entrance gate controller accepted the shipped administrator login over HTTP.' },
+  ],
+  telco: [
+    { sev: 'critical', title: 'Program download to a chiller plant controller outside the change window', kind: 'dc', asset: 'CHL', technique: 'T0843', detail: 'A program download reached a chiller plant controller at the Tel Aviv data centre from a cooling contractor laptop, with no approved change in ServiceNow and both halls in production.' },
+    { sev: 'high', title: 'Generator controller parameters changed at 23 cell sites outside the change window', kind: 'cellsite', asset: 'GEN', technique: 'T0836', detail: 'Writes to start-delay and low-fuel thresholds arrived from the tower contractor jump host with no approved change. Battery autonomy is unaffected and the NOC has the previous values on record.' },
+    { sev: 'high', title: 'Tower contractor session reached site controllers without the access broker', kind: 'cellsite', asset: 'RTU', technique: 'T0886', detail: 'Remote-support traffic arrived over a 4G router left in a shelter rather than through CyberArk; the session was not recorded.' },
+    { sev: 'high', title: 'Power feed monitor accessed outside the booked maintenance window', kind: 'landing', asset: 'PFE', technique: 'T0886', detail: 'A cable system supplier session reached the power feed supervisory unit at the Haifa landing station on a day with no maintenance booking. Read-only; no set-point change observed.' },
+    { sev: 'high', title: 'Rectifier controllers polled with a shared community string from a reporting server', kind: 'coresite', asset: 'RCT', technique: 'T0859', detail: 'An OSS reporting server polled rectifier controllers directly with a shared SNMP v2c community instead of going through the site management DMZ.' },
+    { sev: 'medium', title: 'Shelter cooling set-point raised outside a work order', kind: 'cellsite', asset: 'HVC', technique: 'T0836', detail: 'The high-temperature set-point was raised at 6 shelters; nothing matches in the field-service system.' },
+    { sev: 'medium', title: 'Unknown laptop on the data-centre BMS network', kind: 'dc', asset: 'PXC', technique: 'T0846', detail: 'An unregistered laptop browsed BACnet devices on the BMS network for 12 minutes after the chiller upgrade.' },
+    { sev: 'medium', title: 'Street cabinet door controller accepting the factory login', kind: 'exchange', asset: 'DOOR', technique: 'T0859', detail: 'A door controller at a fibre exchange accepted the shipped administrator login from the technician Wi-Fi.' },
   ],
 };
 
@@ -1270,6 +1350,16 @@ const ENG_SEEDS: CustomerMap<EngSeed[]> = {
     { site: 'osa-resort', name: 'Osaka hotels gate and BMS review', objective: 'Separate StarPass gates and hotel BMS from guest Wi-Fi', phase: 4, status: 'Complete', scope: 'Passive only', scopeDetail: 'Passive capture on hotel back-of-house VLANs', zones: ['Guest entry', 'Building & life safety'], standards: ['IEC 62443-3-3', 'PCI DSS 1.3'],
       findings: [['flat', 'medium', 'Gate controllers answered on the guest Wi-Fi', 'Guest entry'], ['creds', 'low', 'Gate controllers used the shipped administrator login', 'Guest entry']] },
   ],
+  telco: [
+    { site: 'cells-north', name: 'Northern region cell-site controller assessment', objective: 'Prove site power and cooling controllers cannot be reached from corporate IT or contractor paths', phase: 2, status: 'In progress', scope: 'Passive only', scopeDetail: 'Passive capture at regional aggregation switches and 12 sample shelters; nothing is sent to site controllers', zones: ['Site control & cooling', 'Site power', 'Site management DMZ'], standards: ['IEC 62443-3-3', 'ISO/IEC 27011'],
+      findings: [['remote', 'critical', 'A contractor 4G router inside a shelter reaches tower site controllers without the access broker', 'Site control & cooling'], ['creds', 'high', 'Generator controllers accept the manufacturer default PIN at 61 sites', 'Site power'], ['proto', 'high', 'Rectifier controllers accept set-point writes from any host on the regional management VLAN', 'Site power'], ['logging', 'medium', 'Site controller events are not forwarded to Splunk', 'Site control & cooling']] },
+    { site: 'cls', name: 'Haifa cable landing station plant review', objective: 'Confirm the power feed and cooling plant are isolated from IT, co-location tenants and supplier paths', phase: 3, status: 'In progress', scope: 'Approved active (bounded)', scopeDetail: 'Bounded checks on the station management DMZ only, with the station manager on site; power feed equipment passive-only', zones: ['Landing-station plant', 'Building management', 'Site management DMZ'], standards: ['IEC 62443-3-3', 'ISO 22301'],
+      findings: [['remote', 'high', 'A cable system supplier modem bypasses the station management DMZ', 'Landing-station plant'], ['flat', 'medium', 'Co-location cages share a management VLAN with the BMS controllers', 'Building management'], ['logging', 'medium', 'Power feed supervisory events are held locally for up to 3 hours', 'Landing-station plant']] },
+    { site: 'dc', name: 'Tel Aviv & Haifa data-centre power and cooling assessment', objective: 'SOC 2 and ISO 22301 evidence that facilities control cannot be reached from customer or corporate networks', phase: 4, status: 'Reporting', scope: 'Passive only', scopeDetail: 'Passive capture on the BMS and power monitoring networks', zones: ['Building management', 'Site power'], standards: ['IEC 62443-3-3', 'EN 50600'],
+      findings: [['media', 'medium', 'Cooling contractor laptops join the BMS network unchecked', 'Building management'], ['creds', 'medium', 'Two chiller plant controllers share one application password', 'Building management'], ['legacy', 'low', 'One BMS server runs an operating system past vendor support', 'Building management']] },
+    { site: 'core', name: 'Petah Tikva core site facilities segmentation validation', objective: 'Validate the new site management DMZ before the 5G core software upgrade', phase: 1, status: 'Awaiting safety approval', scope: 'Approved active (bounded)', scopeDetail: 'Proposed: bounded checks from the DMZ in the network maintenance window; power and cooling controllers passive-only', zones: ['Site management DMZ', 'Site power', 'Building management'], standards: ['IEC 62443-3-3'], findings: [] },
+    { site: 'fibre', name: 'Fibre exchange and street cabinet scoping', objective: 'Agree scope after door controllers answered on the technician Wi-Fi', phase: 0, status: 'Scoping', scope: 'Passive only', scopeDetail: 'Passive only: sensor feed review and a walkthrough of 4 sample exchanges', zones: ['Physical security', 'Site control & cooling'], standards: ['IEC 62443-3-3'], findings: [] },
+  ],
 };
 
 const STOP_COMMON = [
@@ -1289,6 +1379,7 @@ const STOP_SECTOR: CustomerMap<string[]> = {
   pharma: ['Any pressure-cascade, EMS or batch-critical alarm in the affected suite', 'A GMP batch enters an aseptic or sterilisation step'],
   sghospital: ['Any patient-care alarm or device alert on the affected ward', 'A Code Red or mass-casualty plan is activated, or a linac treatment session begins'],
   studio: ['Any ride e-stop, block fault or restraint alarm on the affected attraction', 'The park opens to guests or a show performance begins'],
+  telco: ['Any rectifier, battery, generator or cooling alarm at the affected site', 'A network major incident is declared or a core maintenance window begins'],
 };
 
 const SITE_PEOPLE: CustomerMap<[string, string][]> = {
@@ -1302,6 +1393,7 @@ const SITE_PEOPLE: CustomerMap<[string, string][]> = {
   pharma: [['Marco Gerber', 'MES & Automation Lead, Valais'], ['Dr. Reto Schmid', 'Qualified Person (QP), Valais'], ["Sarah O'Connell", 'Site Head, Cork Fill-Finish'], ['Fabian Imhof', 'Head of Global Manufacturing & Supply']],
   sghospital: [['Farah Iskandar', 'Biomedical Engineer'], ['Weijie Ho', 'Radiology PACS Administrator'], ['Joel Tay', 'Senior Nurse Manager, ICU'], ['Clara Seah', 'Director of Quality & Patient Safety']],
   studio: [['Hiroshi Tanaka', 'Ride Systems Engineer, Osaka'], ['Carla Mendes', 'Ride Maintenance Manager, Orlando'], ['Jordan Pike', 'Show Control Lead, Orlando'], ['James Thornton', 'Chairman, Parks & Experiences']],
+  telco: [['Nadav Erez', 'Head of Network & Site Infrastructure Security'], ['Yara Nasser', 'Network Operations Centre Shift Lead'], ['Ziv Carmeli', 'Cable Landing Station Manager, Haifa'], ['Karim Saba', 'Mobile Core Engineering Lead'], ['Tal Shoshani', 'Data Centre Facilities Manager, Tel Aviv']],
 };
 const TESTERS = ['Elena Varga', 'Tom Ridley', 'Yusuf Demir', 'Sakura Ito'];
 
@@ -1317,6 +1409,7 @@ const WINDOW_NOTE: CustomerMap<string> = {
   pharma: 'campaign changeover, QA on site',
   sghospital: 'after the last theatre list, biomed on site',
   studio: 'park closed, ride maintenance shift',
+  telco: 'network maintenance window, NOC and field engineer on standby',
 };
 
 export function otEngagements(c: CustomerProfile, tenantId: string): OtEngagement[] {
@@ -1485,6 +1578,13 @@ export const SECTOR: CustomerMap<SectorWords> = {
     safetyHint: 'failure can injure guests or cast',
     patchEvidence: 'IEC 62443-2-3 and ASTM F2291 ride change control',
   },
+  telco: {
+    sitesHint: 'cell sites, exchanges, core, DCs, landing station', net: 'site infrastructure network', dev: 'site controller', team: 'network site engineering',
+    belowLine: 'Below this line is site infrastructure — assets here keep cell sites, data halls and the cable landing station powered and cooled',
+    levels: { L4: { name: 'Corporate & network IT', desc: 'OSS, DCIM and corporate systems that reach into site infrastructure' }, 'L3.5': { name: 'Site management DMZ', desc: 'Jump hosts and collectors every connection into site plant should pass through' }, L3: { name: 'Site supervision', desc: 'Power and environment head-ends, BMS and access control servers' }, L2: { name: 'Supervisory', desc: 'Tower site controllers, cabinet controllers, BMS controllers and power gateways' }, L1: { name: 'Power & cooling control', desc: 'Rectifiers, generators, UPS, chillers, cooling units, fire panels and the power feed monitor' }, L0: { name: 'Sensors & monitors', desc: 'Battery monitors, fuel telemetry, environmental sensors and rack PDUs' } },
+    safetyHint: 'failure takes sites or halls off air',
+    patchEvidence: 'IEC 62443-2-3 and ISO/IEC 27011',
+  },
 };
 
 export const LEVEL_NUM: Record<PurdueLevel, string> = { L4: '5–4', 'L3.5': '3.5', L3: '3', L2: '2', L1: '1', L0: '0' };
@@ -1546,7 +1646,7 @@ export function otSensors(c: CustomerProfile, tenantId: string): OtSensor[] {
       if (s.airGapped) {
         lastSync = bundleAgeMin(c);
         note = `Air-gapped: reports by signed bundle every ${s.bundleHours ?? 6} h`;
-      } else if (conn && conn.status !== 'healthy' && i === 0 && (c.id !== 'healthcare' || s.id === 'mar')) {
+      } else if (conn && conn.status !== 'healthy' && i === 0 && (c.id !== 'healthcare' || s.id === 'mar') && (c.id !== 'telco' || s.id === 'cls')) {
         health = 'Attention';
         lastSync = conn.lastSyncMin;
         note = conn.note ?? 'Feed delayed';
@@ -1783,6 +1883,7 @@ const PROTO_META: Record<string, [OtProtocol['kind'], string, boolean]> = {
   'Proprietary bed link': ['Medical', 'Bed status and bed-exit alarms to nurse call', false],
   SIP: ['General purpose', 'Nurse-call voice and alerts', false],
   MQTT: ['General purpose', 'Sensor telemetry to dashboards', false],
+  'Modbus RTU over IP': ['Industrial', 'Serial Modbus carried over IP to generator, cooling and battery controllers', false],
   'CAN / DoIP': ['Vehicle', 'ECU flashing and diagnostics at end of line', false],
   SNMP: ['General purpose', 'Device health polling', false],
   HTTPS: ['General purpose', 'Encrypted management interfaces', true],

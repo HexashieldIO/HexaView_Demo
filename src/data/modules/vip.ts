@@ -143,6 +143,8 @@ const NAMES: CustomerMap<{ first: string[]; last: string[] }> = {
   pharma: { first: ['Beat', 'Corinne', 'Urs', 'Monika', 'Stefan', 'Brigitte', 'Pascal', 'Sandrine', 'Aoife', 'Ciarán', 'Siobhán', 'Jennifer', 'Michael', 'Katrin'], last: ['Baumgartner', 'Huber', 'Frey', 'Gerber', 'Brunner', 'Rochat', 'Fournier', 'Bonvin', 'Kennedy', 'Lynch', 'Doherty', 'Reynolds'] },
   sghospital: { first: ['Wei Ming', 'Siew Ling', 'Kok Leong', 'Hui Min', 'Mohamed', 'Siti', 'Rajesh', 'Kavitha', 'Jun Jie', 'Mei Ling', 'Hakim', 'Anand'], last: ['Tan', 'Lim', 'Ng', 'Chan', 'Lee', 'Yeo', 'Ismail', 'Hassan', 'Menon', 'Krishnan', 'Chong', 'Teo'] },
   studio: { first: ['Jordan', 'Madeline', 'Spencer', 'Vanessa', 'Dominic', 'Charlotte', 'Rupert', 'Imogen', 'Kenji', 'Yuki', 'Haruto', 'Miranda', 'Trevor', 'Selena'], last: ['Ashby', 'Delacroix', 'Montgomery', 'Harrington', 'Pryce', 'Okonkwo', 'Fairfax', 'Takahashi', 'Watanabe', 'Kobayashi', 'Sinclair', 'Vance'] },
+  // First names and surnames each in use across Israel's communities, so any random pairing reads naturally.
+  telco: { first: ['Adam', 'Rami', 'Yasmin', 'Lina', 'Sami', 'Nadia', 'Miriam', 'Noor', 'Sara', 'Elias', 'Nina', 'Hanna', 'Dan', 'Tali'], last: ['Halabi', 'Masri', 'Najjar', 'Abadi', 'Tawil', 'Harari', 'Shami', 'Sabag', 'Zaken', 'Hakim', 'Mualem', 'Amar'] },
 };
 const EXTRA_ROLES: CustomerMap<[string, VipTier][]> = {
   maritime: [['Chair of the Supervisory Board', 'Board'], ['Chief Operating Officer', 'Executive'], ['General Counsel', 'Executive'], ['Non-executive director', 'Board'], ['Chief Commercial Officer', 'Executive'], ['Designated Person Ashore', 'Key person'], ['Chief Technology Officer', 'Executive'], ['Head of Investor Relations', 'Key person'], ['Non-executive director', 'Board'], ['Group Treasurer', 'Key person'], ['Head of M&A', 'Key person'], ['Master, Halcyon Aurora', 'Key person'], ['Non-executive director', 'Board']],
@@ -155,6 +157,7 @@ const EXTRA_ROLES: CustomerMap<[string, VipTier][]> = {
   pharma: [['Chair of the Board of Directors', 'Board'], ['Vice-Chair of the Board', 'Board'], ['Chief Medical Officer', 'Executive'], ['Head of Regulatory Affairs', 'Executive'], ['Chief Commercial Officer', 'Executive'], ['Site Head, Valais', 'Key person'], ['Head of Biologics Process Development', 'Key person'], ['Member of the Board of Directors', 'Board'], ['Head of Investor Relations', 'Key person'], ['Head of Pharmacovigilance (EU QPPV)', 'Key person'], ['President, US Commercial', 'Executive'], ['Member of the Board of Directors', 'Board'], ['Head of Corporate Development', 'Key person'], ['Group Treasurer', 'Key person'], ['Principal Investigator, oncology', 'Key person'], ['Head of Quality (Global QA)', 'Executive'], ['Member of the Board of Directors', 'Board'], ['Chief People Officer', 'Executive']],
   sghospital: [['Board Chairman', 'Board'], ['Medical Director, Specialist centres', 'Key person'], ['Independent director', 'Board'], ['Head of Oncology', 'Key person'], ['Director, International Patient Services', 'Key person'], ['Chief Information Officer', 'Executive']],
   studio: [['Lead Independent Director', 'Board'], ['Chief Content Officer', 'Executive'], ['Director (talent services)', 'Key person'], ['Showrunner, The Hollow Coast (talent services)', 'Key person'], ['Head of Theatrical Distribution', 'Executive'], ['General Counsel', 'Executive'], ['Lead Actor, Lodestar (talent services)', 'Key person'], ['President, Osaka Resort', 'Executive'], ['Non-executive director', 'Board'], ['Head of Publicity', 'Key person'], ['Composer (talent services)', 'Key person'], ['Chief Marketing Officer', 'Executive'], ['President, Orlando Resort', 'Executive'], ['Producer, Crown of Ash (talent services)', 'Key person'], ['Non-executive director', 'Board'], ['Head of Starfall+ Content', 'Key person'], ['Chief Technology Officer, Starfall+', 'Executive'], ['Head of Investor Relations', 'Key person'], ['Non-executive director', 'Board'], ['Head of Imagineering, Parks', 'Key person'], ['Director (talent services)', 'Key person'], ['Chief People Officer', 'Executive'], ['Head of Corporate Development', 'Key person'], ['Non-executive director', 'Board'], ['Voice lead, Skyward Kids 2 (talent services)', 'Key person'], ['Head of Post Production, Studios', 'Key person'], ['Treasurer', 'Key person']],
+  telco: [['Vice-Chair of the Board', 'Board'], ['Chief Operating Officer', 'Executive'], ['Chief Commercial Officer', 'Executive'], ['Independent director', 'Board'], ['Chief Network Officer, Mobile', 'Executive'], ['VP International & Wholesale', 'Executive'], ['Head of Investor Relations', 'Key person'], ['Head of Regulatory & Government Affairs', 'Key person'], ['Independent director', 'Board'], ['Group Treasurer', 'Key person'], ['Head of Managed Security Services, Business & Cloud', 'Key person'], ['Chief People Officer', 'Executive'], ['Head of Roaming & Interconnect, International', 'Key person'], ['Independent director', 'Board'], ['Head of Spectrum & Network Strategy', 'Key person']],
 };
 
 /** Region drives data-broker volume: US brokers list far more, EU removals are faster (GDPR Art. 17). */
@@ -169,6 +172,7 @@ const BROKER_PROFILE: CustomerMap<{ min: number; max: number; days: [number, num
   pharma: { min: 0, max: 4, days: [5, 18], legal: 'revDSG / GDPR Art. 17 erasure request' },
   sghospital: { min: 0, max: 3, days: [7, 25], legal: 'PDPA withdrawal of consent and deletion request' },
   studio: { min: 7, max: 20, days: [14, 45], legal: 'CCPA / CPRA deletion request · California Delete Act' },
+  telco: { min: 0, max: 4, days: [7, 24], legal: 'Privacy Protection Law request to correct or delete personal data' },
 };
 
 function tierOf(p: Person, c: CustomerProfile): VipTier {
@@ -301,6 +305,7 @@ const FRAUD_LINE: CustomerMap<string[]> = {
   pharma: ['CRO milestone payment to a new bank account', 'urgent upfront fee for an in-licensing deal (Project Edelweiss)', 'change of bank details for a CDMO invoice', 'investigator-site grant payment rerouted abroad'],
   sghospital: ['insurer reimbursement redirected to a new account', 'change of bank details for a medical-supplies invoice', 'urgent deposit for an overseas patient-referral partner', 'payment to a locum doctor agency'],
   studio: ['talent payment to a new loan-out company account', 'change of bank details on a VFX vendor invoice', 'urgent location deposit for a reshoot', 'festival premiere event payment to a new agency'],
+  telco: ['change of bank details for a roaming settlement payment', 'urgent lease-renewal payment to a tower-site landlord', 'advance to a network equipment supplier ahead of a rollout deadline', 'confidential deposit for a fibre joint-venture stake'],
 };
 const VOICE_LINE: CustomerMap<string> = {
   maritime: 'Cloned-voice call to a terminal finance clerk asking to release a held payment',
@@ -313,6 +318,7 @@ const VOICE_LINE: CustomerMap<string> = {
   pharma: 'Cloned-voice call to Treasury asking to pay a CRO milestone to a new account',
   sghospital: 'Cloned-voice call to Finance asking to settle a supplier invoice before month-end',
   studio: 'Cloned-voice voicemail to production accounting approving a talent fee',
+  telco: 'Cloned-voice call to Treasury asking to release a roaming settlement to a new account',
 };
 const DEEPFAKE_LINE: CustomerMap<string> = {
   maritime: 'Synthetic video of the CEO “announcing” a terminal strike settlement shared in a crypto promotion',
@@ -325,6 +331,7 @@ const DEEPFAKE_LINE: CustomerMap<string> = {
   pharma: 'Synthetic video of the CEO endorsing an unapproved weight-loss injection sold online',
   sghospital: 'Synthetic video of the Group CEO promoting a fake health-insurance subsidy on social media',
   studio: 'Synthetic clip of the Chairman and a lead actor “announcing” a Starfall+ free-year giveaway',
+  telco: 'Synthetic video of the CEO “announcing” a free 5G plan for life, shared in a subscriber phishing campaign',
 };
 
 export function impersonations(c: CustomerProfile, tenantId: string): ImpItem[] {
@@ -555,6 +562,14 @@ const TRIPS: CustomerMap<{ dest: string; country: string; purpose: string; threa
     { dest: 'Tokyo', country: 'JP', purpose: 'Starfall+ Japan launch and partner meetings', threat: 'Moderate', pub: true },
     { dest: 'London', country: 'GB', purpose: 'Leicester Square premiere · Soho post review', threat: 'Elevated', pub: true, notes: ['Locked cuts are reviewed in the post facility only; no screeners on travel devices'] },
     { dest: 'San Diego', country: 'US', purpose: 'Comic-Con Hall H panel (Lodestar)', threat: 'Elevated', pub: true },
+  ],
+  telco: [
+    { dest: 'Barcelona', country: 'ES', purpose: 'MWC Barcelona · keynote and equipment-vendor meetings', threat: 'Elevated', pub: true, notes: ['Network roadmap and spectrum papers stay in the HexaCustody data room; take only the presentation copy'] },
+    { dest: 'Limassol', country: 'CY', purpose: 'Subsea cable consortium board · landing-party review', threat: 'Moderate', pub: false },
+    { dest: 'Athens', country: 'GR', purpose: 'Wholesale PoP visit and carrier meetings', threat: 'Low', pub: false },
+    { dest: 'Stockholm', country: 'SE', purpose: '5G core vendor executive briefing', threat: 'Low', pub: false },
+    { dest: 'London', country: 'GB', purpose: 'Investor roadshow and London insurance market meetings', threat: 'Moderate', pub: true },
+    { dest: 'Dubai', country: 'AE', purpose: 'Regional carrier and roaming partner summit', threat: 'Elevated', pub: true, notes: ['Loaner devices only; no access to network management systems from abroad'] },
   ],
 };
 const ADVISORY: Record<ThreatLevel, string[]> = {

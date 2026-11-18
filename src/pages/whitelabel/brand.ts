@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import { activePartner, onPartnerChange, type PartnerKey } from '../../data/modules/partner';
 
 // Partner brand settings shared by the three White Label tabs for the session
 // (live preview only; nothing is saved).
@@ -44,8 +45,28 @@ export const DEFAULT_BRAND: Brand = {
   loginSso: ['Microsoft Entra ID', 'Okta'],
 };
 
-export const PRESETS: { name: string; primary: string; sidebar: string; accent: string }[] = [
-  { name: 'Northwind', primary: '#0369a1', sidebar: '#0b1324', accent: '#f59e0b' },
+/** What Kinneret Business Cyber starts from (its v7): neutral colours on its own domain, before the Kinneret preset is applied. */
+const KT_BRAND: Brand = {
+  ...DEFAULT_BRAND,
+  productName: 'Kinneret Business Cyber Portal',
+  logoText: 'KBC',
+  primary: '#2563eb',
+  sidebar: '#050a18',
+  accent: '#22d3ee',
+  domain: 'portal.kinneret-telecom.co.il',
+  supportEmail: 'soc@kinneret-telecom.co.il',
+  loginSub: 'Managed detection, compliance and OT security from Kinneret Business Cyber.',
+  loginSso: ['Microsoft Entra ID'],
+};
+/** The unpublished starting brand of the active partner. */
+export function defaultBrand(): Brand {
+  return activePartner() === 'kinneret' ? KT_BRAND : DEFAULT_BRAND;
+}
+
+/** Colour presets; `brand` also sets names and addresses; `partner` limits a preset to that partner's console. */
+export const PRESETS: { name: string; primary: string; sidebar: string; accent: string; partner?: PartnerKey; brand?: Partial<Brand> }[] = [
+  { name: 'Kinneret', primary: '#0369a1', sidebar: '#06202f', accent: '#2dd4bf', partner: 'kinneret', brand: { productName: 'Kinneret Cyber Console', logoText: 'KC', domain: 'cyber.kinneret-telecom.co.il', supportEmail: 'cyber-soc@kinneret-telecom.co.il', loginHeadline: 'Security for your business, on the network you already trust.' } },
+  { name: 'Northwind', primary: '#0369a1', sidebar: '#0b1324', accent: '#f59e0b', partner: 'northwind' },
   { name: 'HexaShield', primary: '#2563eb', sidebar: '#050a18', accent: '#22d3ee' },
   { name: 'Forest', primary: '#16a34a', sidebar: '#0c1a12', accent: '#facc15' },
   { name: 'Crimson', primary: '#dc2626', sidebar: '#160b0d', accent: '#fb923c' },
@@ -53,17 +74,20 @@ export const PRESETS: { name: string; primary: string; sidebar: string; accent: 
   { name: 'Graphite', primary: '#475569', sidebar: '#0f1115', accent: '#38bdf8' },
 ];
 
+// Each partner publishes its own brand (Northwind keeps the original storage key).
+const pubKey = () => (activePartner() === 'kinneret' ? 'hv.brand.published.kinneret' : 'hv.brand.published');
+function readPublished(): Brand | null {
+  try { return JSON.parse(localStorage.getItem(pubKey()) ?? 'null') as Brand | null; } catch { return null; }
+}
 // The draft starts from the published brand when there is one.
-let state: Brand = (() => {
-  try { return { ...DEFAULT_BRAND, ...(JSON.parse(localStorage.getItem('hv.brand.published') ?? 'null') ?? {}) } as Brand; } catch { return { ...DEFAULT_BRAND }; }
-})();
+let state: Brand = { ...defaultBrand(), ...(readPublished() ?? {}) };
 const subs = new Set<() => void>();
 export function setBrand(patch: Partial<Brand>) {
   state = { ...state, ...patch };
   subs.forEach((f) => f());
 }
 export function resetBrand() {
-  setBrand({ ...DEFAULT_BRAND });
+  setBrand({ ...defaultBrand() });
 }
 export function useBrand(): Brand {
   return useSyncExternalStore(
@@ -104,16 +128,13 @@ export function serviceName(product: string, brand: Brand): string {
 
 // Published theme: what the console itself shows (logo top-left, sign-in). Editing
 // the draft above does not change the console until it is published again.
-const PUB_KEY = 'hv.brand.published';
-let published: Brand | null = (() => {
-  try { return JSON.parse(localStorage.getItem(PUB_KEY) ?? 'null') as Brand | null; } catch { return null; }
-})();
+let published: Brand | null = readPublished();
 const pubSubs = new Set<() => void>();
 function emitPublished(next: Brand | null) {
   published = next;
   try {
-    if (next) localStorage.setItem(PUB_KEY, JSON.stringify(next));
-    else localStorage.removeItem(PUB_KEY);
+    if (next) localStorage.setItem(pubKey(), JSON.stringify(next));
+    else localStorage.removeItem(pubKey());
   } catch { /* storage full or unavailable: keep it for this session only */ }
   pubSubs.forEach((f) => f());
 }
@@ -132,7 +153,7 @@ export function publishBrand() {
   return version;
 }
 /** What the draft is compared against: the last published brand, else the v7 defaults. */
-export function brandBaseline(): Brand { return { ...DEFAULT_BRAND, ...(published ?? {}) }; }
+export function brandBaseline(): Brand { return { ...defaultBrand(), ...(published ?? {}) }; }
 const FIELD_LABEL: Partial<Record<keyof Brand, string>> = {
   productName: 'Software name', logoText: 'Monogram', logoShape: 'Logo shape', logoImage: 'Logo', primary: 'Primary colour', sidebar: 'Side menu colour', accent: 'Accent colour',
   mode: 'Default theme', serviceNames: 'Service names', poweredBy: 'Powered by HexaShield', font: 'Typeface', domain: 'Portal domain', supportEmail: 'Support address',
@@ -155,3 +176,11 @@ export function usePublishedBrand(): Brand | null {
     () => published,
   );
 }
+
+// When the selected customer changes partner, show that partner's published brand and a fresh draft.
+onPartnerChange(() => {
+  published = readPublished();
+  state = brandBaseline();
+  subs.forEach((f) => f());
+  pubSubs.forEach((f) => f());
+});

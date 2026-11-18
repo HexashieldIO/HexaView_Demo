@@ -95,7 +95,7 @@ export default function InsurancePolicy() {
   const rol = (ins.premiumK / 1000 / ins.limitM) * 100;
   const inception = daysAhead(ins.renewalDays);
   const policyStart = daysAgo(365 - ins.renewalDays);
-  const policyNo = `${c.initials}-CY-${new Date().getFullYear() - 1}-${({ finserv: '00418', maritime: '07731', media: '02296', healthcare: '05182', automotive: '11407', insurance: '03390', defence: '00862', pharma: '14025', sghospital: '00517', studio: '20914' } as Record<string, string>)[c.id] ?? '00001'}`;
+  const policyNo = `${c.initials}-CY-${new Date().getFullYear() - 1}-${({ finserv: '00418', maritime: '07731', media: '02296', healthcare: '05182', automotive: '11407', insurance: '03390', defence: '00862', pharma: '14025', sghospital: '00517', studio: '20914', telco: '06243' } as Record<string, string>)[c.id] ?? '00001'}`;
 
   const worstFor = (s: Sublimit) => {
     const rel = sc.filter((x) => s.scenarios.includes(x.id));

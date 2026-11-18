@@ -4,6 +4,7 @@ import { Check } from 'lucide-react';
 import { useApp } from '../../../state/AppContext';
 import { Card, KpiStrip, Badge, Bar, Btn, Callout, StatusBadge, Stacked } from '../../../components/ui';
 import { Chart } from '../../../components/Chart';
+import { PARTNER } from '../../../data/modules/partner';
 import { portfolio, hundredDayPlan, riskCurve, PHASES, MS_COLOR, MS_LABEL, type Milestone, type MsStatus } from '../../../data/modules/portfolio';
 import { scoreTone } from '../../../lib/format';
 import { CoAvatar, PF_TONE, usePfNav } from './parts';
@@ -137,7 +138,7 @@ export default function Hundred() {
       <Card
         title="Integration milestones"
         count={shown.length}
-        sub="Tick a milestone when its evidence is in · owners are Northwind and the acquired company's IT lead"
+        sub={`Tick a milestone when its evidence is in · owners are ${PARTNER.short} and the acquired company's IT lead`}
         actions={(phaseFilter || statusFilter) ? <Btn sm onClick={() => patch({ phase: null, status: null })}>Show all</Btn> : undefined}
       >
         {shown.map((m) => (

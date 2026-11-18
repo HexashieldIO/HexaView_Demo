@@ -186,6 +186,31 @@ ATTENTION.studio = [
   { sev: 'medium', module: 'comply', title: 'TPN+ re-assessment for London VFX in 38 days', detail: '29 tasks overdue; vendor attestations missing for 7 tier-1 VFX and localisation vendors', path: '/comply/caas', ageMin: 2160, tenant: 'post' },
   { sev: 'low', module: 'fabric', title: 'Irdeto connector failing (401) after tenant migration', detail: 'Piracy notices for Starfall+ not ingested since Friday; vendor ticket open', path: '/fabric/integrations', ageMin: 610, tenant: 'play' },
 ];
+ATTENTION.telco = [
+  { sev: 'critical', module: 'soc', title: 'Diameter location and subscriber-profile queries from a roaming partner outside its agreed range', detail: 'Signalling firewall and Splunk agree: 3,180 queries against 412 subscribers via the roaming hub, then a matching bulk read on KTG-UDM-PT01; partner link rate-limited by approval, Privacy Protection Authority assessment open', path: '/soc/ir', ageMin: 31, tenant: 'mobile' },
+  { sev: 'high', module: 'soc', title: 'SIM-swap cluster: 14 swaps approved from one contact-centre desktop in 40 minutes', detail: 'Negev Contact Solutions agent account; fraud scoring flagged 11 as high risk, swaps reversed and the agent session revoked in Entra ID', path: '/soc/mdr', ageMin: 52, tenant: 'retail' },
+  { sev: 'high', module: 'ot', title: 'Unscheduled parameter change on generator controllers at 23 northern cell sites', detail: 'Modbus writes from the Galil Tower Services jump host outside the change window; Armis and HexaOT sensors agree, autonomy on battery unaffected', path: '/ot/visibility', ageMin: 88, tenant: 'mobile' },
+  { sev: 'high', module: 'int', title: 'Sample of 5,000 subscriber records offered on a closed forum', detail: 'Fields match the billing migration wave 3 export format; HexaInt validating the sample against custody watermarks', path: '/int/darkweb', ageMin: 190, tenant: 'retail' },
+  { sev: 'high', module: 'fabric', title: 'BGP: more-specific announcement of a Kinneret /22 seen from an unrelated origin AS', detail: 'RPKI-invalid, propagated to 9 peers for 6 minutes; Radware diversion unaffected, upstream contacted', path: '/fabric/exposure', ageMin: 140, tenant: 'intl' },
+  { sev: 'medium', module: 'comply', title: 'Ministry of Communications annual licence compliance report due in 12 weeks', detail: '27 evidence tasks overdue; SIM-change audit evidence stale while the BSS audit feed is failing', path: '/comply/caas', ageMin: 1440, tenant: 'corp' },
+  { sev: 'medium', module: 'ai', title: 'Call-transcription web app used on recorded subscriber calls', detail: 'Unsanctioned; 9 contact-centre team leads uploaded recordings containing ID numbers, DPO review opened', path: '/ai/discovery', ageMin: 600, tenant: 'retail' },
+  { sev: 'medium', module: 'ops', title: '5 write-back actions awaiting approval', detail: 'Terminate vendor session (CyberArk), revoke sessions (Entra ID), block API client (Salt), enable correlation search (Splunk), quarantine message (Harmony)', path: '/ops/actions', ageMin: 38, tenant: 'corp' },
+  { sev: 'low', module: 'fabric', title: 'BSS and CRM audit feed failing (401) since billing migration wave 3', detail: 'Agent actions and SIM changes not ingested for 10 hours; vendor ticket open', path: '/fabric/integrations', ageMin: 640, tenant: 'retail' },
+];
+FEED.telco = [
+  { module: 'soc', kind: 'detect', tenant: 'mobile', text: 'Signalling firewall blocked 41,200 category 2 SS7 messages from 3 unlisted global titles' },
+  { module: 'soc', kind: 'detect', tenant: 'fixed', text: 'Radware: 38 Gbps DNS amplification attack on the resolver farm mitigated in 14 s, no subscriber impact' },
+  { module: 'loop', kind: 'loop', tenant: 'mobile', text: 'Loop closed: CTL-SIG-01 × T1199, roaming-partner anomaly rule validated by HexaStrike' },
+  { module: 'int', kind: 'intel', tenant: 'group', text: 'National CERT advisory: phishing wave impersonating telecom billing notices, 6 lookalike domains added to takedown' },
+  { module: 'ot', kind: 'detect', tenant: 'business', text: 'Tel Aviv data centre: chiller plant PLC firmware change, matched approved change CHG0061482' },
+  { module: 'comply', kind: 'evidence', tenant: 'retail', text: 'Evidence collected: PCI DSS 11.6.1 payment-page change detection for pay.kinneret-telecom.co.il' },
+  { module: 'ops', kind: 'action', tenant: 'retail', text: 'Action verified: 14 SIM swaps reversed and 1 contact-centre session revoked (2 approvers)' },
+  { module: 'custody', kind: 'custody', tenant: 'intl', text: 'October roaming settlement batch (TAP) delivered to the clearing house, hashes verified end to end' },
+  { module: 'strike', kind: 'test', tenant: 'retail', text: 'HexaStrike retest passed: broken object-level authorisation on the eSIM activation API fixed' },
+  { module: 'ai', kind: 'detect', tenant: 'retail', text: 'Prompt Security blocked 22 prompt-injection attempts against the contact-centre virtual agent' },
+  { module: 'fabric', kind: 'system', tenant: 'intl', text: 'Landing station edge agent lagging: buffering locally, 1.9.2 upgrade booked for the next cable maintenance window' },
+  { module: 'loop', kind: 'loop', tenant: 'retail', text: 'Loop partial: CTL-SIM-02 × T1098, SIM-swap velocity detection staged in Sentinel' },
+];
 FEED.insurance = [
   { module: 'soc', kind: 'detect', tenant: 'personal', text: 'HexaSOC closed 1,120 benign Cloudflare bot alerts (comparative-rater quote traffic)' },
   { module: 'loop', kind: 'loop', tenant: 'group', text: 'Loop closed: CTL-HD-02 × T1621 (MFA fatigue), validated by HexaStrike' },

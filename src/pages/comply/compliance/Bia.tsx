@@ -27,7 +27,7 @@ export function hrs(h: number): string {
 const word = (w: string) => w.split(/[\s(/]/)[0].toLowerCase();
 const OP_DIM: Record<string, string> = {
   healthcare: 'Patient safety', automotive: 'Production & safety', maritime: 'Operations & safety',
-  insurance: 'Policyholder service', defence: 'Mission & delivery', pharma: 'Patient supply & quality', sghospital: 'Patient safety', studio: 'Guest safety & release',
+  insurance: 'Policyholder service', defence: 'Mission & delivery', pharma: 'Patient supply & quality', sghospital: 'Patient safety', studio: 'Guest safety & release', telco: 'Network availability',
 };
 
 const SECTOR: Record<string, { title: string; body: ReactNode }> = {
@@ -40,6 +40,7 @@ const SECTOR: Record<string, { title: string; body: ReactNode }> = {
   pharma: { title: 'Batch release and patient supply', body: <>Batch release runs on PAS-X and LabWare; the approved contingency SOP allows paper batch records, but the last drill took <b>3 days</b> to reconcile. Cork can safe-state the aseptic line and restart only after the media fill is reviewed. Trials keep running on paper CRFs with phone unblinding.</> },
   sghospital: { title: 'TrakCare downtime and the MOH clock', body: <>Downtime procedures are in place on every ward: read-only workstations, paper order sets and manual registration. The last drill ran <b>6.5 h against a 4 h target</b>, and the tabletop reached MOH notification at <b>3 h 10 min</b> against the 2-hour requirement. A&E diversion is considered after 2 h without the EHR.</> },
   studio: { title: 'Release, streaming and park continuity', body: <>Starfall+ fails over to a second region in about <b>6 minutes</b>; London finishing restores from immutable masters, which took 16 h against a 12 h objective. Rides fail safe and reopen only after inspection; ticketing validates offline for up to 6 h.</> },
+  telco: { title: 'Network and service continuity', body: <>The mobile core is geo-redundant between Petah Tikva and Haifa; the last failover took <b>1.5 h against a 1 h objective</b>. DDoS protection on DNS and the core edge engaged in 14 seconds in the last drill. The Haifa cable landing station is a single site: its plant ran on generator for 8 h in the black-building test, and restoring capacity over the second cable system has not been tested.</> },
   media: { title: 'On-air and editorial continuity', body: <>Live playout can switch to the DR gallery in about 4 minutes; rights penalties run at around $120k per minute off air. Editorial restores from immutable masters took 14 h against an 8 h objective in the last test.</> },
 };
 

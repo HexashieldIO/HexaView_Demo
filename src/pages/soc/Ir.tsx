@@ -279,7 +279,7 @@ function IncidentDrawer({ inc, onClose, onAction }: { inc: Incident; onClose: ()
               {inc.users.map((x) => <span key={x}><Badge color="var(--m-int)">User</Badge> {x}</span>)}
               {inc.personal && <span><Badge color="var(--sev-medium)">Data</Badge> Personal data potentially in scope</span>}
               {inc.card && <span><Badge color="var(--sev-high)">Data</Badge> Cardholder data environment</span>}
-              {inc.leak && <span><Badge color="var(--m-custody)">Content</Badge> Pre-release content (HexaCustody lineage attached)</span>}
+              {inc.leak && <span><Badge color="var(--m-custody)">Custody</Badge> {c.vocab.custodyLabel} (HexaCustody lineage attached)</span>}
             </div>
           </div>
           <div>

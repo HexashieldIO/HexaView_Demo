@@ -45,7 +45,7 @@ export function Tag({ color, children }: { color?: string; children: ReactNode }
 }
 
 export const SCOPE_COLOR = (t: string): string =>
-  t === 'Critical' ? 'var(--sev-high)' : /DORA|HIPAA|TISAX|TPN|IEC|IACS|FDA|R155/.test(t) ? 'var(--m-comply)' : /GDPR|CCPA/.test(t) ? 'var(--m-matrix)' : 'var(--sev-info)';
+  t === 'Critical' ? 'var(--sev-high)' : /DORA|HIPAA|TISAX|TPN|IEC|IACS|FDA|R155|NESAS|INCD|MoC|27011/.test(t) ? 'var(--m-comply)' : /GDPR|CCPA|PPL/.test(t) ? 'var(--m-matrix)' : 'var(--sev-info)';
 
 export function ScopeTags({ s }: { s: TpSupplier }) {
   if (!s.inScope.length) return <span className="tp-muted">—</span>;

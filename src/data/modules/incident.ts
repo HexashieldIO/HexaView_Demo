@@ -474,6 +474,7 @@ function lawEnforcement(c: CustomerProfile): string {
   if (/Germany/.test(hq)) return 'LKA Bayern ZAC (cybercrime contact point)';
   if (/Switzerland/.test(hq)) return 'fedpol · Basel-Stadt cantonal police';
   if (/Singapore/.test(hq)) return 'Singapore Police Force (CCID) · CSA SingCERT';
+  if (/Israel/.test(hq)) return 'Israel Police cyber unit (Lahav 433) · INCD national CERT';
   return 'FBI field office (IC3) · CISA';
 }
 
@@ -504,6 +505,7 @@ const DATA_CLASS: CustomerMap<{ personal: string; sector: string }> = {
   pharma: { personal: 'Clinical trial participant data', sector: 'GMP batch records' },
   sghospital: { personal: 'Patient health information', sector: 'Medical images & lab results' },
   studio: { personal: 'Guest, subscriber & talent data', sector: 'Pre-release content' },
+  telco: { personal: 'Subscriber personal & location data', sector: 'CDR extracts & network configuration' },
 };
 export function dataClassesFor(c: CustomerProfile, inc: Pick<Incident, 'personal' | 'card' | 'leak' | 'ot'>): string[] {
   const d = forCustomer(DATA_CLASS, c);
@@ -661,6 +663,18 @@ const GUIDED: Record<CustomerProfile['id'], GuidedSpec> = {
     alerts: [['custody', 'NexGuard: leaked clip watermark traced to a vendor session'], ['siem', 'Aspera bulk pull of Lodestar plates outside the work order'], ['idp', 'Vendor account sign-in from a new country']],
     data: ['Pre-release content', 'Guest, subscriber & talent data'], svc: [0, 1, 2], actor: 1, leak: true, records: 1, impactK: 18000,
   },
+  telco: {
+    title: 'Signalling abuse: out-of-range Diameter queries from a roaming partner, then a bulk subscriber read',
+    type: 'breach', tenant: 'mobile',
+    summary: 'The signalling firewall flagged 3,180 Diameter location and subscriber-profile queries against 412 subscribers arriving through the roaming hub from a partner network outside its agreed range. Splunk then correlated a matching bulk read on the subscriber database (KTG-UDM-PT01) from an OSS service account.',
+    reason: 'Subscriber location and profile data for 412 people may have left the network, on a licensed service. Needs IR to coordinate the partner link, the Privacy Protection Authority assessment, the Ministry of Communications and the roaming hub.',
+    notes: 'L3: the queries came from 2 global titles not listed in the roaming agreement and were clustered on 412 IMSIs, not spread like normal roaming traffic. The bulk read ran 11 minutes later under svc_oss_prov, which Silverfort shows authenticating from the NOC jump host outside its usual window. Partner link rate-limited by approval; no lawful-interception system is in the path.',
+    rootCause: 'Roaming-partner filtering on the Diameter edge was category 1 only for this partner after a rule-set update; an OSS service account kept standing read access to the subscriber database without MFA.',
+    tech: ['T1199', 'T1078', 'T1213'],
+    hosts: ['KTG-DRA-PT01', 'KTG-UDM-PT01', 'KTG-JUMP-NOC'],
+    alerts: [['siem', 'Signalling firewall: Diameter location and profile queries from a roaming partner outside its agreed range'], ['siem', 'Bulk subscriber-profile read on KTG-UDM-PT01 by an OSS service account'], ['idp', 'OSS service account authenticated from the NOC jump host outside its baseline']],
+    data: ['Subscriber personal & location data', 'CDR extracts & network configuration'], svc: [0, 4], actor: 2, personal: true, records: 412, impactK: 6800,
+  },
 };
 
 /* =====================================================================
@@ -758,7 +772,7 @@ function seedFromSoc(m: Mk, inc: Incident, now: number, ticketId?: string): Case
   const dataClasses = dataClassesFor(c, inc);
   const svc = r.pickN(c.vocab.businessServices, inc.sev === 'critical' ? 2 : 1);
   const records = inc.personal ? r.int(400, 22000) : inc.leak ? r.int(1, 3000) : 0;
-  const fx = c.currency === 'GBP' ? 0.8 : c.currency === 'EUR' || c.currency === 'CHF' ? 0.92 : c.currency === 'SGD' ? 1.34 : 1;
+  const fx = c.currency === 'GBP' ? 0.8 : c.currency === 'EUR' || c.currency === 'CHF' ? 0.92 : c.currency === 'SGD' ? 1.34 : c.currency === 'ILS' ? 3.7 : 1;
   const impact = Math.round((sev === 1 ? r.int(900, 6000) : sev === 2 ? r.int(120, 1200) : r.int(15, 140)) * 1000 * fx);
   const l2 = r.pick(HEXASOC_ANALYSTS.filter((a) => a.includes('L2')));
   const l3 = r.pick(HEXASOC_ANALYSTS.filter((a) => a.includes('L3')));
@@ -846,7 +860,7 @@ function stakeholdersFor(m: Mk, s: { sev: Sev; type: IrType; tenantIds: string[]
   add({ name: IR_TEAM.lead, title: 'IR lead', org: 'HexaShield IR', group: 'external', kind: 'HexaShield IR', incidentRole: 'Deputy commander & IR retainer', raci: 'R', channel: 'Bridge', contact: 'ir@hexashield.io', nda: true });
   add({ name: IR_TEAM.dfir, title: 'DFIR lead', org: 'HexaShield DFIR', group: 'external', kind: 'Forensics', incidentRole: 'Forensic collection & analysis', raci: 'R', channel: 'Bridge', contact: 'dfir@hexashield.io', privileged: true, nda: true });
   add({ name: 'Panel breach coach', title: `Outside counsel (via ${c.insurance.broker})`, org: 'Breach counsel', group: 'external', kind: 'Outside counsel', incidentRole: 'Breach coach; privilege over forensics', raci: 'C', channel: 'Signal (privileged)', contact: 'Panel hotline', privileged: true, nda: true });
-  add({ name: c.insurance.carrier.split('/')[0].trim(), title: `Cyber insurer · limit ${c.currency === 'GBP' ? '£' : c.currency === 'EUR' ? '€' : c.currency === 'CHF' ? 'CHF ' : c.currency === 'SGD' ? 'S$' : '$'}${c.insurance.limitM}M`, org: 'Insurer', group: 'external', kind: 'Insurer', incidentRole: 'Notice of circumstance; panel vendors', raci: 'I', channel: 'Email (claims portal)', contact: `Claims notification via ${c.insurance.broker}` });
+  add({ name: c.insurance.carrier.split('/')[0].trim(), title: `Cyber insurer · limit ${c.currency === 'GBP' ? '£' : c.currency === 'EUR' ? '€' : c.currency === 'CHF' ? 'CHF ' : c.currency === 'SGD' ? 'S$' : c.currency === 'ILS' ? '₪' : '$'}${c.insurance.limitM}M`, org: 'Insurer', group: 'external', kind: 'Insurer', incidentRole: 'Notice of circumstance; panel vendors', raci: 'I', channel: 'Email (claims portal)', contact: `Claims notification via ${c.insurance.broker}` });
   add({ name: c.insurance.broker, title: 'Insurance broker', org: 'Broker', group: 'external', kind: 'Broker', incidentRole: 'Claim coordination', raci: 'I', channel: 'Phone', contact: c.insurance.broker });
   if (s.sev <= 2) add({ name: 'Crisis PR agency (retained)', title: 'Media relations', org: 'PR agency', group: 'external', kind: 'PR agency', incidentRole: 'Holding statements & media monitoring', raci: 'C', channel: 'Email', contact: 'Retainer hotline', nda: true });
   const regs = Array.from(new Set(notices.filter((x) => x.kind === 'regulator').map((x) => x.recipient))).slice(0, 3);
@@ -870,7 +884,7 @@ function noticesFor(m: Mk, s: { id: string; sev: Sev; type: IrType; tenantIds: s
     } as Incident;
     regClocks(c, fake).forEach((k) => {
       if (/Preserve images/.test(k.name)) return;
-      push({ kind: /Prime|Licensor|partner|Reinsurer|Talent|CRO/i.test(k.name) ? 'contract' : 'regulator', name: k.name, recipient: k.regulator, basis: k.basis, startAt, dueAt: startAt + k.deadlineMin * MIN, owner: /DPA|GDPR|PDPC|HIPAA|revDSG|APPI|breach/i.test(k.name) ? ppl.privacy.name : ppl.grc.name, channel: 'Regulator portal' });
+      push({ kind: /Prime|Licensor|partner|Reinsurer|Talent|CRO/i.test(k.name) ? 'contract' : 'regulator', name: k.name, recipient: k.regulator, basis: k.basis, startAt, dueAt: startAt + k.deadlineMin * MIN, owner: /DPA|GDPR|PDPC|HIPAA|revDSG|APPI|PPA|Privacy Protection|breach/i.test(k.name) ? ppl.privacy.name : ppl.grc.name, channel: 'Regulator portal' });
     });
   }
   push({ kind: 'insurer', name: 'Notice of circumstance to cyber insurer', recipient: `${c.insurance.carrier} via ${c.insurance.broker}`, basis: 'Policy condition: notify as soon as practicable, panel vendors only', startAt, dueAt: startAt + (s.sev === 1 ? 48 : 72) * 60 * MIN, owner: ppl.cfo.name, channel: 'Broker claims portal' });
@@ -881,7 +895,7 @@ function noticesFor(m: Mk, s: { id: string; sev: Sev; type: IrType; tenantIds: s
     if (v) push({ kind: 'contract', name: `Contractual notice to ${v.name}`, recipient: v.name, basis: 'Security schedule: notify within 72 h of an incident affecting shared systems', startAt, dueAt: startAt + 72 * 60 * MIN, owner: ppl.grc.name, channel: 'Email' });
   }
   push({ kind: 'internal', name: 'All-staff awareness message', recipient: `${c.short} staff in affected tenants`, basis: 'Internal comms plan', startAt, dueAt: null, owner: ppl.comms.name, channel: 'Comms Hub · Teams & email' });
-  if (s.personal || s.type === 'bec' || s.leak) push({ kind: 'customer', name: s.leak ? 'Partner and licensor statement' : 'Customer / individual notification', recipient: s.leak ? 'Licensors, partners and talent representatives' : 'Affected individuals', basis: s.personal ? 'Breach notification law once the population is confirmed' : 'Contractual and reputational', startAt, dueAt: s.personal ? startAt + 30 * 1440 * MIN : null, owner: ppl.privacy.name, channel: 'Letter + email' });
+  if (s.personal || s.type === 'bec' || s.leak) push({ kind: 'customer', name: s.leak ? (c.id === 'telco' ? 'Business customer and roaming partner statement' : 'Partner and licensor statement') : 'Customer / individual notification', recipient: s.leak ? (c.id === 'telco' ? 'Affected business customers and roaming partners' : 'Licensors, partners and talent representatives') : 'Affected individuals', basis: s.personal ? 'Breach notification law once the population is confirmed' : 'Contractual and reputational', startAt, dueAt: s.personal ? startAt + 30 * 1440 * MIN : null, owner: ppl.privacy.name, channel: 'Letter + email' });
   return out;
 }
 

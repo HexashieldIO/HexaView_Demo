@@ -34,7 +34,7 @@ export type ConnMethod = 'API' | 'Webhook' | 'Syslog' | 'Agent' | 'Sensor' | 'TA
 export type Cert = 'HexaView-certified' | 'Partner-built' | 'Community';
 export type Power = 'HexaSOC' | 'HexaInt' | 'HexaStrike' | 'HexaOT' | 'HexaComply' | 'HexaCustody' | 'HexaAI';
 export type Risk = 'low' | 'medium' | 'high';
-export type Sector = 'maritime' | 'finance' | 'media' | 'health' | 'auto' | 'defence' | 'pharma' | 'insurance';
+export type Sector = 'maritime' | 'finance' | 'media' | 'health' | 'auto' | 'defence' | 'pharma' | 'insurance' | 'telco';
 
 export const POWERS: Power[] = ['HexaSOC', 'HexaInt', 'HexaStrike', 'HexaOT', 'HexaComply', 'HexaCustody', 'HexaAI'];
 export const POWER_COLOR: Record<Power, string> = {
@@ -518,6 +518,14 @@ const SPECS: Spec[] = [
   ['FIS', 'Core banking audit', 'Financial services', { pop: 10, k: ['fis'], s: ['finance'] }],
   ['Featurespace', 'ARIC fraud signals', 'Financial services', { pop: 8, s: ['finance', 'insurance'] }],
   ['Guidewire', 'InsuranceSuite / Guidewire Cloud audit', 'Financial services', { pop: 8, k: ['guidewire'], s: ['insurance'] }],
+
+  // Telecommunications (signalling security and telecom fraud, under the closest categories)
+  ['Enea', 'AdaptiveMobile Signalling Protection', 'Network & firewall', { pop: 14, k: ['adaptivemobile', 'enea|signalling'], s: ['telco'], r: ['Signalling alerts', 'Blocked SS7 / Diameter / GTP messages', 'Roaming partner anomalies', 'Rule sets'], w: [], f: ['ISO 27011'], d: 'SS7, Diameter and GTP signalling-firewall events, mapped to interconnect and roaming-partner anomalies.' }],
+  ['Cellusys', 'Signalling Firewall', 'Network & firewall', { pop: 8, s: ['telco'], r: ['Signalling alerts', 'Blocked messages', 'Rule sets'], w: [], f: ['ISO 27011'], d: 'Signalling-firewall alerts and rule sets for SS7, Diameter and GTP interconnects.' }],
+  ['Nokia', 'NetGuard Cybersecurity Dome', 'Network & firewall', { pop: 10, k: ['netguard'], s: ['telco'], r: ['Network-element security events', 'Configuration baselines', 'Privileged sessions'], w: [], f: ['ISO 27011'], d: 'Security events and hardening baselines from RAN, transport and 5G core network elements.' }],
+  ['Ericsson', 'Security Manager', 'Network & firewall', { pop: 10, k: ['ericsson|security manager'], s: ['telco'], r: ['Baseline compliance', 'Network-element security events', 'Configuration drift'], w: [], f: ['ISO 27011'], d: 'Security baseline compliance and drift for RAN and core network functions.' }],
+  ['Mobileum', 'Risk Management (fraud & revenue assurance)', 'Fraud & bot protection', { pop: 12, k: ['mobileum'], s: ['telco'], e: ['onprem'], r: ['Fraud alerts', 'SIM-swap events', 'IRSF and Wangiri cases', 'Revenue-assurance cases'], w: [], d: 'Telecom fraud cases (SIM swap, IRSF, Wangiri, subscription fraud) correlated with identity and signalling detections.' }],
+  ['Subex', 'Fraud Management', 'Fraud & bot protection', { pop: 8, s: ['telco'], e: ['onprem'], r: ['Fraud alerts', 'Subscription fraud cases', 'Roaming fraud cases'], w: [], d: 'Telecom fraud alerts and cases for subscription, roaming and interconnect fraud.' }],
 
   // Standards
   ['Generic', 'OCSF push (HTTPS / Kafka)', 'Standards', { c: C, pop: 70, k: ['generic|ocsf'], m: ['API', 'Kafka'] }],
@@ -1211,6 +1219,7 @@ export function sectorsOf(c: CustomerProfile): Sector[] {
     if (!out.includes('pharma') || /hospital/.test(s)) out.push('health');
   }
   if (/automo|vehicle|motor/.test(s) || /r155|21434|tisax/.test(f)) out.push('auto');
+  if (/telecom|mobile network|carrier/.test(s) || /27011|gsma|nesas/.test(f)) out.push('telco');
   return out;
 }
 

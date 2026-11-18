@@ -6,14 +6,14 @@
 /** The five original demo customers: every per-customer data table has an entry for each. */
 export type BaseCustomerId = 'maritime' | 'finserv' | 'media' | 'healthcare' | 'automotive';
 /** Customers added later; their module data falls back to a template (`dataKey`) until tailored. */
-export type ExtraCustomerId = 'insurance' | 'defence' | 'pharma' | 'sghospital' | 'studio';
+export type ExtraCustomerId = 'insurance' | 'defence' | 'pharma' | 'sghospital' | 'studio' | 'telco';
 export type CustomerId = BaseCustomerId | ExtraCustomerId;
 export type Tier = 'Essentials' | 'Professional' | 'Enterprise / CNI';
 export type Env = 'cloud' | 'onprem' | 'ot' | 'saas';
 export type Severity = 'critical' | 'high' | 'medium' | 'low' | 'info';
 export type Health = 'healthy' | 'degraded' | 'failing' | 'paused';
 export type Persona = 'master' | 'executive' | 'ciso' | 'finance' | 'socmanager' | 'analyst' | 'threat' | 'grc' | 'risk' | 'privacy' | 'ot' | 'cloud' | 'admin';
-export type Currency = 'USD' | 'GBP' | 'EUR' | 'CHF' | 'SGD';
+export type Currency = 'USD' | 'GBP' | 'EUR' | 'CHF' | 'SGD' | 'ILS';
 
 export type CapabilityId = 'soc' | 'int' | 'strike' | 'ot' | 'comply' | 'custody';
 

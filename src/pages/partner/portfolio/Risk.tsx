@@ -3,6 +3,7 @@ import { useApp } from '../../../state/AppContext';
 import { Card, KpiStrip, Badge, Bar, Chip, Legend, Callout } from '../../../components/ui';
 import { DataTable, type Column } from '../../../components/DataTable';
 import { Seg } from '../parts';
+import { PARTNER } from '../../../data/modules/partner';
 import {
   portfolio, portfolioTotals, DIMENSIONS, PF_STATUS_COLOR, PF_STATUS_HEX, PF_STATUS_LABEL, type PortfolioCo, type PfStatus,
 } from '../../../data/modules/portfolio';
@@ -85,7 +86,7 @@ export default function Risk() {
   const cos = useMemo(() => portfolio(), []);
   const t = portfolioTotals(cos);
   const { sp, set, patch } = usePfNav();
-  const [lens, setLens] = useState<Lens>('sponsor');
+  const [lens, setLens] = useState<Lens>(PARTNER.key === 'kinneret' ? 'group' : 'sponsor');
   const [sel, setSel] = useState<PortfolioCo | null>(() => cos.find((c) => c.id === sp.get('co') && !c.demoId) ?? null);
   const open = useOpenCo(setSel);
   const filter = sp.get('filter');

@@ -82,7 +82,7 @@ export default function BillingSupport() {
             </div>
           </Card>
           <Card title="Platform status">
-            {['EU1 (Frankfurt)', 'UK1 (London)', 'US1 (Virginia)', 'Partner portal & billing'].map((s) => (
+            {[...(PARTNER.key === 'kinneret' ? ['IL1 (Tel Aviv)'] : []), 'EU1 (Frankfurt)', 'UK1 (London)', 'US1 (Virginia)', 'Partner portal & billing'].map((s) => (
               <div key={s} className="row" style={{ fontSize: 12.5, padding: '5px 0' }}><CheckCircle2 size={14} color="var(--good)" /><span style={{ flex: 1 }}>{s}</span><span className="muted" style={{ fontSize: 11 }}>Operational · 99.99% (90 d)</span></div>
             ))}
             <div style={{ marginTop: 8 }}><Callout>Connector release 2026.10.2 on Thursday 02:00 UTC: Veeam mapping fix (PS-7770), agent 1.9.5 (PS-7776).</Callout></div>

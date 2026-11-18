@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { CustomerId, CustomerProfile, Persona } from '../data/types';
 import { CUSTOMERS } from '../data/customers';
+import { setActivePartner } from '../data/modules/partner';
 
 export type TimeRange = '24h' | '7d' | '30d' | '90d';
 export type Theme = 'dark' | 'light';
@@ -52,7 +53,11 @@ function save(key: string, v: string) {
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [customerId, setCustomerIdRaw] = useState<CustomerId>(() => load<CustomerId>('customer', 'maritime', Object.keys(CUSTOMERS) as CustomerId[]));
+  const [customerId, setCustomerIdRaw] = useState<CustomerId>(() => {
+    const id = load<CustomerId>('customer', 'maritime', Object.keys(CUSTOMERS) as CustomerId[]);
+    setActivePartner(id); // before the first render, so partner pages never see the other partner
+    return id;
+  });
   const [tenantId, setTenantId] = useState('all');
   const [persona, setPersonaRaw] = useState<Persona>(() => load('persona', 'master', ['master', 'executive', 'ciso', 'finance', 'socmanager', 'analyst', 'threat', 'grc', 'risk', 'privacy', 'ot', 'cloud', 'admin'] as const));
   const [timeRange, setTimeRange] = useState<TimeRange>('24h');
@@ -65,7 +70,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
 
+  // Also after a hot reload of the partner module in development (idempotent).
+  useEffect(() => setActivePartner(customerId), [customerId]);
+
   const setCustomerId = useCallback((id: CustomerId) => {
+    setActivePartner(id);
     setCustomerIdRaw(id);
     setTenantId('all');
     save('customer', id);

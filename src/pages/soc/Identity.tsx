@@ -17,6 +17,7 @@ const ID_INTRO: CustomerMap<string> = {
   pharma: ' CRO partners sign in through the Okta partner org; plant shared logons are limited to MES terminals and QC lab benches.',
   sghospital: ' Shared ward workstations sign in by Imprivata badge tap; help-desk-resettable clinical accounts are watched for social engineering.',
   studio: ' Freelancers and VFX vendors reach content through Island Browser; ride operations use shared consoles on isolated park networks.',
+  telco: ' Contact-centre, store and dealer accounts that can change a SIM are tracked as a privileged group; network-element logins are brokered through CyberArk and Silverfort.',
 };
 const GUEST_LABEL: CustomerMap<string> = {
   maritime: 'Guests (B2B)',
@@ -29,6 +30,7 @@ const GUEST_LABEL: CustomerMap<string> = {
   pharma: 'CRO & OEM guests',
   sghospital: 'Vendor & locum guests',
   studio: 'Vendor & freelancer guests',
+  telco: 'Vendor, dealer & contractor guests',
 };
 import { fmtAgo, fmtNum } from '../../lib/format';
 import { rng } from '../../lib/rng';

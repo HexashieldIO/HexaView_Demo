@@ -685,3 +685,39 @@ SECTOR_POLICIES.defence = [['CUI handling & marking', 'All staff', ['CMMC AC.L2-
 SECTOR_POLICIES.pharma = [['Data integrity (ALCOA+) policy', 'Manufacturing, QA & labs', ['EU GMP Annex 11', '21 CFR Part 11']], ['Clinical data & unblinding', 'Clinical operations', ['ICH E6(R3)', 'GDPR Art. 9']]];
 SECTOR_POLICIES.sghospital = [['Patient data protection (HIA / PDPA) attestation', 'All workforce', ['HIA CS/DS Essentials', 'PDPA s24']], ['Medical device & shared workstation use', 'Clinical staff', ['HSA GL-04', 'JCI MOI.2']]];
 SECTOR_POLICIES.studio = [['Pre-release content handling', 'Production, post & marketing', ['TPN', 'MPA CSBP']], ['Ride & show control access', 'Ride & show engineering', ['IEC 62443-2-1']]];
+
+/* Telco (Kinneret Telecom Group): its own entries in the tables above. */
+PLATFORM.telco = 'KnowBe4 Security Awareness';
+DEPTS.telco = [
+  { id: 'stores', name: 'Retail Stores', share: 0.16, risk: 1.3, tenants: ['retail'] },
+  { id: 'contact', name: 'Contact Centres', share: 0.17, risk: 1.35, tenants: ['retail'] },
+  { id: 'netops', name: 'Network Operations (NOC)', share: 0.1, risk: 0.8, tenants: ['mobile', 'fixed'] },
+  { id: 'neteng', name: 'Network Engineering', share: 0.11, risk: 0.75, tenants: ['mobile', 'fixed', 'intl'] },
+  { id: 'field', name: 'Field & Site Services', share: 0.12, risk: 1.15, tenants: ['mobile', 'fixed'] },
+  { id: 'biz', name: 'Business & Cloud Sales', share: 0.09, risk: 1.2, tenants: ['business'] },
+  { id: 'dc', name: 'Data Centre & Managed Security', share: 0.05, risk: 0.7, tenants: ['business'] },
+  { id: 'it', name: 'IT, BSS & Digital', share: 0.08, risk: 0.7, tenants: ['retail', 'corp'] },
+  { id: 'whl', name: 'International & Wholesale', share: 0.04, risk: 1.05, tenants: ['intl'] },
+  { id: 'fin', name: 'Finance, Billing & Fraud', share: 0.04, risk: 1.0, tenants: ['corp', 'retail'] },
+  { id: 'hr', name: 'HR, Legal & Executive', share: 0.04, risk: 1.2, tenants: ['corp'] },
+];
+FIRST.telco = ['Noa', 'Yonatan', 'Maya', 'Itai', 'Shira', 'Omar', 'Tal', 'Rana', 'Guy', 'Liat', 'Ahmad', 'Neta', 'Ori', 'Dina', 'Yusuf', 'Hadar', 'Nir', 'Samar', 'Alon', 'Inbal'];
+LAST.telco = ['Levi', 'Ben-Haim', 'Shoham', 'Darwish', 'Elbaz', 'Halabi', 'Rosen', 'Zaken', 'Masarwa', 'Tzur', 'Oren', 'Abutbul', 'Najjar', 'Keinan', 'Hazan', 'Sela', 'Weiss', 'Mor'];
+ROLES.telco = { stores: ['Store sales advisor', 'Store manager', 'Device technician'], contact: ['Customer service agent', 'Retention specialist', 'Team lead'], netops: ['NOC engineer', 'Service desk analyst', 'Shift lead'], neteng: ['RAN engineer', 'Core network engineer', 'Transport planner'], field: ['Field technician', 'Site maintenance supervisor', 'Fibre installer'], biz: ['Enterprise account manager', 'Solutions architect', 'Bid manager'], dc: ['Data-centre engineer', 'Managed SOC analyst', 'Cloud engineer'], it: ['BSS developer', 'Digital product owner', 'IT administrator'], whl: ['Roaming manager', 'Wholesale account manager', 'Interconnect analyst'], fin: ['Billing analyst', 'Fraud analyst', 'Accounts payable clerk'], hr: ['HR business partner', 'Legal counsel', 'Executive assistant'] };
+BASE.telco = { click: 8.9, report: 27, submit: 3.1, completion: 80, risky: 0.011 };
+THEMES.telco = [
+  { theme: 'Service-desk call: MFA reset for a store manager', channel: 'Voice', d: 5, cues: ['Caller asks for a code', 'Knows the store number and manager name'] },
+  { theme: 'Urgent SIM replacement for a VIP subscriber', channel: 'Email', d: 5, cues: ['Authority and urgency', 'Asks to skip identity checks'] },
+  { theme: 'Network vendor software advisory with attachment', channel: 'Email', d: 4, cues: ['Lookalike vendor domain', 'Macro-enabled attachment'] },
+  { theme: 'Dealer commission statement (shared link)', channel: 'Email', d: 3, cues: ['File-share brand abuse', 'Credential page'] },
+  { theme: 'Billing system password expiry', channel: 'Email', d: 3, cues: ['Lookalike SSO page', 'Generic greeting'] },
+  { theme: 'Site-access permit via QR at a cell site', channel: 'QR code', d: 3, cues: ['QR code to a login page', 'Contractor impersonation'] },
+  { theme: 'Courier parcel for the store via SMS', channel: 'SMS', d: 2, cues: ['Short link', 'Delivery lure'] },
+];
+SECTOR.telco = [
+  { title: 'SIM swaps, eSIM re-issue and identity checks', kind: 'Sector', audience: 'Stores, contact centres & fraud', minutes: 20, mandatory: true, refs: ['PPL / DSR', 'ISO 27011'], depts: ['stores', 'contact', 'fin'] },
+  { title: 'Subscriber and call-record data: what you may see and share', kind: 'Sector', audience: 'All staff with CRM or billing access', minutes: 15, mandatory: true, refs: ['Privacy Protection Law', 'ISO 27001 A.5.34'], depts: ['stores', 'contact', 'it', 'fin', 'biz'] },
+  { title: 'Network elements: privileged access and vendor sessions', kind: 'Sector', audience: 'Network operations & engineering', minutes: 20, mandatory: true, refs: ['INCD CDM', 'ISO 27001 A.8.2'], depts: ['netops', 'neteng', 'whl', 'dc'] },
+  { title: 'Cell sites and the landing station: access, contractors and plant', kind: 'Sector', audience: 'Field & site services', minutes: 12, mandatory: true, refs: ['ISO 27011', 'ISO 27001 A.7.2'], depts: ['field', 'whl'] },
+];
+SECTOR_POLICIES.telco = [['Subscriber identity verification & SIM change', 'Stores, contact centres & dealers', ['PPL / DSR', 'ISO 27011']], ['Network element & site access', 'Network operations, engineering & field', ['INCD CDM', 'ISO 27001 A.8.2']]];

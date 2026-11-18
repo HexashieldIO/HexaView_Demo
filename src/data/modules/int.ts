@@ -184,6 +184,15 @@ function mentionTemplates(c: CustomerProfile): MT[] {
       { source: 'Telegram', venue: 'Hacktivist channel', sev: 'medium', category: 'OT intelligence', scope: 'Sector', title: 'Channel shares screenshots of theme-park ride HMIs found online', snippet: 'A channel posts HMI screenshots from amusement operators. None match Starfall resorts; Claroty xDome confirms no ride-control HMIs are internet-reachable.', actor: 'Hacktivist collective', asset: 'Ride & show control networks', action: 'Re-run external exposure checks on PARKS- ranges; brief ride and show engineering.', tenant: 'parks' },
       { source: 'Telegram', venue: 'Fraud channel', sev: 'low', category: 'Brand abuse', scope: 'Direct mention', title: 'Fake discounted StarPass resort tickets sold in a fraud channel', snippet: 'Sellers offer cut-price park tickets bought with stolen cards; a lookalike ticketing domain is tracked separately.', actor: 'Ticket-fraud crew', asset: 'tickets.starfallresorts.com', action: 'Notify accesso and Adyen fraud teams; request takedown.', tenant: 'parksasia' },
     ],
+    telco: [
+      { source: 'Forums', venue: 'Closed data-trading forum', sev: 'critical', category: 'Data leak', scope: 'Direct mention', title: 'Sample of 5,000 subscriber records offered as "Israeli mobile operator, fresh"', snippet: 'The sample fields match the billing migration wave 3 export format. HexaInt is validating it against HexaCustody watermarks; values held in evidence, not shown.', actor: 'Data broker (forum rep ~45)', asset: ci[1] ?? 'Subscriber master export', action: 'Trace the watermark to the export session, suspend the implicated export role and open the Privacy Protection Authority assessment.', tenant: 'retail' },
+      { source: 'Markets', venue: 'Stealer-log marketplace', sev: 'critical', category: 'Credentials for sale', scope: 'Supply chain', title: 'Contact-centre agent CRM and Entra ID sessions in a stealer-log batch', snippet: 'A home PC used by a Negev Contact Solutions agent leaked sessions for the CRM agent desktop, which can approve SIM changes. Values held in evidence, not shown.', actor: 'Stealer-log vendor', asset: 'KTG-BSS-CRM-PRD', action: 'Revoke the agent sessions in Entra ID, force re-enrolment and review every SIM change made from the account in the last 30 days.', tenant: 'retail' },
+      { source: 'Forums', venue: 'Insider-recruitment thread', sev: 'high', category: 'Insider solicitation', scope: 'Sector', title: 'Thread offering payment to store and contact-centre staff for SIM swaps', snippet: 'A post seeks employees at mobile operators in the region willing to re-issue SIMs or eSIM profiles on request. Kinneret is named among examples; no named insider.', actor: 'SIM-swap fraud ring', asset: 'SIM-change and eSIM re-issue workflow', action: 'Tighten fraud scoring on store-initiated swaps; awareness nudge to store and contact-centre team leads.', tenant: 'retail' },
+      { source: 'Telegram', venue: 'Hacktivist channel', sev: 'high', category: 'Targeting / threat', scope: 'Sector', title: 'Channel lists telecom DNS resolvers and self-care portals in a DDoS "call to action"', snippet: 'A hacktivist channel names several operators in the region, including Kinneret resolver and portal addresses, as targets. Posture only; Radware baselines show no change.', actor: 'Hacktivist DDoS collective', asset: 'KTG-DNS-RES01 · my.kinneret-telecom.co.il', action: 'Raise DDoS readiness on the resolver farm and public portals; brief the NOC shift leads.', tenant: 'fixed' },
+      { source: 'Forums', venue: 'Access-broker forum', sev: 'high', category: 'Network access for sale', scope: 'Supply chain', title: 'Broker advertising a jump-host foothold at a "tower maintenance contractor, IL"', snippet: 'Listing describes remote access at a site-maintenance contractor serving mobile operators, matching Galil Tower Services by profile. Specifics redacted by the HexaInt analyst.', actor: 'Initial-access broker', asset: 'Third party: Galil Tower Services', action: 'Confirm every contractor session into cell-site controllers is brokered through CyberArk; rotate the contractor jump-host credentials.', tenant: 'mobile' },
+      { source: 'Paste sites', venue: 'Public paste site', sev: 'medium', category: 'Config / data leak', scope: 'Direct mention', title: 'Pasted router configuration fragment references a Kinneret peering edge', snippet: 'A paste contains a BGP neighbour block and an SNMP community string naming a Haifa edge router. The community string was already rotated; traced to a troubleshooting post.', actor: 'Unattributed', asset: 'KTG-CLS-NMS01 · Haifa peering edge', action: 'Confirm rotation; scan public repositories and forums for further configuration fragments.', tenant: 'intl' },
+      { source: 'Telegram', venue: 'Fraud channel', sev: 'low', category: 'Brand abuse', scope: 'Direct mention', title: 'Fake "Kinneret unpaid bill" SMS lure circulating', snippet: 'An SMS lure impersonating billing links to a lookalike payment page. The lookalike domain is tracked separately.', actor: 'Consumer-fraud crew', asset: 'pay.kinneret-telecom.co.il', action: 'Request takedown through Cyberint; block the sender ID on the SMS firewall and warn subscribers in the app.', tenant: 'retail' },
+    ],
   };
   return forCustomer(map, c);
 }
@@ -320,6 +329,12 @@ export function ransomGroups(c: CustomerProfile): RansomGroup[] {
       { name: 'Akira', active: true, sectorVictims90d: 3, lastSeenDays: 13, tactics: ['T1133', 'T1486', 'T1490'], note: 'Post-production and VFX houses; render storage encrypted ahead of deliveries.', peers: ['VFX house (London)', 'Animation studio'] },
       { name: 'ALPHV/BlackCat affiliates', active: false, sectorVictims90d: 1, lastSeenDays: 79, tactics: ['T1133', 'T1486', 'T1567.002'], note: 'Brand dormant; former affiliates now operate under other programmes.', peers: ['Dubbing vendor'] },
     ],
+    telco: [
+      { name: 'Akira', active: true, sectorVictims90d: 4, lastSeenDays: 6, tactics: ['T1133', 'T1486', 'T1490'], note: 'VPN-led intrusions at regional ISPs and hosting providers; billing and provisioning systems encrypted.', peers: ['Regional ISP (EU)', 'Managed hosting provider', 'Cable operator (LATAM)'] },
+      { name: 'Scattered Spider', active: true, sectorVictims90d: 3, lastSeenDays: 9, tactics: ['T1621', 'T1078', 'T1098'], note: 'Help-desk and store-staff social engineering at mobile operators, used to obtain SIM swaps and SSO access.', peers: ['Mobile operator (US)', 'MVNO (UK)'] },
+      { name: 'Qilin', active: true, sectorVictims90d: 3, lastSeenDays: 14, tactics: ['T1078', 'T1486', 'T1567.002'], note: 'Data-theft extortion against telecom outsourcers; subscriber and call-centre records published as leverage.', peers: ['Contact-centre outsourcer', 'Tower and site-services company'] },
+      { name: 'LockBit 3.0 affiliates', active: false, sectorVictims90d: 1, lastSeenDays: 77, tactics: ['T1486', 'T1490'], note: 'Reduced after law-enforcement disruption; occasional field-installation contractors.', peers: ['Fibre installation contractor'] },
+    ],
   };
   // stable jitter so peers feel per-customer
   return forCustomer(data, c).map((g) => ({ ...g, lastSeenDays: g.lastSeenDays + r.int(0, 2) }));
@@ -451,6 +466,11 @@ export function actorProfiles(c: CustomerProfile): ActorProfile[] {
     'UNC3886': { name: 'UNC3886', aka: '—', origin: 'China-nexus', motivation: 'Espionage / state', sectors: ['Critical infrastructure', 'Telecom', 'Singapore'], activity: 'High', techniques: ['T1190', 'T1505.003', 'T1078', 'T1070.001'], summary: 'Named by Singapore in 2025 for attacks on critical infrastructure; exploits hypervisors, firewalls and other appliances without EDR.' },
     'LAPSUS$': { name: 'LAPSUS$', aka: 'DEV-0537, Strawberry Tempest', origin: 'Cybercrime (youth)', motivation: 'Extortion / notoriety', sectors: ['Media', 'Gaming', 'Tech'], activity: 'Medium', techniques: ['T1621', 'T1078', 'T1199', 'T1567.002'], summary: 'MFA fatigue, SIM swaps and paid insiders; leaks source code and unreleased content for notoriety.' },
     'NullBulge': { name: 'NullBulge', aka: '—', origin: 'Hacktivist / cybercrime', motivation: 'Ideological / extortion', sectors: ['Media', 'Gaming', 'AI'], activity: 'Low', techniques: ['T1195.002', 'T1213', 'T1567.002'], summary: 'Poisons creative and AI tool add-ons, then leaks internal chat and content from entertainment companies.' },
+    'MuddyWater': { name: 'MuddyWater', aka: 'Mango Sandstorm, Seedworm, Static Kitten', origin: 'Iran-nexus (per government advisories)', motivation: 'Espionage / state-aligned', sectors: ['Telecom', 'Government', 'Energy'], activity: 'High', techniques: ['T1566.001', 'T1059.001', 'T1219', 'T1078', 'T1027'], summary: 'State-aligned espionage operator, per public government advisories; spear-phishing and legitimate remote-management tools used against telecom and government networks in the region.' },
+    'Salt Typhoon': { name: 'Salt Typhoon', aka: 'Earth Estries, GhostEmperor', origin: 'China-nexus (per government advisories)', motivation: 'Espionage / state-aligned', sectors: ['Telecom', 'Internet service providers', 'Government'], activity: 'High', techniques: ['T1190', 'T1078', 'T1505.003', 'T1572', 'T1070.001'], summary: 'State-aligned espionage against telecom carriers reported publicly since 2024; enters through network edge devices and seeks call records and interception-related systems.' },
+    'LightBasin (UNC1945)': { name: 'LightBasin (UNC1945)', aka: 'UNC1945', origin: 'Unattributed', motivation: 'Espionage', sectors: ['Telecom', 'Roaming & signalling providers'], activity: 'Medium', techniques: ['T1199', 'T1078', 'T1572', 'T1046', 'T1070.001'], summary: 'Telecom-specialist intrusion set reported by vendors since 2016; moves between operators over roaming and signalling links and collects subscriber and call metadata.' },
+    'Agrius': { name: 'Agrius', aka: 'Pink Sandstorm, Agonizing Serpens', origin: 'Iran-nexus (per vendor reporting)', motivation: 'Destructive / state-aligned', sectors: ['Technology', 'Telecom', 'Education'], activity: 'Medium', techniques: ['T1190', 'T1505.003', 'T1567.002', 'T1486', 'T1490'], summary: 'Data theft followed by wiper or ransomware-styled destruction against organisations in Israel, per vendor reporting; web-facing servers are the usual way in.' },
+    'Hacktivist DDoS collectives': { name: 'Hacktivist DDoS collectives', aka: 'Various personas', origin: 'Distributed', motivation: 'Hacktivist / disruption', sectors: ['Telecom', 'Government', 'Critical infrastructure'], activity: 'High', techniques: ['T1595', 'T1190', 'T0883', 'T0814'], summary: 'Volumetric and application-layer DDoS against DNS, self-care portals and mobile-core edges, usually timed to regional events; public claims often exceed measured impact.' },
   };
   return c.vocab.threatActors
     .map((name) => LIB[name])
@@ -528,6 +548,11 @@ export function advisories(c: CustomerProfile): Advisory[] {
       { id: 'T2', source: 'Vendor', title: 'Next.js middleware authorisation bypass', ref: 'CVE-2025-29927', sev: 'high', daysAgo: r.int(5, 30), affectsEstate: true, note: 'screeners.starfallent.com and the press site run Next.js; both patched.' },
       { id: 'T3', source: 'Vendor', title: 'Rockwell GuardLogix safety controller advisory', ref: `ICSA-26-${r.int(100, 300)}-04`, sev: 'medium', daysAgo: r.int(6, 28), affectsEstate: true, note: 'Ride-control PLCs at Orlando; safety-rated zones are isolated, patch during the annual ride rehab.' },
     ],
+    telco: [
+      { id: 'K1', source: 'Sector ISAC', title: 'GSMA T-ISAC: abnormal Diameter and GTP-C traffic arriving through roaming hubs', ref: `TISAC-2026-${r.int(100, 999)}`, sev: 'high', daysAgo: r.int(1, 6), affectsEstate: true, note: 'Matches the roaming-partner anomaly open in HexaSOC; signalling-firewall rule set under review with the hub provider.' },
+      { id: 'K2', source: 'CISA KEV', title: 'Cisco IOS XE web UI privilege escalation exploited in the wild', ref: 'CVE-2023-20198', sev: 'critical', daysAgo: r.int(8, 30), affectsEstate: true, note: 'Web UI disabled on core and aggregation routers; one Haifa peering-edge router is still exposed and tracked in Attack Surface until its maintenance window.' },
+      { id: 'K3', source: 'Vendor', title: 'Check Point Security Gateway information disclosure', ref: 'CVE-2024-24919', sev: 'high', daysAgo: r.int(10, 40), affectsEstate: true, note: 'Quantum gateways with remote-access blades; hotfix applied and local accounts rotated.' },
+    ],
   };
   return [...common, ...forCustomer(sector, c)];
 }
@@ -535,7 +560,7 @@ export function advisories(c: CustomerProfile): Advisory[] {
 export function isacName(c: CustomerProfile): string {
   const m: CustomerMap<string> = {
     maritime: 'Maritime ISAC', finserv: 'FS-ISAC', media: 'ME-ISAC', healthcare: 'Health-ISAC', automotive: 'Auto-ISAC',
-    insurance: 'FS-ISAC', defence: 'ND-ISAC / DIB CS (DC3)', pharma: 'Health-ISAC + NCSC Switzerland', sghospital: 'Health-ISAC / CSA SingCERT / Synapxe', studio: 'ME-ISAC',
+    insurance: 'FS-ISAC', defence: 'ND-ISAC / DIB CS (DC3)', pharma: 'Health-ISAC + NCSC Switzerland', sghospital: 'Health-ISAC / CSA SingCERT / Synapxe', studio: 'ME-ISAC', telco: 'INCD / GSMA T-ISAC',
   };
   return forCustomer(m, c);
 }
@@ -636,6 +661,12 @@ export function sectorBrief(c: CustomerProfile): { week: string; items: SectorBr
       { heading: 'Consumers', body: 'Starfall+ account-checker configs and fake StarPass ticket sales are circulating on fraud forums.' },
       { heading: 'Recommendation', body: 'Tighten vendor review links, keep ride control isolated and prepare SEC 8-K materiality evidence early.' },
     ],
+    telco: [
+      { heading: 'Signalling', body: 'Operators report abnormal SS7, Diameter and GTP traffic arriving through roaming hubs; location and subscriber-profile queries are the usual aim.' },
+      { heading: 'Fraud', body: 'SIM-swap rings are recruiting store and contact-centre staff; stealer logs keep surfacing agent-desktop sessions that can approve a swap.' },
+      { heading: 'Availability', body: 'Hacktivist collectives are naming DNS resolvers and self-care portals; state-aligned groups favour network edge devices and equipment-vendor access.' },
+      { heading: 'Recommendation', body: 'Review signalling-firewall rules with the hub provider, score every store-initiated SIM change and rehearse DNS and mobile-core DDoS diversion.' },
+    ],
   };
   return { week: `Week ${isoWeek()}, ${isac} + HexaInt`, items: forCustomer(map, c) };
 }
@@ -708,6 +739,9 @@ const GEO: { country: string; lat: number; lon: number }[] = [
   { country: 'Ireland', lat: 52.5, lon: -7.6 },
   { country: 'Japan', lat: 34.7, lon: 135.5 },
   { country: 'Indonesia', lat: -6.2, lon: 106.8 },
+  { country: 'Israel', lat: 32.08, lon: 34.78 },
+  { country: 'Cyprus', lat: 34.7, lon: 33.0 },
+  { country: 'Greece', lat: 37.98, lon: 23.73 },
 ];
 const HOME_GEO: CustomerMap<[string, number][]> = {
   maritime: [['Netherlands', 9], ['Belgium', 5], ['Singapore', 4], ['Brazil', 4], ['Philippines', 4], ['India', 2], ['Poland', 1]],
@@ -720,6 +754,7 @@ const HOME_GEO: CustomerMap<[string, number][]> = {
   pharma: [['Switzerland', 8], ['Ireland', 5], ['United States', 5], ['India', 3], ['Germany', 2], ['Poland', 1], ['Italy', 1]],
   sghospital: [['Singapore', 12], ['Malaysia', 4], ['India', 3], ['Philippines', 2], ['Indonesia', 2]],
   studio: [['United States', 12], ['United Kingdom', 5], ['Japan', 4], ['Canada', 3], ['India', 2], ['Spain', 1]],
+  telco: [['Israel', 16], ['Cyprus', 2], ['Greece', 2], ['India', 2], ['Poland', 1], ['United States', 1]],
 };
 const SURNAMES: CustomerMap<string[]> = {
   maritime: ['vermeer', 'okafor', 'lindqvist', 'marino', 'petrov', 'dekker', 'santos', 'tan', 'reyes', 'jansen', 'devries', 'costa'],
@@ -732,6 +767,7 @@ const SURNAMES: CustomerMap<string[]> = {
   pharma: ['mueller', 'favre', 'zimmermann', 'bonvin', 'kellerhals', 'byrne', 'murphy', 'oconnell', 'kelly', 'sullivan', 'brennan', 'carter'],
   sghospital: ['tan', 'lim', 'ng', 'wong', 'chua', 'goh', 'abdullah', 'rahman', 'ismail', 'kumar', 'pillai', 'subramaniam'],
   studio: ['morgan', 'castillo', 'bennett', 'hughes', 'fletcher', 'yamamoto', 'sato', 'nakamura', 'reed', 'okafor', 'shaw', 'kimura'],
+  telco: ['levi', 'mizrahi', 'peretz', 'biton', 'dahan', 'avraham', 'friedman', 'khoury', 'haddad', 'nassar', 'shapira', 'ohana'],
 };
 const FUNCTIONAL: CustomerMap<string[]> = {
   maritime: ['finance', 'helpdesk', 'crewing', 'gate-ops'],
@@ -744,6 +780,7 @@ const FUNCTIONAL: CustomerMap<string[]> = {
   pharma: ['servicedesk', 'qa-batch-release', 'gmp-it-valais', 'pv-intake', 'cro-liaison'],
   sghospital: ['servicedesk', 'pharmacy', 'patient-billing', 'radiology-pacs', 'biomed'],
   studio: ['servicedesk', 'screeners', 'post-coord-ldn', 'plus-support', 'ride-ops-orlando'],
+  telco: ['servicedesk', 'noc-shift', 'dealer-support', 'billing-ops', 'fraud-desk'],
 };
 /** Where the stolen logins were used: corporate apps first, then sector SaaS, then personal sites. */
 function credApps(c: CustomerProfile): { app: string; kind: ExposedCred['appKind']; w: number }[] {
@@ -759,6 +796,7 @@ function credApps(c: CustomerProfile): { app: string; kind: ExposedCred['appKind
     pharma: ['veevavault.com', 'imedidata.com (Rave)', 'iqvia.com (partner portal)', 'workday.com'],
     sghospital: ['nehr portal (Synapxe)', 'carelink-telehealth.sg', 'workday.com', 'corppass.gov.sg'],
     studio: ['frame.io', 'asperafiles.com', 'signiant.com (Media Shuttle)', 'moxion.io'],
+    telco: ['servicenow.com', 'amdocs.com (BSS partner portal)', 'ericsson.com (support portal)', 'workday.com'],
   };
   const idp = idpOf(c);
   const sso = idp?.vendor === 'Okta' ? 'okta.com' : 'login.microsoftonline.com';
@@ -1196,6 +1234,16 @@ const SUPPLIERS: CustomerMap<SupSeed[]> = {
     ['accesso', 'accesso.com', 'Park ticketing & queuing', 'High', 'StarPass ticketing and guest data', ['Vendor breach']],
     ['Intamin', 'intamin.com', 'Ride manufacturer', 'High', 'Vendor remote access to ride control (via CyberArk)', []],
   ],
+  telco: [
+    ['Negev Contact Solutions', 'negev-contact.co.il', 'Outsourced contact centre', 'Critical', 'CRM agent desktop incl. SIM-change and account actions', ['Leaked credentials', 'Infected machine', 'Lookalike domain']],
+    ['Galil Tower Services', 'galil-towers.co.il', 'Tower & site maintenance', 'Critical', 'Remote access to cell-site controllers (via CyberArk)', ['Leak-site mention', 'Leaked credentials']],
+    ['Carmel Fibre Contractors', 'carmel-fibre.co.il', 'FTTH field installation', 'High', 'Work-order app and home gateway provisioning', ['Infected machine']],
+    ['Levant Subsea Systems', 'levantsubsea.com', 'Subsea cable consortium operator', 'Critical', 'Landing-station co-location and line terminal management', ['Lookalike domain']],
+    ['Yarkon Pay', 'yarkonpay.co.il', 'Card processing & top-up', 'High', 'Tokenised billing and store card acceptance', ['Vendor breach']],
+    ['Amdocs', 'amdocs.com', 'BSS, billing & CRM managed service', 'Critical', 'Subscriber, billing and CDR data', []],
+    ['Ericsson', 'ericsson.com', 'RAN & 5G core vendor', 'Critical', 'Brokered remote support to RAN and packet core (via CyberArk)', []],
+    ['Syniverse', 'syniverse.com', 'Roaming clearing & signalling hub', 'High', 'Roaming signalling and TAP settlement files', []],
+  ],
 };
 function supplierFinding(r: ReturnType<typeof rng>, kind: SupplierFindingKind, s: SupSeed, c: CustomerProfile): SupplierFinding {
   const [name, domain] = s;
@@ -1306,6 +1354,11 @@ function iocSeeds(c: CustomerProfile): IocSeed[] {
       { type: 'URL', threat: 'Phishing', desc: 'Fake screener-review page harvesting awards-voter and vendor logins', attr: 'This organisation', kind: 'Identity', tlp: 'TLP:AMBER+STRICT', seenP: 0.9, creds: true },
       { type: 'IP', threat: 'Credential theft', desc: 'Account-checker source against Starfall+ sign-in (Akamai shared)', attr: 'Account-takeover infrastructure', kind: 'Infrastructure', tlp: 'TLP:GREEN', seenP: 0.95 },
       { type: 'Domain', threat: 'Malware delivery', desc: 'Trojanised render-plugin download aimed at VFX artists', attr: 'NullBulge', kind: 'Intrusion set', tlp: 'TLP:AMBER', seenP: 0.5 },
+    ],
+    telco: [
+      { type: 'URL', threat: 'Phishing', desc: 'Bill-payment page cloning the self-care login, delivered by SMS', attr: 'This organisation', kind: 'Identity', tlp: 'TLP:AMBER+STRICT', seenP: 0.9, creds: true },
+      { type: 'Domain', threat: 'Credential theft', desc: 'Dealer-portal sign-in lure aimed at store and contact-centre staff who can change a SIM', attr: 'SIM-swap fraud ring', kind: 'Intrusion set', tlp: 'TLP:AMBER', seenP: 0.75, creds: true },
+      { type: 'IP', threat: 'Reconnaissance', desc: 'Scanner sweeping edge-router and firewall management interfaces (national CERT shared)', attr: a1, kind: 'Intrusion set', tlp: 'TLP:AMBER', seenP: 0.8 },
     ],
   };
   return [
@@ -1474,6 +1527,11 @@ export function osintArticles(c: CustomerProfile): Article[] {
       { cat: 'Incident Report', title: 'VFX vendor artist’s Aspera session found in a stealer log', daysAgo: 6, readMin: 5, summary: 'An artist at Northlight Pixel leaked sessions for the Starfall Aspera share and Okta.', sections: [{ heading: 'Incident details', bullets: ['Infostealer on a vendor workstation outside Starfall control', 'Session cookies for aspera.starfallent.com and Okta', 'Share scope limited to Lodestar plates batch 58'] }, { heading: 'Actions taken', bullets: [`Sessions revoked in ${idpN}; share keys rotated`, 'Aspera transfer logs reviewed; no downloads after the capture date', 'Vendor asked to reimage the workstation under the TPN agreement'] }, { heading: 'Recommendations', bullets: ['Route vendor access through Island browser only', 'Watermark every plate batch sent to vendors'] }], related: { label: 'Open the credential records', to: '/int/exposure?source=Infostealer' } },
       { cat: 'Advisory', title: `${isac}: vishing against studio SaaS tenants`, daysAgo: 3, readMin: 4, summary: 'Callers posing as IT are persuading vendor and studio staff to approve rogue SaaS connections.', sections: [{ heading: 'Why it matters', paras: ['Recent extortion cases started with a phone call and ended with subscriber data resold; materiality decisions for an SEC 8-K followed within days.'] }, { heading: 'For Starfall', bullets: ['Connected-app approvals restricted to admins', 'Starfall+ subscriber export alerts added', 'SEC 8-K materiality evidence pack prepared in advance'] }], related: { label: 'Related indicators', to: '/int/ioc?threat=Credential%20theft' } },
       { cat: 'Phishing', title: 'Fake awards-screener invitations', daysAgo: 16, readMin: 3, summary: 'Awards voters and talent reps received invitations to a cloned screener portal.', sections: [{ heading: 'Actions taken', bullets: [`Lure domains blocked in ${mailN}`, 'Indee notified; real screener links re-issued with device binding', 'Three voters’ sessions revoked'] }], related: { label: 'See the lookalike', to: '/int/darkweb?view=domains' } },
+    ],
+    telco: [
+      { cat: 'Incident Report', title: 'Contact-centre agent’s CRM session found in a stealer log', daysAgo: 5, readMin: 5, summary: 'A home PC used by a Negev Contact Solutions agent leaked sessions for the CRM agent desktop, which can approve SIM changes.', sections: [{ heading: 'Incident details', bullets: ['Infostealer on a personal device outside Kinneret control', 'Session cookies for the CRM agent desktop and single sign-on', 'The account could approve SIM changes and eSIM re-issues for consumer lines'] }, { heading: 'Actions taken', bullets: [`Sessions revoked in ${idpN}; account re-enrolled with phishing-resistant MFA`, 'Thirty days of SIM changes from the account reviewed with Fraud Management; 14 reversed', 'Outsourcer asked to confirm scope under the data-security annex'] }, { heading: 'Recommendations', bullets: ['Require managed devices for every role that can change a SIM', 'Hold store- and agent-initiated swaps that score high-risk for a second approval'] }], related: { label: 'Open the credential records', to: '/int/exposure?source=Infostealer' } },
+      { cat: 'Advisory', title: `${isac}: abnormal signalling traffic arriving through roaming hubs`, daysAgo: 3, readMin: 4, summary: 'Operators report location and subscriber-profile queries from partner networks outside their agreed ranges.', sections: [{ heading: 'Why it matters', paras: ['Signalling links between operators were designed on trust. Queries that look routine to the network can reveal where a subscriber is or prepare interception of messages, which is why interconnect filtering and partner anomaly monitoring matter.'] }, { heading: 'For Kinneret', bullets: ['Signalling-firewall rule set reviewed with the roaming hub provider', 'Partner anomaly detections validated in Splunk against the open HexaSOC incident', 'Privacy Protection Authority and Ministry of Communications contacts confirmed'] }], related: { label: 'Threat actors', to: '/int/osint' } },
+      { cat: 'Phishing', title: 'Fake unpaid-bill SMS sent to subscribers', daysAgo: 13, readMin: 3, summary: 'Subscribers received SMS messages linking to a clone of the bill-payment page.', sections: [{ heading: 'Actions taken', bullets: ['Takedown requested for the clone through Cyberint', 'Sender ID blocked on the SMS firewall; national CERT informed', 'App banner warns that Kinneret never sends payment links by SMS'] }], related: { label: 'See the lookalike', to: '/int/darkweb?view=domains' } },
     ],
   };
   return [...forCustomer(sector, c), ...shared]

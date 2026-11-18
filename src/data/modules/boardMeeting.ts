@@ -46,6 +46,10 @@ const NED_POOL = [
   'Elena Marchetti', 'Paul Kessler', 'Grace Mensah', 'Julian Ferreira', 'Anneliese Kraus', 'Robert Chen', 'Fiona MacLeod', 'Samuel Adeyemi',
 ];
 const SECRETARY_POOL = ['Charlotte Hayes', 'Martin Vogt', 'Isabel Moreno', 'Nicholas Grant', 'Leonie Baumann', 'Hannah Lim'];
+/** Customers whose non-executives are named locally rather than drawn from the pool (chair first). */
+const LOCAL_BOARD: Partial<Record<CustomerProfile['id'], { neds: string[]; secretary: string }>> = {
+  telco: { neds: ['Ibrahim Awad', 'Ruth Lavi', 'Menachem Stern', 'Nour Halabi'], secretary: 'Efrat Navon' },
+};
 
 const slug = (n: string) => n.toLowerCase().normalize('NFD').replace(/[^a-z ]/g, '').trim().replace(/\s+/g, '.');
 
@@ -70,6 +74,9 @@ const DUTY_RULES: { test: RegExp; reg: string; short: string; duty: string; pers
   { test: /SYSC 15A|Op Res|Operational Resilience/i, reg: 'FCA/PRA operational resilience (SYSC 15A)', short: 'FCA Op Res', personal: true, duty: 'The board approves the operational resilience self-assessment, important business services and impact tolerances, and is accountable for remaining within tolerance in a severe but plausible scenario.' },
   { test: /R155/i, reg: 'UNECE R155', short: 'UNECE R155', personal: false, duty: 'Vehicle type approval depends on a certified Cyber Security Management System. Management commitment and monitoring of fleet cyber risk are audited by the approval authority.' },
   { test: /IMO|MSC\.428/i, reg: 'IMO MSC.428(98)', short: 'IMO', personal: false, duty: 'Cyber risk must be addressed in the safety management system and is verified at Document of Compliance audits; the company remains accountable for vessel cyber safety.' },
+  { test: /Privacy Protection Law/, reg: 'Privacy Protection Law (Amendment 13) and Data Security Regulations', short: 'PPL', personal: false, duty: 'As the owner of subscriber and communications databases, the company is accountable for their security. Amendment 13 gives the Privacy Protection Authority wider enforcement powers and administrative fines, and expects a privacy protection officer with access to senior management.' },
+  { test: /Ministry of Communications|MoC licence/, reg: 'Ministry of Communications operating licence', short: 'MoC licence', personal: false, duty: 'The operating licence carries network security and service-continuity obligations. The board is expected to oversee network resilience and the reporting of significant incidents to the Ministry.' },
+  { test: /\bINCD\b/, reg: 'INCD Cyber Defense Methodology', short: 'INCD', personal: false, duty: 'The methodology places responsibility for cyber risk with senior management and the board: they set the risk appetite, approve the defence plan and review its maturity each year.' },
   { test: /\bTPN\b|MPA/i, reg: 'Studio content-security contracts (TPN, MPA)', short: 'TPN / MPA', personal: false, duty: 'Studio and distributor contracts make the company liable for pre-release leaks in its supply chain; boards are expected to oversee vendor content security.' },
 ];
 
@@ -148,8 +155,9 @@ export function boardMeeting(c: CustomerProfile): Meeting {
   const hq = c.hq.split(',')[0];
 
   const people = new Set([c.people.board.name, cfo.name, c.people.ciso.name, c.people.grcLead.name]);
-  const neds = r.shuffle(NED_POOL).filter((n) => !people.has(n)).slice(0, 4);
-  const secName = r.pick(SECRETARY_POOL);
+  const local = LOCAL_BOARD[c.id];
+  const neds = local ? local.neds : r.shuffle(NED_POOL).filter((n) => !people.has(n)).slice(0, 4);
+  const secName = local ? local.secretary : r.pick(SECRETARY_POOL);
 
   const training = (forceOverdue = false): Director['training'] => {
     const status: TrainingStatus = forceOverdue ? 'Overdue' : r.weighted([['Completed', 0.66], ['Due soon', 0.16], ['Overdue', 0.18]] as const);

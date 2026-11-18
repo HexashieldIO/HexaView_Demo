@@ -485,6 +485,18 @@ BASE.studio = {
   insurance: { insurability: 79, premiumDeltaPct: -3, expectedLossM: 38.5, tailLossM: 640, attestedControls: 22, totalControls: 26 },
   ops: { pendingApprovals: 6, actions30d: 214, auditEvents30d: 241000, lastAnchorMin: 2 },
 };
+BASE.telco = {
+  soc: { openIncidents: 22, critical: 2, high: 6, mttdMin: 5, mttaMin: 3, mttrMin: 37, slaPct: 99.96, alerts24h: 18400, autoTriagedPct: 96, attackCoveragePct: 74, huntsActive: 4, detectionsLive: 1040 },
+  int: { prioritisedItems: 46, exposedCredentials: 388, stealerMachines: 44, lookalikeDomains: 31, darkWebMentions: 52, vipsMonitored: 21 },
+  strike: { openFindings: 36, criticalFindings: 3, findingsToDetectionsPct: 67, externalAssets: 1640, testsThisQuarter: 11, meanTimeToRemediateDays: 17 },
+  ot: { otAssets: 9860, sites: 6, otAlerts: 2140, otVulns: 6320, sensors: 46, purdueCoveragePct: 79 },
+  comply: { controlsMetPct: 83, frameworks: 10, evidenceItems: 5480, overdueTasks: 27, vendors: 640, highRiskVendors: 19, aiSystems: 8 },
+  custody: { assetsUnderCustody: 8400, vendorsInChain: 34, transfers7d: 2260, revocations30d: 31, anomalies: 6, agents: 640 },
+  ai: { aiSystems: 8, shadowAi: 5, copilotQueries30d: 5200, agentActions7d: 38400, humanApprovalPct: 100 },
+  insurance: { insurability: 80, premiumDeltaPct: -4, expectedLossM: 31.5, tailLossM: 520, attestedControls: 22, totalControls: 26 },
+  ops: { pendingApprovals: 5, actions30d: 168, auditEvents30d: 186000, lastAnchorMin: 2 },
+};
+RI_OFFSETS.telco = { loop: -13, coverage: 2, exposure: 3, detection: 8, data: 10 };
 RI_OFFSETS.insurance = { loop: -13, coverage: 2, exposure: 3, detection: 8, data: 10 };
 RI_OFFSETS.defence = { loop: -14, coverage: 1, exposure: 3, detection: 8, data: 10 };
 RI_OFFSETS.pharma = { loop: -13, coverage: 2, exposure: 3, detection: 8, data: 10 };
@@ -570,6 +582,23 @@ CONTROL_SEEDS.studio = [
   { id: 'CTL-OT-13', name: 'OEM remote access to ride control brokered and time-bound', req: 'IEC 62443 SR 1.13 · NIST CSF 2.0 PR.AA-05', techniques: ['T0886', 'T0866', 'T1219'] },
   { id: 'CTL-IR-14', name: 'Material-incident determination and 4-business-day disclosure runbook', req: 'SEC 8-K 1.05 · NIST CSF 2.0 RS.CO-02', techniques: ['T1486', 'T1657', 'T1565.001'] },
 ];
+CONTROL_SEEDS.telco = [
+  { id: 'CTL-SIG-01', name: 'Signalling firewall on SS7, Diameter and GTP interconnects with roaming-partner anomaly monitoring', req: 'GSMA FS.11, FS.19, FS.20 · ISO 27011 · MoC licence', techniques: ['T1190', 'T1199', 'T1046', 'T1572'] },
+  { id: 'CTL-SIM-02', name: 'SIM-swap and eSIM re-issue require verified identity, with fraud scoring before activation', req: 'PPL / DSR (access control) · ISO 27011 · NIST CSF 2.0 PR.AA-03', techniques: ['T1078', 'T1098', 'T1657', 'T1621'] },
+  { id: 'CTL-IAM-03', name: 'Phishing-resistant MFA for workforce, dealers, contact-centre agents and network-element admins', req: 'INCD CDM (identity & access) · ISO 27001 A.8.5 · PCI DSS 8.4', techniques: ['T1078', 'T1621', 'T1110.003', 'T1539'] },
+  { id: 'CTL-PAM-04', name: 'Network-element, OSS and vendor access vaulted, brokered and session-recorded', req: 'ISO 27001 A.8.2 · ISO 27011 · GSMA NESAS / SAS', techniques: ['T1003.001', 'T1133', 'T1219', 'T1550.002'] },
+  { id: 'CTL-SUB-05', name: 'Subscriber and CDR data confined to approved stores; bulk export alerted and custody-tracked', req: 'PPL / DSR (high-security databases) · ISO 27001 A.8.12', techniques: ['T1213', 'T1530', 'T1567.002', 'T1048.003'] },
+  { id: 'CTL-LI-06', name: 'Lawful-interception enclave isolated, dual-controlled and integrity-monitored', req: 'MoC licence · ISO 27011 · INCD CDM (critical systems)', techniques: ['T1078', 'T1565.001', 'T1070.001'] },
+  { id: 'CTL-DDS-07', name: 'DDoS protection on DNS resolvers, mobile core and customer-facing edges, tested quarterly', req: 'MoC licence (network resilience) · ISO 22301 · NIST CSF 2.0 PR.IR-04', techniques: ['T1190', 'T1046', 'T1595'] },
+  { id: 'CTL-BGP-08', name: 'BGP route-origin validation (RPKI), prefix filtering and hijack monitoring at every peering edge', req: 'ISO 27011 · ISO 27001 A.8.20 · MoC licence', techniques: ['T1199', 'T1090.003', 'T1572'] },
+  { id: 'CTL-5GC-09', name: '5G core hardened to baseline; exposure (NEF) and self-care APIs inventoried and protected', req: '3GPP TS 33.501 · GSMA NESAS / SAS · ISO 27001 A.8.9', techniques: ['T1190', 'T1550.001', 'T1580', 'T1136.003'] },
+  { id: 'CTL-SUP-10', name: 'Network equipment vendors assessed (NESAS / SCAS evidence) and software integrity verified before load', req: 'GSMA NESAS / SAS · ISO 27001 A.5.19 · NIST CSF 2.0 GV.SC-07', techniques: ['T1195.002', 'T1199', 'T0862'] },
+  { id: 'CTL-OT-11', name: 'Cell-site, data-centre and landing-station plant segmented from IT and monitored for changes', req: 'ISO 27001 A.8.22 · INCD CDM (network separation) · ISO 27011', techniques: ['T0886', 'T0866', 'T0843', 'T0836'] },
+  { id: 'CTL-EDR-12', name: 'EDR with tamper protection on servers, OSS / BSS hosts, store and contact-centre endpoints', req: 'ISO 27001 A.8.7 · PCI DSS 5.2 · INCD CDM (endpoint protection)', techniques: ['T1486', 'T1059.001', 'T1562.001', 'T1204.002'] },
+  { id: 'CTL-BKP-13', name: 'Immutable backups of subscriber database, billing and network configuration with tested restore', req: 'ISO 22301 · ISO 27001 A.8.13 · NIST CSF 2.0 RC.RP-03', techniques: ['T1490', 'T1486', 'T1489'] },
+  { id: 'CTL-PCI-14', name: 'Billing and top-up card environment segmented; payment-page script integrity monitored', req: 'PCI DSS 1.3, 6.4.3, 11.6.1', techniques: ['T1021.002', 'T1046', 'T1190'] },
+];
+DETECTION_SOURCE.telco = ['Sentinel', 'Splunk ES', 'SentinelOne', 'Signalling firewall'];
 DETECTION_SOURCE.insurance = ['Splunk ES', 'CrowdStrike', 'Sentinel', 'Vectra'];
 DETECTION_SOURCE.defence = ['Sentinel', 'Defender XDR', 'Armis', 'Corelight'];
 DETECTION_SOURCE.pharma = ['Sentinel', 'CrowdStrike', 'Claroty xDome', 'Dragos'];
@@ -610,5 +639,12 @@ const EXTRA_DRIVERS: Partial<Record<CustomerProfile['id'], { text: string; gain:
     { text: 'Move the 38 vendor remote-access paths into Orlando and Osaka ride control behind CyberArk brokered sessions (IEC 62443 SR 1.13)', gain: 1.4, module: 'HexaOT', path: '/ot/visibility' },
     { text: 'Enforce phishing-resistant MFA for the 1,240 help-desk reset-eligible Okta accounts (Scattered Spider pattern)', gain: 1.1, module: 'Identity', path: '/fabric/identity' },
     { text: 'Restore the Irdeto piracy-intelligence feed and upgrade the Osaka resort edge agent to 1.9.x', gain: 0.7, module: 'Integrations', path: '/fabric/integrations' },
+  ],
+  telco: [
+    { text: 'Close 12 partial loops on signalling and SIM-swap controls (GSMA FS.11 / FS.19, ISO 27011) by validating the staged Splunk rules against the signalling firewall', gain: 2.2, module: 'Closed loop', path: '/loop' },
+    { text: 'Move the 44 vendor and contractor remote-access paths into the Haifa landing station and cell-site controllers behind CyberArk brokered sessions', gain: 1.7, module: 'HexaOT', path: '/ot/visibility' },
+    { text: 'Enforce phishing-resistant MFA for the 1,180 dealer and contact-centre accounts that can change a SIM, incl. Negev Contact Solutions agents (rating 55)', gain: 1.4, module: 'Identity', path: '/fabric/identity' },
+    { text: 'Restore the BSS and CRM audit feed after billing migration wave 3 so SIM-change and bulk-export evidence for the Privacy Protection Regulations is fresh again', gain: 1.0, module: 'Integrations', path: '/fabric/integrations' },
+    { text: 'Upgrade the cable landing station edge agent to 1.9.x and clear the Claroty collector backlog behind it', gain: 0.6, module: 'Data planes', path: '/fabric/dataplanes' },
   ],
 };

@@ -1091,7 +1091,7 @@ export interface Exclusion {
 
 const COMMON_EXCLUSIONS = (c: CustomerProfile): Exclusion[] => [
   { name: 'War and state-backed cyber operations', wording: 'LMA 5567A-style war, cyber war and cyber operation exclusion', risk: c.dataKey === 'maritime' ? 'high' : 'medium', impact: 'Losses from a cyber operation by or on behalf of a state that impairs a state\'s essential services may be excluded, including spillover.', evidence: 'HexaInt attribution notes and intrusion-set mapping are preserved so the attribution question can be argued with evidence.' },
-  { name: 'Unpatched known vulnerability', wording: 'Coinsurance rises to 50% where loss arises from a CVE with a patch available for more than 45 days', risk: c.dataKey === 'finserv' ? 'low' : 'medium', impact: forCustomer({ maritime: '2 KEV vulnerabilities on terminal gateways are at 23 days; the clause bites at 45.', media: 'Screener portal findings are 24 days old; the clause bites at 45.', healthcare: '2 KEV vulnerabilities on community-hospital NetScalers are at 19 days; the clause bites at 45.', automotive: '1 KEV on the dealer VPN is at 12 days; the clause bites at 45.', finserv: 'No internet-facing critical older than 7 days today.', insurance: 'The KEV flaw on the MFT server is at 11 days; the clause bites at 45.', defence: '9 Linux hosts at the Tucson range carry criticals at 38 days; the clause bites at 45.', pharma: 'No internet-facing critical older than 9 days; plant OT patches follow validated change windows.', sghospital: 'The FortiGate SSL-VPN KEV is at 27 days; the clause bites at 45.', studio: 'Osaka resort scan uploads lag by 3 hours; no internet-facing critical older than 14 days.' } as CustomerMap<string>, c), evidence: 'HexaView timestamps patch state per asset daily, so the age of a CVE at time of loss is provable.' },
+  { name: 'Unpatched known vulnerability', wording: 'Coinsurance rises to 50% where loss arises from a CVE with a patch available for more than 45 days', risk: c.dataKey === 'finserv' ? 'low' : 'medium', impact: forCustomer({ maritime: '2 KEV vulnerabilities on terminal gateways are at 23 days; the clause bites at 45.', media: 'Screener portal findings are 24 days old; the clause bites at 45.', healthcare: '2 KEV vulnerabilities on community-hospital NetScalers are at 19 days; the clause bites at 45.', automotive: '1 KEV on the dealer VPN is at 12 days; the clause bites at 45.', finserv: 'No internet-facing critical older than 7 days today.', insurance: 'The KEV flaw on the MFT server is at 11 days; the clause bites at 45.', defence: '9 Linux hosts at the Tucson range carry criticals at 38 days; the clause bites at 45.', pharma: 'No internet-facing critical older than 9 days; plant OT patches follow validated change windows.', sghospital: 'The FortiGate SSL-VPN KEV is at 27 days; the clause bites at 45.', studio: 'Osaka resort scan uploads lag by 3 hours; no internet-facing critical older than 14 days.', telco: 'No internet-facing critical older than 14 days; network elements are patched in vendor maintenance windows declared to underwriters.' } as CustomerMap<string>, c), evidence: 'HexaView timestamps patch state per asset daily, so the age of a CVE at time of loss is provable.' },
   { name: 'Infrastructure failure', wording: 'Failure of power, telecoms or internet backbone not under the insured\'s control', risk: 'low', impact: 'Satellite, CDN and utility outages are excluded unless caused by a cyber event on a named provider.', evidence: 'Connector health history shows whether an outage was provider-side.' },
   { name: 'Betterment', wording: 'Costs to improve systems beyond their pre-loss state', risk: 'low', impact: 'Upgrades made during recovery (e.g. replacing EOL systems) are not recoverable.', evidence: 'Asset snapshot at time of loss defines the pre-loss state.' },
 ];
@@ -1232,7 +1232,7 @@ export function evidencePack(c: CustomerProfile): PackItem[] {
   const hd = headlines(c);
   const hc = sourceRef(c, 'c-hexacomply');
   items.push(
-    { id: 'GEN-1', section: 'Company profile', q: 'Annual revenue, employees and countries of operation', a: `Revenue ${currencySymbol(c.currency)}${(c.revenueM / 1000).toFixed(2)}bn; ${c.employees.toLocaleString('en-GB')} employees; ${new Set(c.tenants.map((t) => t.country)).size} countries; ${c.tenants.length} operating entities.`, status: 'answered', confidence: 'high', sources: hc ? [hc] : [], refreshedMin: 1440 * 3, evidenceRef: `EV-${r.int(10000, 99999)}` },
+    { id: 'GEN-1', section: 'Company profile', q: 'Annual revenue, employees and countries of operation', a: `Revenue ${currencySymbol(c.currency)}${(c.revenueM / 1000).toFixed(2)}bn; ${c.employees.toLocaleString('en-GB')} employees; ${new Set(c.tenants.map((t) => t.country)).size === 1 ? '1 country' : `${new Set(c.tenants.map((t) => t.country)).size} countries`}; ${c.tenants.length} operating entities.`, status: 'answered', confidence: 'high', sources: hc ? [hc] : [], refreshedMin: 1440 * 3, evidenceRef: `EV-${r.int(10000, 99999)}` },
     { id: 'GEN-2', section: 'Company profile', q: 'How many personal and payment records do you hold?', a: forCustomer(RECORDS, c), status: 'answered', confidence: 'medium', sources: [sourceRef(c, 'c-netskope') ?? sourceRef(c, 'c-hexacustody'), hc].filter((x): x is SourceRef => !!x), refreshedMin: 1440 * 9, evidenceRef: `EV-${r.int(10000, 99999)}` },
     { id: 'GEN-3', section: 'Governance', q: 'Who owns cyber risk and how often is the board briefed?', a: `${c.people.ciso.name} (${c.people.ciso.role}); quarterly board report generated by HexaView with the Resilience Index and loss quantification.`, status: 'answered', confidence: 'high', sources: hc ? [hc] : [], refreshedMin: 1440 * 21, evidenceRef: `EV-${r.int(10000, 99999)}` },
     { id: 'GEN-4', section: 'Detection & response', q: 'Do you have 24×7 security monitoring? Median time to detect and contain?', a: `Yes. HexaSOC MDR 24×7; median time to detect ${hd.soc.mttdMin} min, to contain ${hd.soc.mttrMin} min; ${hd.soc.slaPct}% SLA met.`, status: 'answered', confidence: 'high', sources: [sourceRef(c, c.connectors.find((k) => k.category === 'SIEM')?.id ?? '')].filter((x): x is SourceRef => !!x), refreshedMin: 5, evidenceRef: `EV-${r.int(10000, 99999)}` },
@@ -1322,9 +1322,9 @@ export interface PanelVendor {
 }
 
 export function panel(c: CustomerProfile): PanelVendor[] {
-  const counsel = forCustomer({ maritime: 'Hollis Wren LLP (Rotterdam, London)', finserv: 'Ashby Crane LLP (London, New York)', media: 'Marlowe & Vance LLP (Los Angeles)', healthcare: 'Barrow Kline LLP (Columbus, Washington DC)', automotive: 'Lindqvist Rauch Partners (Munich, Frankfurt)', insurance: 'Whitcombe Harte LLP (Hartford, New York)', defence: 'Calloway Brandt LLP (Huntsville, Washington DC)', pharma: 'Rieder Lüthi Partners (Basel, Dublin)', sghospital: 'Tan Ong & Partners LLC (Singapore)', studio: 'Marlowe & Vance LLP (Los Angeles, New York)' } as CustomerMap<string>, c);
+  const counsel = forCustomer({ maritime: 'Hollis Wren LLP (Rotterdam, London)', finserv: 'Ashby Crane LLP (London, New York)', media: 'Marlowe & Vance LLP (Los Angeles)', healthcare: 'Barrow Kline LLP (Columbus, Washington DC)', automotive: 'Lindqvist Rauch Partners (Munich, Frankfurt)', insurance: 'Whitcombe Harte LLP (Hartford, New York)', defence: 'Calloway Brandt LLP (Huntsville, Washington DC)', pharma: 'Rieder Lüthi Partners (Basel, Dublin)', sghospital: 'Tan Ong & Partners LLC (Singapore)', studio: 'Marlowe & Vance LLP (Los Angeles, New York)', telco: 'Sela Navon Law Offices (Tel Aviv, London)' } as CustomerMap<string>, c);
   const base: PanelVendor[] = [
-    { role: 'Incident response and forensics', firm: 'HexaShield DFIR', onPanel: true, engagement: `Retainer: ${forCustomer({ finserv: 240, automotive: 400, healthcare: 160, insurance: 200, defence: 80, pharma: 320, sghospital: 100, studio: 400 } as Partial<CustomerMap<number>>, c) ?? 120} h, ${forCustomer({ finserv: 188, maritime: 74, automotive: 312, healthcare: 131, insurance: 164, defence: 71, pharma: 266, sghospital: 88, studio: 318 } as Partial<CustomerMap<number>>, c) ?? 96} h remaining`, sla: '1 h response, on site 24 h', status: 'ready' },
+    { role: 'Incident response and forensics', firm: 'HexaShield DFIR', onPanel: true, engagement: `Retainer: ${forCustomer({ finserv: 240, automotive: 400, healthcare: 160, insurance: 200, defence: 80, pharma: 320, sghospital: 100, studio: 400, telco: 320 } as Partial<CustomerMap<number>>, c) ?? 120} h, ${forCustomer({ finserv: 188, maritime: 74, automotive: 312, healthcare: 131, insurance: 164, defence: 71, pharma: 266, sghospital: 88, studio: 318, telco: 251 } as Partial<CustomerMap<number>>, c) ?? 96} h remaining`, sla: '1 h response, on site 24 h', status: 'ready' },
     { role: 'Breach counsel', firm: counsel, onPanel: true, engagement: 'Engagement letter signed; privilege protocol agreed', sla: '2 h', status: 'ready' },
     { role: 'Crisis communications', firm: 'Northlight Crisis Partners', onPanel: true, engagement: 'Holding statements pre-drafted for top scenarios', sla: '4 h', status: 'ready' },
     { role: 'Ransom negotiation and sanctions screening', firm: 'Meridian Negotiation Group', onPanel: true, engagement: 'Panel vendor; OFAC / OFSI screening included', sla: '4 h', status: 'ready' },
@@ -1342,6 +1342,7 @@ export function panel(c: CustomerProfile): PanelVendor[] {
     pharma: [{ role: 'GxP recovery and data-integrity assessment', firm: 'Validation partner (CSV and data-integrity specialists)', onPanel: false, engagement: 'Not on carrier panel: consent needed for revalidation costs', sla: 'Contracted 24 h', status: 'action' as const }],
     sghospital: [{ role: 'Clinical downtime and device recovery', firm: 'Biomed OEM recovery (GE HealthCare, Philips, BD)', onPanel: false, engagement: 'Not on carrier panel: consent needed for OEM recovery costs', sla: 'Contracted 12 h', status: 'action' as const }],
     studio: [{ role: 'Anti-piracy takedown and watermark analysis', firm: 'Fieldmark Anti-Piracy', onPanel: true, engagement: 'Added to the panel at renewal; takedown runbook shared', sla: '2 h', status: 'ready' as const }],
+    telco: [{ role: 'Network restoration and equipment-vendor emergency support', firm: 'Ericsson and Nokia emergency recovery services', onPanel: false, engagement: 'Not on carrier panel: consent needed for vendor recovery costs', sla: 'Contracted 4 h', status: 'action' as const }, { role: 'Subscriber notification and call handling (Hebrew, Arabic, Russian)', firm: 'ClearNotice Services with the Kinneret contact centres', onPanel: true, engagement: 'Templates pre-staged in three languages', sla: '24 h', status: 'ready' as const }],
   } as CustomerMap<PanelVendor[]>, c);
   return [...base, ...sector];
 }
@@ -1377,8 +1378,8 @@ export function vault(c: CustomerProfile): VaultItem[] {
   const email = c.connectors.find((k) => k.category === 'Email')?.id ?? '';
   const backup = c.connectors.find((k) => k.category === 'Backup')?.id ?? '';
   const rows: VaultItem[] = [
-    { artefact: 'SIEM detections and raw security logs', source: sourceRef(c, siem), retention: c.dataKey === 'finserv' || c.dataKey === 'automotive' ? '13 months' : c.dataKey === 'maritime' || c.dataKey === 'healthcare' ? '400 days' : '12 months', immutable: true, sizeTB: forCustomer({ finserv: 412, maritime: 168, media: 74, healthcare: 236, automotive: 520, insurance: 286, defence: 38, pharma: 610, sghospital: 64, studio: 940 } as CustomerMap<number>, c), anchoredMin: anchor, ready: true },
-    { artefact: 'EDR telemetry and process trees', source: sourceRef(c, edr), retention: '180 days', immutable: true, sizeTB: forCustomer({ finserv: 96, maritime: 31, media: 18, healthcare: 58, automotive: 140, insurance: 64, defence: 9, pharma: 180, sghospital: 21, studio: 230 } as CustomerMap<number>, c), anchoredMin: anchor + 2, ready: true },
+    { artefact: 'SIEM detections and raw security logs', source: sourceRef(c, siem), retention: c.dataKey === 'finserv' || c.dataKey === 'automotive' ? '13 months' : c.dataKey === 'maritime' || c.dataKey === 'healthcare' ? '400 days' : '12 months', immutable: true, sizeTB: forCustomer({ finserv: 412, maritime: 168, media: 74, healthcare: 236, automotive: 520, insurance: 286, defence: 38, pharma: 610, sghospital: 64, studio: 940, telco: 720 } as CustomerMap<number>, c), anchoredMin: anchor, ready: true },
+    { artefact: 'EDR telemetry and process trees', source: sourceRef(c, edr), retention: '180 days', immutable: true, sizeTB: forCustomer({ finserv: 96, maritime: 31, media: 18, healthcare: 58, automotive: 140, insurance: 64, defence: 9, pharma: 180, sghospital: 21, studio: 230, telco: 110 } as CustomerMap<number>, c), anchoredMin: anchor + 2, ready: true },
     { artefact: 'Identity sign-ins and admin audit', source: sourceRef(c, idp), retention: '2 years', immutable: true, sizeTB: c.dataKey === 'finserv' ? 22 : 6, anchoredMin: anchor + 1, ready: true },
     { artefact: 'Email message trace and threat events', source: sourceRef(c, email), retention: '1 year', immutable: true, sizeTB: c.dataKey === 'finserv' ? 15 : 4, anchoredMin: anchor + 3, ready: true },
     { artefact: 'Backup catalogue and immutability state', source: backup ? sourceRef(c, backup) : null, retention: '1 year', immutable: !!backup, sizeTB: 0.4, anchoredMin: backup ? (c.connectors.find((k) => k.id === backup)?.lastSyncMin ?? 60) : 0, ready: c.dataKey === 'finserv' || c.dataKey === 'automotive' },
@@ -1480,8 +1481,16 @@ export function biTemplate(c: CustomerProfile): BiLine[] {
       ['Mastering & delivery', 'Delivery-date slippage', 0.08, 'Aspera · Deluxe', 'Late-delivery penalties'],
       ['Consumer products e-commerce', 'Orders per hour', 0.08, 'E-commerce platform', 'Marketplace fees'],
     ],
+    telco: [
+      ['Mobile voice & data', 'Attached subscribers and data sessions vs baseline', 0.3, 'Splunk ES · core KPIs', 'Subscriber credits, national roaming costs'],
+      ['Business connectivity & cloud hosting', 'Circuits and hosted workloads breaching SLA', 0.18, 'ServiceNow · data-centre BMS', 'SLA credits to enterprise customers'],
+      ['Fibre broadband & TV', 'Active lines and TV sessions', 0.16, 'OSS · Radware', 'Field-force overtime, service credits'],
+      ['Billing & top-up', 'Successful charges and top-ups per hour', 0.14, 'BSS audit · Yarkon Pay', 'Deferred billing runs, manual top-up'],
+      ['International transit & roaming', 'Lit capacity and roaming sessions', 0.12, 'Landing-station NMS · signalling firewall', 'Emergency capacity purchase'],
+      ['Managed security services', 'Customer alerts handled within SLA', 0.05, 'Sentinel · ServiceNow', 'Surge analysts, SLA credits'],
+    ],
   };
-  const wait = forCustomer({ maritime: 12, automotive: 12, finserv: 8, healthcare: 8, media: 10, insurance: 8, defence: 12, pharma: 12, sghospital: 8, studio: 10 } as CustomerMap<number>, c);
+  const wait = forCustomer({ maritime: 12, automotive: 12, finserv: 8, healthcare: 8, media: 10, insurance: 8, defence: 12, pharma: 12, sghospital: 8, studio: 10, telco: 8 } as CustomerMap<number>, c);
   return forCustomer(defs, c).map(([service, metric, share, source, extraExpense]) => ({ service, metric, hourlyLossK: Math.round(perHour * share * 3.2), waitingH: wait, source, extraExpense }));
 }
 
@@ -2241,4 +2250,152 @@ PRIORS.studio = [
   { title: 'Card-testing bots on the ticketing site', category: 'BEC / payment fraud', lossM: 0.4, claimed: 'No claim', paidM: 0, lesson: 'Bot management rules tightened for checkouts.' },
   { title: 'Support export exposed 4,800 subscriber emails', category: 'Data breach', lossM: 0.3, claimed: 'No claim', paidM: 0, lesson: 'Exports blocked from vendor-visible tickets.' },
   { title: 'Show-control fault closed an Orlando attraction for 2 h 40 min', category: 'OT disruption', lossM: 0.7, claimed: 'No claim', paidM: 0, lesson: 'OEM patch and change window agreed.' },
+];
+
+/* =====================================================================
+   Telco (Kinneret Telecom Group): amounts in ILS millions.
+   Control test passes sum to 22 of 26; premium drivers sum to -4.
+   ===================================================================== */
+Object.assign(SHORT_NAMES, { 'c-sigfw': 'Signalling firewall', 'c-bss': 'BSS / CRM audit', 'c-harmony': 'Harmony Email', 'c-checkpoint': 'Check Point Quantum' });
+CONTROL_SEEDS.telco = {
+  mfa: { metric: 'MFA for 6,800 staff via Entra ID; 1,180 SIM-change accounts not yet phishing-resistant', ok: 2, lastOk: 2, sources: ['c-entra', 'c-silverfort'],
+    gapNote: '1,180 dealer and contact-centre accounts that can change a SIM still use SMS or app-prompt MFA.',
+    fix: 'Move the 1,180 accounts to FIDO2 or passkeys; HexaView re-attests on the next Entra ID sync.',
+    tests: [
+      ['Is MFA enforced for all email and remote access?', 'Yes. Entra ID Conditional Access for all staff; Cato SASE for the 96 stores and 3 contact centres.'],
+      ['Is MFA enforced for privileged and network-element access?', 'Yes. CyberArk with FIDO2; Silverfort extends MFA to OSS and network-element logins.'],
+      ['Is phishing-resistant MFA enforced for accounts that can change a SIM?', 'No. 1,180 dealer and contact-centre accounts still use SMS or app prompts.'],
+    ] },
+  edr: { metric: 'SentinelOne on 99.2% of 14,600 endpoints and servers, incl. OSS and BSS hosts', ok: 2, lastOk: 2, sources: ['c-s1'], tests: [
+    ['What percentage of endpoints and servers run EDR?', '99.2% of 14,600 endpoints and servers, including store, contact-centre, OSS and BSS hosts.'],
+    ['Is EDR monitored 24×7 with authority to contain?', 'Yes. HexaSOC MDR with the Cyber Defence Centre; median time to contain 37 min.'],
+  ] },
+  backup: { metric: 'Veeam immutable repositories; subscriber database restore tested 19 days ago', ok: 3, lastOk: 2, sources: ['c-veeam'], tests: [
+    ['Are backups immutable?', 'Yes. Hardened Veeam repositories for subscriber database exports, billing and network configuration.'],
+    ['Are backups isolated from the production domain?', 'Yes. Separate administration domain and an offline copy at the Haifa data centre.'],
+    ['Have critical systems been restored in the last 90 days?', 'Yes. Subscriber database and billing mediation restored 19 days ago in 3 h 10 min against a 4 h objective.'],
+  ] },
+  pam: { metric: 'CyberArk for 3,900 privileged and network-element accounts; vendor sessions recorded', ok: 2, lastOk: 2, sources: ['c-cyberark', 'c-silverfort'], tests: [
+    ['Are privileged credentials vaulted and rotated?', 'Yes. 3,900 privileged, OSS and network-element accounts in CyberArk with rotation.'],
+    ['Is equipment-vendor remote support brokered and recorded?', 'Yes. Ericsson, Nokia and Cisco support sessions to the core are brokered and recorded.'],
+  ] },
+  patch: { metric: 'Critical patch median 6 days on IT; no KEV older than 14 days internet-facing', ok: 2, lastOk: 2, sources: ['c-tenable', 'c-hexastrike'], tests: [
+    ['What is your patch window for critical vulnerabilities?', 'Median 6 days on IT and digital channels; network elements follow vendor maintenance windows.'],
+    ['Are any KEV vulnerabilities open on internet-facing systems?', 'No. None older than 14 days, re-tested by HexaStrike.'],
+  ] },
+  email: { metric: 'Check Point Harmony Email on all mailboxes; DMARC p=reject on 9 domains', ok: 2, lastOk: 2, sources: ['c-harmony'], tests: [
+    ['Do you sandbox attachments and rewrite URLs?', 'Yes. Harmony Email & Collaboration on all mailboxes and Teams.'],
+    ['Do you verify payment-detail changes out of band?', 'Yes. Call-back for supplier and roaming-settlement bank changes.'],
+  ] },
+  ir: { metric: 'IR plan with signalling, DDoS and subscriber-data annexes; tabletop 22 days ago', ok: 2, lastOk: 2, sources: ['c-hexacomply', 'c-servicenow'], tests: [
+    ['Is the incident response plan tested every 12 months?', 'Yes. Network outage and subscriber-data tabletop with the executive team 22 days ago.'],
+    ['Do you have an incident response retainer?', 'Yes. HexaShield DFIR, 320 hours, on the carrier panel.'],
+  ] },
+  logging: { metric: '1,040 detections in Sentinel and Splunk ES; BSS / CRM audit feed failing since the billing migration', ok: 1, lastOk: 2, sources: ['c-sentinel', 'c-splunk', 'c-bss'],
+    gapNote: 'The BSS and CRM audit feed has failed authentication since billing migration wave 3, so SIM-change and bulk-export audit evidence is stale.',
+    fix: 'Re-authenticate the BSS audit connector; SIM-change and export evidence refreshes on the next sync.',
+    tests: [
+      ['Are logs centralised and retained for at least 12 months?', 'Yes. Sentinel for IT and Splunk ES for the network SOC; 13 months with immutable archive.'],
+      ['Are billing, CRM and SIM-change audit logs collected continuously?', 'Partly. The BSS and CRM audit feed has been failing since the billing migration cut-over.'],
+    ] },
+  tprm: { metric: '640 suppliers tiered; outsourced contact centre (rating 55) holds standing SIM-change rights', ok: 1, lastOk: 1, sources: ['c-hexacomply', 'c-panorays'],
+    gapNote: 'Negev Contact Solutions (rating 55) agents can approve SIM swaps without step-up verification; Galil Tower Services (58) holds access to 2,940 cell sites.',
+    fix: 'Put outsourced SIM-change actions behind fraud scoring and step-up verification; complete the Galil remediation plan.',
+    tests: [
+      ['Do you assess suppliers with access to subscriber data or the network?', 'Yes. 640 suppliers tiered, 19 high-risk on remediation plans; NESAS evidence held for network equipment vendors.'],
+      ['Is supplier access time-bound and monitored?', 'Partly. Outsourced contact-centre agents hold standing SIM-change rights.'],
+    ] },
+  seg: { metric: 'Core, signalling and card environment segmented; 44 vendor paths into site and landing-station plant outside brokered sessions', ok: 1, lastOk: 1, sources: ['c-checkpoint', 'c-claroty', 'c-hexaot'],
+    gapNote: '44 vendor and contractor remote-access paths reach cell-site controllers and the Haifa landing-station plant outside CyberArk.',
+    fix: 'Move the 44 paths behind CyberArk brokered sessions at the next maintenance window.',
+    tests: [
+      ['Are the mobile core, signalling and cardholder environments segmented?', 'Yes. Check Point zones validated by HexaStrike; card environment tested by the QSA.'],
+      ['Is site and facilities plant isolated from vendor networks?', 'No. 44 vendor and contractor paths remain outside brokered access.'],
+    ] },
+  awareness: { metric: 'Training completion 91%; phish click rate 6.8%', ok: 2, lastOk: 1, sources: ['c-knowbe4'], tests: [
+    ['What is your annual training completion rate?', '91% across 6,800 staff, including store and contact-centre teams.'],
+    ['Do you run phishing simulations?', 'Yes. Monthly, with billing-notice and SIM-swap themed lures.'],
+  ] },
+  eol: { metric: '26 EOL IT hosts, none internet-facing; legacy site controllers isolated', ok: 2, lastOk: 1, sources: ['c-tenable', 'c-armis'], tests: [
+    ['Do you maintain an inventory of end-of-life systems?', 'Yes. Tenable and Armis, reconciled monthly in Axonius and ServiceNow.'],
+    ['Are all EOL systems isolated or supported?', 'Yes. Legacy tower site controllers sit in their own zones behind the site gateways.'],
+  ] },
+};
+DRIVERS.telco = [
+  { label: 'Market: telecom and critical-infrastructure cyber rates firming', pts: 0.5, kind: 'market' },
+  { label: 'EDR with HexaSOC 24×7 response', pts: -1.5, kind: 'control', controlId: 'edr' },
+  { label: 'Outage and subscriber-data tabletop exercised', pts: -1.5, kind: 'control', controlId: 'ir' },
+  { label: 'Tested subscriber-database and billing restore', pts: -1.5, kind: 'control', controlId: 'backup' },
+  { label: 'Network-element and vendor access vaulted and recorded', pts: -1.5, kind: 'control', controlId: 'pam' },
+  { label: 'KEV fixed within 14 days', pts: -1, kind: 'control', controlId: 'patch' },
+  { label: '1,180 SIM-change accounts without phishing-resistant MFA', pts: 1, kind: 'control', controlId: 'mfa', fixable: true },
+  { label: 'Outsourced contact centre with standing SIM-change rights', pts: 1, kind: 'control', controlId: 'tprm', fixable: true },
+  { label: '44 vendor paths into site and landing-station plant', pts: 1, kind: 'control', controlId: 'seg', fixable: true },
+  { label: 'BSS audit evidence stale (feed failing)', pts: 0.5, kind: 'control', controlId: 'logging', fixable: true },
+  { label: 'No claim above retention in 3 years', pts: -1, kind: 'history' },
+];
+Object.assign(LAST_SCORE, { telco: 77 });
+Object.assign(P0, { telco: 0.8 });
+SCENARIOS.telco = [
+  { id: 'subs', name: 'Subscriber and CDR data theft with extortion (3.1M subscribers)', category: 'Data breach', freq: 0.07, min: 8, ml: 60, max: 380, tenants: ['retail', 'mobile'], actors: ['Data-extortion crews', 'State-aligned collection (per vendor reporting)'], techniques: ['T1078', 'T1213', 'T1530', 'T1567.002'], controls: ['mfa', 'logging', 'tprm'], cover: 'Privacy liability, notification and extortion', coveredPct: 0.7, mix: mix(0.08, 0.2, 0.12, 0.55, 0.05), narrative: 'Subscriber records and call detail records are copied from the billing estate and offered for sale; notification to the Privacy Protection Authority, subscriber notices and group claims follow.' },
+  { id: 'core', name: 'DDoS on DNS and the mobile core causes a nationwide service outage', category: 'Availability', freq: 0.12, min: 4, ml: 30, max: 240, tenants: ['mobile', 'fixed', 'business'], actors: ['Hacktivist DDoS collectives', 'State-aligned actors (per vendor reporting)'], techniques: ['T1595', 'T1190', 'T1046'], controls: ['seg', 'ir', 'patch'], cover: 'BI (8 h waiting period); licence penalties only where insurable', coveredPct: 0.55, mix: mix(0.7, 0.12, 0, 0.16, 0.02), narrative: 'A volumetric and signalling-storm attack, or a route hijack of Kinneret prefixes, degrades voice and data for hours; SLA credits to business customers and licence scrutiny follow.' },
+  { id: 'rw', name: 'Ransomware on BSS, billing and CRM', category: 'Ransomware', freq: 0.07, min: 6, ml: 45, max: 300, tenants: ['retail', 'corp'], actors: ['Scattered Spider', 'Akira'], techniques: ['T1078', 'T1621', 'T1486', 'T1490'], controls: ['mfa', 'backup', 'edr'], cover: 'Extortion + BI (8 h waiting period)', coveredPct: 0.7, mix: mix(0.55, 0.17, 0.15, 0.08, 0.05), narrative: 'Billing, top-up and the CRM are encrypted mid-cycle; stores and contact centres fall back to manual service while charging is restored.' },
+  { id: 'mss', name: 'Managed-service platform compromise reaches Business & Cloud customers', category: 'Third-party outage', freq: 0.04, min: 5, ml: 40, max: 320, tenants: ['business'], actors: ['Supply-chain intrusion crews', 'MuddyWater'], techniques: ['T1199', 'T1195.002', 'T1078'], controls: ['pam', 'seg', 'logging'], cover: 'Technology E&O and third-party liability (₪150M sublimit)', coveredPct: 0.6, mix: mix(0.1, 0.15, 0.05, 0.68, 0.02), narrative: 'Privileged tooling used to run customer environments is abused to reach hosted and managed-security customers; contractual liability and customer claims dominate the loss.' },
+  { id: 'sig', name: 'Signalling abuse exposes subscriber location and profiles', category: 'State-backed', freq: 0.1, min: 1, ml: 9, max: 70, tenants: ['mobile', 'intl'], actors: ['LightBasin (UNC1945)', 'Salt Typhoon'], techniques: ['T1199', 'T1190', 'T1213'], controls: ['seg', 'logging', 'tprm'], cover: 'Response and privacy liability; the state-backed exclusion may be argued', coveredPct: 0.45, mix: mix(0.05, 0.3, 0, 0.6, 0.05), narrative: 'Location and subscriber-profile queries arrive through a roaming interconnect outside the agreed range; forensics, partner disputes and privacy claims follow.' },
+  { id: 'vendor', name: 'Network-equipment or BSS supplier compromise or outage', category: 'Third-party outage', freq: 0.1, min: 2, ml: 14, max: 90, tenants: ['mobile', 'retail'], actors: ['Provider failure', 'Software supply-chain compromise'], techniques: ['T1195.002', 'T1199'], controls: ['tprm'], cover: 'Dependent BI (₪75M sublimit, 12 h waiting)', coveredPct: 0.45, mix: mix(0.8, 0.12, 0, 0.08, 0), narrative: 'A faulty or tampered software load, or an outage at the managed billing provider, interrupts service until the supplier restores a clean release.' },
+  { id: 'simswap', name: 'SIM-swap fraud ring through stores and contact centres', category: 'Insider', freq: 0.35, min: 0.4, ml: 3, max: 22, tenants: ['retail'], actors: ['Organised fraud rings', 'Insider collusion'], techniques: ['T1078', 'T1098', 'T1657'], controls: ['mfa', 'tprm', 'awareness'], cover: 'Social engineering and telecom fraud sublimit (₪10M)', coveredPct: 0.35, mix: mix(0, 0.1, 0, 0.3, 0.6), narrative: 'Store or outsourced agents approve SIM changes for a fraud ring; subscriber accounts at banks and messaging services are taken over and redress falls to Kinneret.' },
+  { id: 'cls', name: 'Landing-station or site-power incident cuts international capacity', category: 'OT disruption', freq: 0.04, min: 3, ml: 22, max: 160, tenants: ['intl', 'mobile'], actors: ['Vendor remote-access abuse', 'State-aligned actors (per vendor reporting)'], techniques: ['T0886', 'T0836', 'T1133'], controls: ['seg', 'pam', 'eol'], cover: 'BI (12 h waiting period); physical damage under the property policy', coveredPct: 0.5, mix: mix(0.78, 0.14, 0, 0.06, 0.02), narrative: 'Power or cooling controllers at the Haifa landing station or a cluster of cell sites are changed through a contractor path; capacity is lost until plant is restored by hand.' },
+];
+INVESTMENTS.telco = [
+  { id: 'i-sim', name: 'Phishing-resistant MFA and fraud scoring for the 1,180 SIM-change accounts', controlId: 'mfa', costM: 1.4, effects: [{ scenario: 'simswap', freq: 0.45 }, { scenario: 'rw', freq: 0.2 }], recommended: true, premiumPts: 1 },
+  { id: 'i-cc', name: 'Step-up verification and time-bound rights for outsourced contact-centre agents', controlId: 'tprm', costM: 0.6, effects: [{ scenario: 'simswap', freq: 0.2 }, { scenario: 'subs', freq: 0.15 }], recommended: true, premiumPts: 1 },
+  { id: 'i-ot', name: 'Broker 44 vendor paths into site and landing-station plant through CyberArk', controlId: 'seg', costM: 1.8, effects: [{ scenario: 'cls', freq: 0.4 }], recommended: true, premiumPts: 1 },
+  { id: 'i-bss', name: 'Restore the BSS audit feed and alert on bulk subscriber exports', controlId: 'logging', costM: 0.2, effects: [{ scenario: 'subs', mag: 0.2 }], recommended: true, premiumPts: 0.5 },
+  { id: 'i-ddos', name: 'Always-on scrubbing for DNS and mobile-core edges with quarterly tests', controlId: 'ir', costM: 2.6, effects: [{ scenario: 'core', mag: 0.3 }], recommended: false, premiumPts: 0.5 },
+  { id: 'i-sig', name: 'Extend signalling-firewall filtering to every roaming hub and add GTP inspection', controlId: 'seg', costM: 3.2, effects: [{ scenario: 'sig', freq: 0.4 }], recommended: false, premiumPts: 0.3 },
+];
+SUBLIMITS.telco = [
+  { name: 'Incident response and forensics', limitM: 400, retention: 'Nil for panel vendors', note: 'HexaShield DFIR on the carrier panel', scenarios: ['rw', 'subs', 'sig'], kind: 'full' },
+  { name: 'Ransomware and cyber extortion', limitM: 120, note: 'Sanctions screening and board approval', scenarios: ['rw', 'subs'], kind: 'sublimit' },
+  { name: 'Business interruption (network, billing, digital channels)', limitM: 400, waiting: '8 h', note: 'Lost revenue, SLA credits to business customers and extra expense', scenarios: ['rw', 'core', 'cls'], kind: 'full' },
+  { name: 'Dependent BI (network equipment, BSS, cloud)', limitM: 75, waiting: '12 h', note: 'Ericsson, Nokia, Amdocs, Azure and AWS named', scenarios: ['vendor'], kind: 'sublimit' },
+  { name: 'Privacy liability and notification', limitM: 400, note: 'Subscriber and CDR data; defence of Privacy Protection Authority proceedings', scenarios: ['subs', 'sig'], kind: 'full' },
+  { name: 'Technology E&O and third-party liability (managed services)', limitM: 150, note: 'Business & Cloud customers; contractual liability caps apply', scenarios: ['mss'], kind: 'sublimit' },
+  { name: 'PCI assessments and card-scheme costs', limitM: 20, note: 'Billing, top-up and store card acceptance', scenarios: ['rw'], kind: 'sublimit' },
+  { name: 'Social engineering and telecom fraud', limitM: 10, note: 'SIM-swap redress and dealer fraud; verification procedure required', scenarios: ['simswap'], kind: 'sublimit' },
+  { name: 'Regulatory fines and licence penalties', limitM: null, note: 'Excluded where uninsurable by law; defence costs only', scenarios: ['core', 'subs'], kind: 'excluded' },
+];
+TOWERS.telco = [['Harel', 0, 50, 'Primary (local fronting)', 0.4], ['Beazley', 50, 150, '1st excess (London)', 0.34], ['AXA XL', 200, 200, '2nd excess (London)', 0.26]];
+SECTOR_EXCLUSIONS.telco = [
+  { name: 'Failure of the insured’s own network', wording: 'Outage from capacity shortfall, misconfiguration or operational error excluded unless caused by a security event', risk: 'high', impact: 'Business interruption responds only if the outage is shown to be cyber-caused; congestion, a failed software upgrade or a power fault are not insured here.', evidence: 'Signalling-firewall, Radware and HexaOT timelines show whether an outage began with a security event.' },
+  { name: 'Regulatory fines and licence penalties', wording: 'Fines and penalties excluded where uninsurable by law', risk: 'medium', impact: 'Privacy Protection Authority sanctions and Ministry of Communications licence penalties may not be recoverable; defence costs are covered.', evidence: 'Notification timeline and point-in-time control attestations are preserved for the regulator file.' },
+  { name: 'Ordinary telecom fraud', wording: 'Subscription, roaming and interconnect fraud treated as a business risk; SIM-swap redress limited to the ₪10M sublimit', risk: 'medium', impact: 'IRSF and Wangiri traffic losses stay with revenue assurance; only verified SIM-swap redress and response costs are insured.', evidence: 'Mobileum fraud cases and BSS SIM-change audit records support the sublimit claim.' },
+];
+HISTORY.telco = [[5200, 250, 5000], [8900, 300, 7500], [12400, 400, 7500], [12100, 400, 7500]];
+PEERS.telco = [
+  { label: 'Kinneret', rol: 3.0, limitToRevenue: 4.1, retentionPct: 1.9 },
+  { label: 'Peer median (telecom operators)', rol: 3.3, limitToRevenue: 3.2, retentionPct: 2.5 },
+  { label: 'Top quartile', rol: 2.7, limitToRevenue: 5.5, retentionPct: 1.5 },
+];
+Object.assign(RECORDS, { telco: '3.1M mobile subscribers and 720k fibre households incl. ID numbers, call detail records and location data; 6,800 employees; billing cards tokenised by Yarkon Pay.' });
+Object.assign(PRIOR, { telco: 'No claims above retention in 3 years; 1 SIM-swap fraud loss below retention (2025) and 1 notice of circumstances after a dealer-portal data exposure.' });
+OBLIGATIONS.telco = [
+  { party: 'Privacy Protection Authority (PPA)', trigger: 'Severe security incident affecting a subscriber database', deadline: 'Without delay (PPA guidance: within 72 h)', hours: 72, basis: 'Privacy Protection Regulations (Data Security)' },
+  { party: 'Israel National Cyber Directorate (INCD)', trigger: 'Significant cyber incident affecting communications services', deadline: 'Without delay', hours: 24, basis: 'INCD guidance · licence conditions' },
+  { party: 'Ministry of Communications', trigger: 'Major network outage or security event affecting service', deadline: 'Without delay under the licence', hours: 24, basis: 'Ministry of Communications licence' },
+  { party: 'Card brands via acquirer', trigger: 'Suspected compromise of billing or store card data', deadline: 'Immediately', hours: 1, basis: 'PCI DSS 12.10' },
+  { party: 'Business & Cloud customers', trigger: 'Incident affecting a managed or hosted service', deadline: '24 h', hours: 24, basis: 'Customer contracts · SOC 2 commitments' },
+  { party: 'Roaming and interconnect partners', trigger: 'Signalling abuse traced to or through an interconnect', deadline: '48 h', hours: 48, basis: 'Roaming agreements · GSMA fraud and security sharing' },
+];
+VAULT_EXTRA.telco = (c) => [
+  { artefact: 'Signalling-firewall logs and roaming-partner anomalies (SS7, Diameter, GTP)', source: sourceRef(c, 'c-sigfw'), retention: '13 months', immutable: true, sizeTB: 9.4, anchoredMin: 84, ready: false },
+  { artefact: 'BSS and CRM agent actions and SIM-change audit', source: sourceRef(c, 'c-bss'), retention: '7 years', immutable: true, sizeTB: 3.8, anchoredMin: 640, ready: false },
+  { artefact: 'Site and landing-station plant captures', source: sourceRef(c, 'c-hexaot'), retention: '30 days rolling, frozen on legal hold', immutable: true, sizeTB: 8.6, anchoredMin: 6, ready: true },
+];
+PRIORS.telco = [
+  { title: 'SIM-swap ring through two stores: 46 subscriber accounts taken over', category: 'Insider', lossM: 2.9, claimed: 'Below retention', paidM: 0, lesson: 'Fraud scoring added before SIM activation; store rights reviewed.' },
+  { title: 'DDoS on the DNS resolver farm (2 h 10 min degraded browsing)', category: 'Availability', lossM: 1.6, claimed: 'No claim', paidM: 0, lesson: 'Always-on scrubbing extended to the resolvers.' },
+  { title: 'Dealer-portal misconfiguration exposed 12,400 subscriber records', category: 'Data breach', lossM: 3.4, claimed: 'Notice of circumstances', paidM: 0, lesson: 'Dealer APIs moved behind Salt API protection; PPA notified.' },
+  { title: 'Generator controller fault took 31 northern cell sites off air for 3 h', category: 'OT disruption', lossM: 1.1, claimed: 'No claim', paidM: 0, lesson: 'Contractor change window and brokered access agreed.' },
+  { title: 'Payment redirect attempt on a roaming settlement (blocked at release)', category: 'BEC / payment fraud', lossM: 0.2, claimed: 'No claim', paidM: 0, lesson: 'Call-back made mandatory for settlement bank changes.' },
 ];

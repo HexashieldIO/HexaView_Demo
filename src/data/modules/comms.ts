@@ -351,12 +351,40 @@ const ORG: CustomerMap<OrgSeed> = {
     seats: { Full: 180, Approver: 60, Viewer: 100, Guest: 120, HexaShield: 16 },
     synced: { Full: 131, Approver: 38, Viewer: 57, Guest: 64, HexaShield: 0 },
   },
+  telco: {
+    domain: 'kinneret-telecom.co.il',
+    tz: ['Tel Aviv', 2],
+    tenantTz: { mobile: ['Petah Tikva', 2], intl: ['Haifa', 2], retail: ['Netanya', 2] },
+    staff: [[0, 'Viewer', 'Finance', 'corp'], [1, 'Approver', 'Business & sites', 'mobile'], [2, 'Approver', 'Business & sites', 'business'], [3, 'Viewer', 'Business & sites', 'retail'], [6, 'Full', 'Business & sites', 'retail'], [7, 'Full', 'OT engineering', 'mobile'], [8, 'Full', 'OT engineering', 'intl'], [9, 'Approver', 'Platform', 'retail'], [10, 'Viewer', 'Business & sites', 'retail'], [11, 'Full', 'OT engineering', 'mobile']],
+    extras: [
+      { key: 'dpo', name: 'Layla Mansour', role: 'Data Protection Officer', team: 'Legal & privacy', licence: 'Approver' },
+      { key: 'counsel', name: 'Tamar Golan', role: 'General Counsel & Head of Regulatory Affairs', team: 'Legal & privacy', licence: 'Approver', vip: true },
+      { key: 'ned', name: 'Ruth Lavi', role: 'Chair, Audit & Risk Committee', team: 'Board & executive', licence: 'Viewer', vip: true },
+      { key: 'risk', name: 'Gil Shapira', role: 'Chief Risk Officer', team: 'Risk & GRC', licence: 'Approver' },
+      { key: 'threat', name: 'Shira Katz', role: 'Threat Intelligence Lead', team: 'SOC', licence: 'Full' },
+      { key: 'cloud', name: 'Omer Dahan', role: 'Cloud & Platform Security Lead', team: 'Platform', licence: 'Full' },
+      { key: 'eng', name: 'Samir Haddad', role: 'Security Platform Engineer', team: 'Platform', licence: 'Full' },
+    ],
+    ext: [
+      { key: 'broker', name: 'Noam Raviv', role: 'Head of Cyber & Technology Risk', org: 'Marsh Israel', team: 'Insurance', tz: ['Tel Aviv', 2], expiry: 90 },
+      { key: 'claims', name: 'Claire Hollis', role: 'Cyber Claims Manager (London market)', org: 'Beazley', team: 'Insurance', tz: ['London', 0], expiry: 180 },
+      { key: 'auditor', name: 'Galit Shemesh', role: 'Lead Auditor, ISO 27001 & ISO 22301', org: 'Etgar Certification', team: 'Audit', tz: ['Tel Aviv', 2], expiry: 45 },
+      { key: 'breach', name: 'Yoav Shaked', role: 'Partner, Privacy, Cyber & Communications Regulation', org: 'Shaked Baram & Co.', team: 'Legal (external)', tz: ['Tel Aviv', 2], expiry: 365 },
+      { key: 'v1', name: 'Rotem Alon', role: 'Client Security Lead (BSS managed service)', org: 'Amdocs', team: 'Vendor', tz: ['Raanana', 2], expiry: 90 },
+      { key: 'v2', name: 'Mikael Lindqvist', role: 'Customer Security Manager, Managed Services', org: 'Ericsson', team: 'Vendor', tz: ['Stockholm', 1], expiry: 60 },
+      { key: 'v3', name: 'Hanan Zidan', role: 'Operations & Compliance Manager', org: 'Negev Contact Solutions', team: 'Vendor', tz: ['Beer Sheva', 2], expiry: 60 },
+    ],
+    hx: { csm: 'Adina Roth', se: 'Tom Arad', desk: 'N. Sela', tz: ['Tel Aviv', 2] },
+    crew: { approver: ['Itai Regev', 'Duty Approver, Cyber Defence Centre'], an1: ['Amir Nassar', 'Senior SOC Analyst'], an2: ['Noga Elkayam', 'Detection Engineer (network & signalling)'] },
+    seats: { Full: 90, Approver: 30, Viewer: 50, Guest: 40, HexaShield: 12 },
+    synced: { Full: 61, Approver: 17, Viewer: 26, Guest: 14, HexaShield: 0 },
+  },
 };
 
 /** HexaSOC analyst on duty for each customer (HexaShield staff). */
 const HX_SOC: CustomerMap<string> = {
   maritime: HEXASOC_ANALYSTS[0], finserv: HEXASOC_ANALYSTS[2], media: HEXASOC_ANALYSTS[1], healthcare: HEXASOC_ANALYSTS[5], automotive: HEXASOC_ANALYSTS[3],
-  insurance: 'Leon Carter (L2)', defence: 'Elijah Brooks (L3)', pharma: 'Ingrid Solberg (L3)', sghospital: 'Kelvin Lim (L2)', studio: 'Riya Kapoor (L3)',
+  insurance: 'Leon Carter (L2)', defence: 'Elijah Brooks (L3)', pharma: 'Ingrid Solberg (L3)', sghospital: 'Kelvin Lim (L2)', studio: 'Riya Kapoor (L3)', telco: 'Tomer Gal (L3)',
 };
 
 const BOT_DEF: { id: string; name: string; role: string }[] = [
@@ -570,6 +598,14 @@ const SECTOR_REC: CustomerMap<{ report: [string, string]; pack: string; war: [st
     custody: ['Crown of Ash awards screener (FYC) watermark hit on a piracy site', 'NexGuard ID traced to an Indee screener link · link revoked · recipient identified'],
     finding: ['Frame.io review links shareable without expiry or watermark', 'HexaStrike PT-2026-061 · critical · studios · MPA CSBP DS-4'],
   },
+  telco: {
+    report: ['Board cyber & network resilience update · Q4', 'Signalling abuse, SIM-swap fraud, DDoS readiness, licence compliance report · 23 citations'],
+    pack: 'Harel / Beazley / AXA XL renewal evidence pack',
+    war: ['MI-2026-031 · Roaming partner signalling abuse', 'Major incident · partner link rate-limited · Privacy Protection Authority assessment open'],
+    ot: ['Unscheduled parameter change on generator controllers · 23 northern cell sites', 'Modbus writes from the Galil Tower Services jump host · outside the change window · read-only', 'high'],
+    custody: ['Subscriber master export opened outside the migration team', 'Billing migration wave 3 · vendor account not on the delegation list · grant revoked'],
+    finding: ['Dealer portal allows a SIM change without step-up verification', 'HexaStrike PT-2026-047 · critical · partners.kinneret-telecom.co.il · PPL / DSR'],
+  },
 };
 
 export function commsRecords(c: CustomerProfile, tenantId: string, me: Me): Record<CardKey, RecordRef> {
@@ -584,7 +620,7 @@ export function commsRecords(c: CustomerProfile, tenantId: string, me: Me): Reco
   const acts = pendingActions(c, tenantId, me);
   const pref: CustomerMap<RegExp> = {
     maritime: /vessel|remote access/i, finserv: /Okta|sessions/i, media: /Red Fern|supplier/i, healthcare: /contain/i, automotive: /KUKA/i,
-    insurance: /sessions|EXL|help-desk/i, defence: /DNC|Building 3|contain/i, pharma: /contain|DeltaV|workstation/i, sghospital: /sessions|TrakCare|contain/i, studio: /quarantine|port|revoke/i,
+    insurance: /sessions|EXL|help-desk/i, defence: /DNC|Building 3|contain/i, pharma: /contain|DeltaV|workstation/i, sghospital: /sessions|TrakCare|contain/i, studio: /quarantine|port|revoke/i, telco: /vendor session|CyberArk|sessions/i,
   };
   const a = acts.find((x) => forCustomer(pref, c).test(x.title)) ?? acts[0];
   const ls = loops(c, tenantId);
@@ -1114,6 +1150,53 @@ const CONV: CustomerMap<ConvSeed[]> = {
       ['hx-desk', 'Understood; nothing changes until approval. Results will be posted here.', 130, 'conn'],
     ], replies: ['Key rotated; feeds resumed and backfilled.', 'Watermark-hit evidence is fresh again.', 'Session closed and access revoked.'] },
   ],
+  telco: [
+    { id: 't-sig', kind: 'group', title: 'Roaming partner signalling · containment', with: ['counsel', 'dpo', 'st7'], cat: 'colleague', pinned: true, unread: 4, tenant: 'mobile', topic: 'Partner link and notification assessment', msgs: [
+      ['st7', 'The signalling firewall shows 3,180 Diameter location and profile queries against 412 subscribers from a roaming partner outside its agreed range, all through the roaming hub.', 31, 'inc'],
+      ['st7', 'Eleven minutes later an OSS service account ran a bulk read on KTG-UDM-PT01. Partner link is rate-limited by approval and the account is rotated.', 26],
+      ['dpo', 'Location and profile data for 412 people is in scope. I am running the severity assessment for the Privacy Protection Authority now.', 20],
+      ['counsel', 'Legal hold on the signalling and OSS logs, please. I will handle the Ministry and the partner operator; nobody else contacts them.', 14, 'war'],
+      ['counsel', '@{me} I need to know by 16:00 whether any of the 412 are business customers under contract; that changes who we notify.', 5],
+    ], replies: ['Custody lineage shows 38 of the 412 belong to two managed-service customers; list attached to the War Room.', 'The roaming hub has confirmed the two global titles are not in the partner agreement.', 'The lawful-interception enclave is not in this path; integrity monitoring is quiet.'] },
+    { id: 't-site', kind: 'dm', with: ['ot'], cat: 'colleague', pinned: true, unread: 2, tenant: 'mobile', topic: 'Generator controllers, northern cell sites', msgs: [
+      ['ot', 'HexaOT flagged Modbus parameter writes to generator controllers at 23 northern cell sites at 03:40, outside the change window.', 150, 'ot'],
+      ['ot', 'Source was the Galil Tower Services jump host. Their work order covered a fuel-level check at 6 sites, not a schedule change at 23.', 140],
+      ['me', 'Are the sites on air? Site power is not something we touch from HexaView.', 120],
+      ['ot', 'Correct: OT stays read-only by policy. All 23 are on mains with batteries at float. HexaSOC has queued termination of the vendor session in CyberArk instead.', 90, 'act'],
+    ], replies: ['Approved. Yara will have the NOC confirm the controller schedules against the golden values.', 'Galil confirm a technician pushed a fuel-test schedule to the wrong site group; no other changes.', 'Logged for the site-access review; contractor accounts move to named, brokered sessions.'] },
+    { id: 't-csm', kind: 'dm', with: ['hx-csm'], cat: 'hexashield', pinned: true, unread: 1, topic: 'Service review prep', msgs: [
+      ['hx-csm', 'Hi {me}, service review agenda: MDR SLA (99.96%), 640 custody agents, and evidence for the Ministry of Communications licence report.', 4200],
+      ['me', 'The BSS and CRM audit feed has been failing since billing migration wave 3. That is our biggest blind spot on SIM changes this week.', 4100],
+      ['hx-csm', 'Agreed. The signalling-firewall export is also lagging after its rule-set update, with two fields unmapped.', 80, 'conn'],
+    ], replies: ['Support can re-authorise the BSS feed within an hour of your approval.', 'The signalling field mapping ships in the next connector release.', 'Happy to walk the licence-report evidence with Rania on Thursday.'] },
+    { id: 't-broker', kind: 'dm', with: ['broker'], cat: 'external', unread: 1, topic: 'Renewal: signalling and SIM-swap controls', msgs: [
+      ['broker', 'Hi {me}, the London market want to understand the signalling incident and the SIM-swap controls before renewal in {renewal} days.', 700],
+      ['me', 'Here is the live evidence pack, including signalling-firewall coverage and the fraud-scoring control.', 620, 'pack'],
+      ['broker', 'Thanks. The underwriter noted a critical finding on the dealer portal. Fix date?', 110, 'finding'],
+    ], replies: ['A dated fix keeps the minus 4% outcome on the table.', 'Harel as the fronting carrier has no further questions.', 'I will set up the underwriter call for next week.'] },
+    { id: 't-auditor', kind: 'dm', with: ['auditor'], cat: 'external', unread: 0, topic: 'ISO 27001 surveillance audit', msgs: [
+      ['auditor', 'For the January surveillance audit I want to sample privileged access to network elements and supplier access to subscriber data.', 4400],
+      ['me', 'Read-only guest access is granted; CyberArk session records and custody evidence are linked to the controls.', 4300],
+      ['auditor', 'Thank you. One loop shows partial for SIM-change verification. Is that in scope?', 1600, 'loop'],
+      ['me', 'Yes; the evidence is stale because one audit feed is failing. The fix is in progress with a dated ticket.', 1550],
+    ], replies: ['Noted as remediation in progress.', 'Please share the ISO 22301 exercise report for the landing station too.', 'Access works; read-only confirmed.'] },
+    { id: 't-exec', kind: 'group', title: 'Exec: signalling incident and subscriber data', with: ['board', 'st1', 'cfo'], cat: 'colleague', unread: 0, topic: 'Notification and customer impact', msgs: [
+      ['board', 'Bottom line: do we have to tell subscribers, and does this touch the licence?', 200],
+      ['me', 'Location and profile data for 412 subscribers is in scope. The assessment for the Privacy Protection Authority is under way; the Ministry has been informed. Board update attached.', 170, 'report'],
+      ['st1', 'The partner link stays rate-limited. We are checking every other Diameter link for the same filtering gap this week.', 130],
+      ['cfo', 'What is the exposure if business customers claim under their contracts? I need a range.', 60],
+    ], replies: ['I will work with finance on a range; 38 of the 412 sit under two managed-service contracts.', 'Thank you. Twice-daily updates until closed.', 'Insurer notified through Marsh; within the policy notice period.'] },
+    { id: 't-vendor', kind: 'dm', with: ['v1'], cat: 'external', unread: 2, topic: 'Wave 3 export access', msgs: [
+      ['me', 'Rotem, the wave 3 subscriber master export was opened by an Amdocs account that is not on the migration delegation list.', 210],
+      ['v1', 'Thanks for flagging. Can you share the session ID? We will check our VDI logs now.', 190],
+      ['v1', 'The account belongs to a migration engineer who joined last week. The delegation list was not updated; corrected list attached.', 40, undefined, f('Amdocs_wave3_delegation_list_v4.pdf', '212 KB')],
+    ], replies: ['We will send list changes before access is used from now on.', 'Two leavers have been removed from the list as well.', 'Confirmed: the copy stayed inside the migration VDI.'] },
+    { id: 't-desk', kind: 'support', title: 'HexaView Support Desk', with: ['hx-desk'], cat: 'hexashield', unread: 0, topic: 'HS-SUP-71204 · BSS audit feed', msgs: [
+      ['hx-desk', 'Hi {me}, ticket HS-SUP-71204: the BSS and CRM audit feed has returned 401 since the wave 3 cut-over, so SIM-change events stopped arriving.', 160],
+      ['me', 'Samir will approve the session. We need SIM-change evidence back before the data-security audit.', 140],
+      ['hx-desk', 'Understood; nothing changes until approval. Results will be posted here.', 130, 'conn'],
+    ], replies: ['Feed re-authorised; events resumed and backfilled.', 'SIM-change evidence is fresh again.', 'Session closed and access revoked.'] },
+  ],
 };
 
 const ALT: Record<string, string> = { ciso: 'soc', soc: 'ciso', grc: 'ciso', ot: 'soc', admin: 'ciso' };
@@ -1172,11 +1255,11 @@ interface ChSeed { id: string; name: string; group: ChannelGroup; purpose: strin
 
 const OT_CHANNEL: CustomerMap<string> = {
   maritime: 'ot-terminals', finserv: 'dc-facilities', media: 'broadcast-engineering', healthcare: 'biomed-clinical-eng', automotive: 'plant-ot',
-  insurance: 'dc-facilities-windsor', defence: 'building3-shopfloor', pharma: 'gmp-plant-ot', sghospital: 'biomed-meddev', studio: 'ride-show-control',
+  insurance: 'dc-facilities-windsor', defence: 'building3-shopfloor', pharma: 'gmp-plant-ot', sghospital: 'biomed-meddev', studio: 'ride-show-control', telco: 'network-site-infra',
 };
 const VENDOR_CHANNEL: CustomerMap<string> = {
   maritime: 'ext-konecranes', finserv: 'ext-infosys-bpm', media: 'ext-red-fern', healthcare: 'ext-bd-alaris', automotive: 'ext-kuka',
-  insurance: 'ext-exl', defence: 'ext-cumberland-precision', pharma: 'ext-koerber-pasx', sghospital: 'ext-intersystems-trakcare', studio: 'ext-dneg',
+  insurance: 'ext-exl', defence: 'ext-cumberland-precision', pharma: 'ext-koerber-pasx', sghospital: 'ext-intersystems-trakcare', studio: 'ext-dneg', telco: 'ext-amdocs',
 };
 
 interface ChText { soc: M[]; socThread: M[]; ot: M[]; risk: M[]; ins: M[]; vendor: M[]; board: M[]; otMembers?: string[] }
@@ -1275,6 +1358,16 @@ const CH_TEXT: CustomerMap<ChText> = {
     vendor: [['v1', 'DNEG: second Signiant download came from our Mumbai pipeline node; egress logs uploaded.', 40, undefined, f('DNEG_signiant_egress_logs.csv', '96 KB')], ['grc', 'Thanks; please pre-register egress IPs before any change.', 30], ['v1', 'Agreed. TPN Gold Shield certificate attached to the vendor record.', 20]],
     board: [['bot-view', 'Board content security & resilience update ready (24 citations).', 170, 'report'], ['ned', 'Please include vendor TPN status and Starfall+ fraud trends.', 60]],
     otMembers: ['ot', 'st9', 'soc', 'hx-soc'],
+  },
+  telco: {
+    soc: [['bot-soc', 'New {incSev} incident: {inc}. HexaSOC triage started; any containment goes through the Action Centre.', 64, 'inc'], ['an1', 'Checking the subscriber database and CDR mediation for reads from the same service account.', 52], ['hx-soc', 'HexaSOC: signalling-firewall rule set confirmed on the partner link; monitoring raised to high on all roaming interconnects.', 40]],
+    socThread: [['soc', 'Is the lawful-interception enclave anywhere near this path?', 50], ['an2', 'No; it is isolated and its integrity monitor is quiet.', 46], ['threat', 'The same two global titles appear in a sector advisory from last week; added to the watchlist.', 40]],
+    ot: [['bot-ot', 'HexaOT · high: unscheduled parameter change on generator controllers at 23 northern cell sites. Read-only by policy.', 150, 'ot'], ['st11', 'NOC: all 23 sites on mains, batteries at float, no service impact.', 90], ['st8', 'Haifa landing station: power feed equipment readings normal; the collector is still uploading about 3 h late.', 50]],
+    risk: [['bot-comply', 'Loop partial: SIM-change identity verification. Evidence is stale while the BSS audit feed is failing.', 600, 'loop'], ['risk', 'Nineteen suppliers are rated high risk; Negev Contact Solutions and Galil Tower Services are the two with standing access.', 400], ['grc', 'Ministry of Communications licence report due in 12 weeks; 27 evidence tasks overdue.', 300]],
+    ins: [['bot-ins', 'Evidence pack refreshed: 22 of 26 controls attested.', 520, 'pack'], ['broker', 'The London market will finalise terms once the signalling incident is closed.', 120], ['cfo', 'Retention stays at ₪7.5M; minus 4% is the target.', 60]],
+    vendor: [['v1', 'Amdocs: the account that opened the wave 3 export belongs to a migration engineer added last week; corrected delegation list uploaded.', 40, undefined, f('Amdocs_wave3_delegation_list_v4.pdf', '212 KB')], ['grc', 'Thanks; please send list changes before access is used, not after.', 30], ['v1', 'Agreed. Two leavers have been removed from the list as well.', 20]],
+    board: [['bot-view', 'Board cyber & network resilience update ready (23 citations).', 170, 'report'], ['ned', 'Please include SIM-swap fraud losses and the licence report timeline.', 60]],
+    otMembers: ['ot', 'st7', 'st8', 'st11', 'soc', 'hx-soc'],
   },
 };
 
@@ -1391,6 +1484,11 @@ const EXTRA_TICKETS: CustomerMap<Omit<Ticket, 'id' | 'owner' | 'updates'>[]> = {
     { title: 'Osaka resort edge: ride-zone sensor time drift 4 s', priority: 'P3', status: 'In progress', openedMin: 1300, respondedMin: 45, category: 'Data plane', raisedBy: 'admin', path: '/fabric/dataplanes' },
     { title: 'Request: TPN questionnaire auto-fill for VFX vendors', priority: 'P4', status: 'New', openedMin: 3200, respondedMin: 0, category: 'Feature request', raisedBy: 'grc' },
   ],
+  telco: [
+    { title: 'BSS and CRM audit feed: 401 since billing migration wave 3', priority: 'P2', status: 'In progress', openedMin: 640, respondedMin: 14, category: 'Integrations', raisedBy: 'admin', path: '/fabric/integrations' },
+    { title: 'Landing station edge: agent held on 1.8.9 until the cable maintenance window', priority: 'P3', status: 'Awaiting you', openedMin: 2900, respondedMin: 60, category: 'Data plane', raisedBy: 'admin', path: '/fabric/dataplanes' },
+    { title: 'Request: Ministry of Communications licence report template', priority: 'P4', status: 'New', openedMin: 800, respondedMin: 0, category: 'Feature request', raisedBy: 'grc' },
+  ],
 };
 
 export function supportTickets(c: CustomerProfile, people: CommsPerson[]): { tickets: Ticket[]; sessions: SupportSession[] } {
@@ -1450,6 +1548,7 @@ export function sectorKb(c: CustomerProfile): { title: string; cat: string; mins
     pharma: [{ title: 'Part 11 / Annex 11 audit-trail review evidence for inspections', cat: 'Compliance', mins: 6 }, { title: 'OT read-only monitoring under GxP change control (DeltaV, PAS-X)', cat: 'HexaOT', mins: 5 }, { title: 'Air-gapped aseptic line: signed bundle and one-way diode export', cat: 'Data planes', mins: 6 }],
     sghospital: [{ title: 'HIA cybersecurity and data security requirements: evidence map', cat: 'Compliance', mins: 7 }, { title: 'MOH and PDPC notification timelines from the War Room', cat: 'Regulatory', mins: 5 }, { title: 'Medical device read-only monitoring and HSA field safety notices', cat: 'HexaOT', mins: 5 }],
     studio: [{ title: 'NexGuard watermark hits: tracing a leak with HexaCustody', cat: 'Custody', mins: 5 }, { title: 'TPN assessments: evidence mapping and VFX vendor status', cat: 'Compliance', mins: 6 }, { title: 'Ride and show control: what HexaOT will never do', cat: 'HexaOT', mins: 3 }],
+    telco: [{ title: 'Signalling-firewall events: mapping SS7, Diameter and GTP alerts to HexaView loops', cat: 'Connectors', mins: 6 }, { title: 'Privacy Protection Authority and Ministry notifications from the War Room', cat: 'Regulatory', mins: 5 }, { title: 'Cell sites and landing stations: what HexaOT will never do', cat: 'HexaOT', mins: 3 }],
   };
   return [...forCustomer(m, c), ...KB_ARTICLES];
 }
@@ -1532,6 +1631,11 @@ const REC_TEXT: CustomerMap<{ title: string; kind: CallKind; daysAgo: number; me
     { title: 'Service review with HexaShield', kind: 'service', daysAgo: 8, members: ['ciso', 'admin', 'hx-csm', 'hx-se'], summary: '2,860 custody agents healthy. Moxion dailies degraded; Irdeto key expired during awards season. TPN Gold Shield evidence for London post on track.', decisions: ['Rotate the Irdeto key under a support session', 'Ship the Moxion connector fix'], actions: [['Approve Irdeto support session', 'admin', '/ops/admin', 1], ['Review Moxion custody gap', 'grc', '/custody/lineage', 7]] },
     { title: 'Leak response: Crown of Ash day 1', kind: 'incident', daysAgo: 0, members: ['counsel', 'grc', 'st8', 'hx-ir'], summary: 'NexGuard traced the leak to one Indee screener link; link revoked, legal hold applied, takedowns filed. Not material for SEC 8-K on current facts.', decisions: ['Move remaining screeners to device-bound playback', 'Outside counsel to contact the guild'], actions: [['Monitor piracy sites twice daily', 'threat', '/int/darkweb', 3], ['Prepare talent notification draft', 'counsel', '/ops/warroom', 2]] },
     { title: 'Intamin vendor escalation: Osaka zone 4', kind: 'vendor', daysAgo: 2, members: ['ot', 'st9', 'v3'], summary: 'Intamin engineer connected a service laptop in the wrong ride zone. No programme changes; port quarantined. Escort now mandatory for ride-control visits.', decisions: ['Escort all OEM visits to ride-control zones', 'Pre-register OEM laptops'], actions: [['Update ride-zone access procedure', 'ot', '/ot/network', 7], ['Re-assess Intamin vendor risk', 'risk', '/comply/tprm', 14]] },
+  ],
+  telco: [
+    { title: 'Service review with HexaShield', kind: 'service', daysAgo: 8, members: ['ciso', 'admin', 'hx-csm', 'hx-se'], summary: '640 custody agents healthy. BSS and CRM audit feed failing since billing migration wave 3; the landing station edge waits for the cable maintenance window. Signalling-firewall field mapping fix scheduled.', decisions: ['Approve a read-only support session for the BSS feed', 'Upgrade the landing station agent in the next maintenance window'], actions: [['Approve BSS feed support session', 'admin', '/ops/admin', 1], ['Review signalling-firewall field drift', 'admin', '/fabric/integrations', 7]] },
+    { title: 'Signalling incident: day 1', kind: 'incident', daysAgo: 0, members: ['counsel', 'dpo', 'st7', 'hx-ir'], summary: 'Partner link rate-limited within 40 minutes and the OSS service account rotated; 412 subscribers in scope. Privacy Protection Authority assessment open; no lawful-interception system in the path.', decisions: ['Keep the partner link rate-limited until its operator responds', 'Data Protection Officer to complete the severity assessment today'], actions: [['Confirm the affected-subscriber list', 'dpo', '/ops/warroom', 1], ['Review roaming-partner filtering on every Diameter link', 'ot', '/ot/network', 5]] },
+    { title: 'Galil Tower Services escalation: generator controllers', kind: 'vendor', daysAgo: 2, members: ['ot', 'st11', 'risk'], summary: 'A contractor technician pushed a fuel-test schedule to 23 generator controllers outside the change window. No service impact; contractor access now runs through named, brokered sessions.', decisions: ['Named accounts for all field contractors', 'Change window enforced at the jump host'], actions: [['Update the site-access procedure', 'ot', '/ot/network', 7], ['Re-assess Galil Tower Services', 'risk', '/comply/tprm', 14]] },
   ],
 };
 

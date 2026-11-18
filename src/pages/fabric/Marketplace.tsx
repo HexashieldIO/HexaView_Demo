@@ -129,6 +129,7 @@ export default function FabricMarketplace() {
     if (sectors.includes('maritime')) return ['Vessel', 'IEC 62443', 'BAS', ...base.slice(0, 3)];
     if (sectors.includes('defence')) return ['CMMC', 'GCC High', 'Air-gapped', ...base.slice(0, 3)];
     if (sectors.includes('pharma')) return ['GxP', 'Veeva', 'LIMS', ...base.slice(0, 3)];
+    if (sectors.includes('telco')) return ['Signalling', 'DDoS', 'Fraud', 'Check Point', 'OT sensor', 'Write-back'];
     if (sectors.includes('finance') || sectors.includes('insurance')) return ['SWIFT', 'DORA', 'Pentera', ...base.slice(0, 3)];
     return base;
   }, [sectors]);
